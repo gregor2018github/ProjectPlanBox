@@ -1,3 +1,4 @@
+import { Accessibility } from "@dnd-kit/dom";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import type { ReactNode } from "react";
@@ -11,12 +12,16 @@ export interface DndRootProps {
 
 /**
  * One drag-and-drop context for the whole shell, so items can be dropped
- * anywhere (e.g. a todo onto a list in the sidebar). Pointer, touch and
- * keyboard sensors come from dnd-kit's defaults.
+ * anywhere (e.g. a todo onto a list in the sidebar).
+ *
+ * dnd-kit's Accessibility plugin is removed: it turns every sortable row
+ * into role="button" with a tab stop, which nests our row buttons inside a
+ * button. Keyboard users reorder with Alt+↑/↓ and "Move to…" instead.
  */
 export function DndRoot({ children }: DndRootProps) {
   return (
     <DragDropProvider
+      plugins={(defaults) => defaults.filter((plugin) => plugin !== Accessibility)}
       onDragEnd={(event) => {
         const { source, target } = event.operation;
         if (!source) return;

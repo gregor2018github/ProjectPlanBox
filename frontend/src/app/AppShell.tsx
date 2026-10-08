@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useSearch } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 
 import { useMeta } from "../core/api/coreQueries";
@@ -28,6 +28,13 @@ export function AppShell() {
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Close the navigation sheet once the user has navigated somewhere.
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [navPath, setNavPath] = useState(pathname);
+  if (pathname !== navPath) {
+    setNavPath(pathname);
+    setMobileNavOpen(false);
+  }
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shutdownOpen, setShutdownOpen] = useState(false);

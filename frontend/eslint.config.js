@@ -10,7 +10,7 @@ import planbox from "./eslint-rules.js";
 export default defineConfig([
   globalIgnores(["dist", "node_modules", "src/core/api/schema.d.ts"]),
   {
-    files: ["src/**/*.{ts,tsx}", "vite.config.ts"],
+    files: ["src/**/*.{ts,tsx}", "vite.config.ts", "playwright.config.ts", "e2e/**/*.ts"],
     extends: [
       js.configs.recommended,
       tseslint.configs.strictTypeChecked,
@@ -52,7 +52,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/**/*.test.{ts,tsx}", "src/test/**"],
+    files: ["src/**/*.test.{ts,tsx}", "src/test/**", "e2e/**"],
     rules: {
       "jsdoc/require-jsdoc": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
