@@ -6,8 +6,9 @@ collections), a calendar and habit tracking. The app grows one module at a
 time. The desktop is the hub. Mobile access as a PWA over a private network
 will come later.
 
-> **Status:** planning. Nothing below runs yet. Phase 0 adds the commands
-> described here. See [docs/PLAN.md](docs/PLAN.md).
+> **Status:** phase 0 (foundation) is done. The app shell, tooling and
+> pipelines run, but there are no features yet. Todos arrive in phase 1. See
+> [docs/PLAN.md](docs/PLAN.md).
 
 ## What it is
 
@@ -44,7 +45,7 @@ py -3.14 scripts\setup.py
 
 This creates the virtual environment in `.venv\`, installs the Python
 dependencies (including the dev group), runs `npm ci` in `frontend\` and
-installs the git hooks, if any. You can run it again safely.
+generates the API types. You can run it again safely.
 
 ## Commands
 
@@ -57,6 +58,8 @@ own, so you do not need to activate it first.
 | `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (from phase 1). |
 | `py scripts\check.py` | The full quality gate: Ruff format and lint, pyright, an API types drift check, Prettier, ESLint, `tsc`, then all tests. Run it before every commit. `--full` adds the Playwright smoke suite. |
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
+| `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |
+| `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
 | `py scripts\serve.py` | **Daily use.** Builds the frontend if needed and serves app and API from one process on <http://127.0.0.1:8765>, using your real data directory. |
 
 ## Data

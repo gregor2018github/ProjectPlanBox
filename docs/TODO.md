@@ -18,6 +18,14 @@ non-interactive agent session cannot run the OAuth flow.
 Decide the use case first. Any integration is a feature that needs its own
 plan and must respect the "data stays on this PC" rule for `private_data/`.
 
+## Dependencies
+
+- [ ] **httpx to httpx2 (dev only).** Starlette 1.7's `TestClient` prefers
+      `httpx2` and emits a deprecation warning with `httpx`. Switching means
+      swapping the pin in `pyproject.toml`, then removing the pytest warning
+      filter and the pyright relaxation for `backend/tests`. It needs owner
+      approval because it adds a package that was not on the agreed list.
+
 ## Data safety
 
 - [ ] Off-machine backups. Backups currently live inside `private_data/`, so

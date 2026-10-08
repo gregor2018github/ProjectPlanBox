@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planbox"
+version = "0.1.0"
+description = "Personal, local-first planner."
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "fastapi==0.143.0",
+    "pydantic==2.14.0",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "pyright==1.1.414",
+    "pytest==9.1.1",
+    "ruff==0.16.10",
+]
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["planbox*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql"]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["backend", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "RUF", "PT",
+    "D", "ANN", "DTZ", "S", "PL", "TID",
+]
+ignore = [
+    "D105",    # magic methods need no docstring
+    "D107",    # __init__ is documented on the class
+    "PLR0913", # explicit dependencies beat parameter objects here
+    "N818",    # domain errors read better as NotFound/Conflict than NotFoundError
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"datetime.datetime.now".msg = "Use the injected Clock (planbox.core.clock)."
+"datetime.datetime.utcnow".msg = "Use the injected Clock (planbox.core.clock)."
+"uuid.uuid4".msg = "Use planbox.core.ids.new_id() (UUIDv7)."
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/**" = ["S101", "PLR2004", "D100", "D104"]
+"backend/planbox/core/clock.py" = ["TID251"]
+"scripts/**" = ["S603", "S607", "T201"]
+
+# ------------------------------------------------------------- pyright
+[tool.pyright]
+include = ["backend", "scripts"]
+pythonVersion = "3.14"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+reportMissingTypeStubs = false
+
+[[tool.pyright.executionEnvironments]]
+# Starlette's TestClient types resolve through `httpx2`; with the pinned `httpx`
+# they are Unknown. Relax only the Unknown-propagation rules, only in tests,
+# until the httpx2 decision is made (see docs/TODO.md).
+root = "backend/tests"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownArgumentType = "none"
+
+[[tool.pyright.executionEnvironments]]
+root = "backend"
+
+[[tool.pyright.executionEnvironments]]
+root = "scripts"
+extraPaths = ["backend"]
+
+# -------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = ["-q", "--strict-markers", "-p", "no:cacheprovider"]
+filterwarnings = [
+    "error",
+    # Starlette 1.7 prefers httpx2 for TestClient; switching is an open owner decision.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]

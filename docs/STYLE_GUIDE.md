@@ -77,7 +77,8 @@ def complete(self, todo_id: str) -> Todo:
   (`jsdoc/require-jsdoc` with `publicOnly`). Keep it short: what it does and
   anything non-obvious. Do not repeat the types.
 - **One component per file.** Small private helper components are not
-  allowed in the same file. They get their own file.
+  allowed in the same file. They get their own file. The local ESLint rule
+  `planbox/one-component-per-file` enforces this.
 - Named exports only. The exceptions are config files that need a default
   export.
 - **Generated API types are the only source of backend shapes.** Alias them
@@ -126,11 +127,20 @@ things that float.
 
 ## B1. Tokens
 
-Tokens are CSS custom properties in `frontend/src/styles/tokens.css`,
-exposed to Tailwind v4 through `@theme inline`. Components use **Tailwind
-utilities that map to tokens** (`bg-surface`, `text-muted`, `rounded-md`).
-Raw colour values and arbitrary values (`bg-[#123]`, `p-[13px]`) are banned
-outside `tokens.css`.
+Tokens live in `frontend/src/styles/tokens.css` inside Tailwind v4's
+`@theme` block. Tailwind's default palette, radii, shadows, type scale and
+easings are reset there, so **only our tokens exist as utilities**:
+`bg-surface`, `text-text-muted`, `border-border`, `rounded-md`,
+`shadow-md`, `ease-out`. Colour utilities repeat the token name, so the
+muted text colour is `text-text-muted`. That reads oddly, but it is explicit.
+The dark theme overrides the same variables under `[data-theme="dark"]`.
+Durations are not a Tailwind namespace, so use them as variables:
+`duration-(--duration-fast)`.
+
+Raw colours and arbitrary colour, spacing, radius, shadow or type values
+(`bg-[#123]`, `p-[13px]`) are banned outside `tokens.css`. Arbitrary *layout*
+dimensions (a panel width, `max-w-[85vw]`) are allowed when no utility
+fits.
 
 The theme is set with `data-theme="light|dark"` on `<html>`. The preference
 is `system | light | dark` and is stored in `localStorage`. An inline script
@@ -152,12 +162,12 @@ in `index.html` applies it before first paint. `system` follows
 | `--color-text` | `oklch(0.22 0.01 260)` | `oklch(0.95 0.004 260)` | Primary text |
 | `--color-text-muted` | `oklch(0.48 0.012 260)` | `oklch(0.72 0.01 260)` | Secondary text, metadata (≥ 4.5:1) |
 | `--color-text-subtle` | `oklch(0.62 0.01 260)` | `oklch(0.58 0.01 260)` | Placeholders and disabled only |
-| `--color-accent` | `oklch(0.55 0.19 264)` | `oklch(0.70 0.15 264)` | **The** accent: primary buttons, checkbox fill, focus ring, links, today marker |
-| `--color-accent-hover` | `oklch(0.50 0.19 264)` | `oklch(0.75 0.14 264)` | |
+| `--color-accent` | `oklch(0.52 0.19 264)` | `oklch(0.70 0.15 264)` | **The** accent: primary buttons, checkbox fill, focus ring, links, today marker |
+| `--color-accent-hover` | `oklch(0.47 0.19 264)` | `oklch(0.75 0.14 264)` | |
 | `--color-accent-subtle` | `oklch(0.96 0.025 264)` | `oklch(0.30 0.06 264)` | Accent backgrounds (badges, drop indicator halo) |
 | `--color-on-accent` | `oklch(1 0 0)` | `oklch(0.17 0.02 264)` | Text on accent |
-| `--color-danger` | `oklch(0.57 0.20 27)` | `oklch(0.70 0.17 27)` | Overdue, high priority, destructive |
-| `--color-warning` | `oklch(0.70 0.15 70)` | `oklch(0.80 0.14 75)` | Medium priority |
+| `--color-danger` | `oklch(0.54 0.20 27)` | `oklch(0.70 0.17 27)` | Overdue, high priority, destructive |
+| `--color-warning` | `oklch(0.62 0.14 62)` | `oklch(0.80 0.14 75)` | Medium priority (marks only, ≥ 3:1) |
 | `--color-success` | `oklch(0.60 0.14 155)` | `oklch(0.72 0.14 155)` | Rare: confirmations only |
 | `--color-focus` | `= accent` | `= accent` | 2 px focus ring, 2 px offset |
 
@@ -166,9 +176,13 @@ semantic colours carry *meaning* (overdue, priority, destruction) and appear
 as small marks (an icon, a 3 px flag, text), never as large fills. Tags and
 lists have no colours.
 
-Phase 0 includes a Vitest test that converts the token pairs from OKLCH and
-checks WCAG contrast: text, muted text and on-accent at ≥ 4.5:1, and the
-focus ring at ≥ 3:1 against its background.
+`src/styles/tokens.test.ts` parses `tokens.css`, converts OKLCH to sRGB
+and checks WCAG contrast in both themes. Text, muted text, accent, danger
+and on-accent must reach ≥ 4.5:1 on every background they are used on,
+including hover and selected rows. Warning, which is only used for marks,
+must reach ≥ 3:1. Changing a colour without passing this test fails the
+build. The first draft's light accent, danger and warning were darkened
+because of it.
 
 ### Spacing (base 4 px)
 
@@ -272,7 +286,10 @@ live in `tokens.css`. Do not inline magic numbers.
   Tooltip, Select, Combobox, Checkbox, Switch, Toast and Context Menu. Each
   is wrapped once in `src/ui/` (e.g. `ui/Dialog.tsx`) with our tokens and
   motion. Modules use the `ui/` wrappers and never Base UI directly. ESLint
-  enforces this.
+  enforces this through the local `planbox/boundaries` rule.
+- **Popup transitions** use CSS through Base UI's `data-[starting-style]` /
+  `data-[ending-style]` attributes and the duration/easing tokens. Motion
+  (the library) is for layout springs and panel width only.
 - **Variants** are plain typed maps (`const buttonVariants = { primary: "…",
   ghost: "…" } satisfies Record<ButtonVariant, string>`) joined with a tiny
   `cx()` helper. There is no `cva`/`tailwind-merge`. `className` on `ui/`
@@ -291,6 +308,9 @@ live in `tokens.css`. Do not inline magic numbers.
 
 ## B3. Interaction, input and responsiveness
 
+- **Keyboard layouts.** Symbol shortcuts (`?`, `[`, `]`) work with Shift
+  and AltGr, as on German keyboards where `[` is AltGr+8. Letter shortcuts
+  respect Shift exactly.
 - **Keyboard first.** Every action has a palette command. Common actions
   have a single-key shortcut that fires only when focus is not in a text
   field. Shortcuts are shown in tooltips, menus and the `?` overlay.

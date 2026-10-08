@@ -4,7 +4,7 @@ Every phase ends with the same steps: `py scripts\check.py` is green, the
 docs are updated, and there is a short report (what was built, what was
 deferred, what diverged from the plan).
 
-## Phase 0: Foundation (no features)
+## Phase 0: Foundation (no features). Done 2026-10-08
 
 **Goal:** the empty app runs, looks and feels right, and every pipeline that
 later phases depend on is in place and tested.
@@ -243,7 +243,7 @@ pinned exactly.
 
 | Package | Version | Justification |
 |---|---|---|
-| httpx | 0.28.1 | dev. FastAPI's `TestClient` requires it. Maintained by Encode. The last release is old but it is stable and still the standard. |
+| httpx | 0.28.1 | dev. FastAPI's `TestClient` needs it. **Open question:** Starlette 1.7 (pulled in by FastAPI 0.143) now prefers its successor `httpx2` (2.13.1, maintained by the Pydantic team) and warns about `httpx`. We kept the agreed `httpx`, filtered that one warning in pytest, and relaxed pyright's "unknown type" rules for `backend/tests` only. Switching is a one-line change once approved (see TODO.md). |
 | python-dateutil | 2.9.0.post0 | **Phase 4/6 only**, not installed earlier. Evaluates RFC 5545 RRULEs. Correct recurrence expansion (BYSETPOS, DST, EXDATE) is a deep rabbit hole. It is mature and widely used, but updated rarely. |
 
 Considered and **not** used: SQLAlchemy/SQLModel (see ARCHITECTURE §3),

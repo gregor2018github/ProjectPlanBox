@@ -17,7 +17,7 @@ ProjectPlanBox/
 │   │   ├── main.py           # create_app(): the composition root
 │   │   ├── config.py         # Settings (frozen dataclass, read from env)
 │   │   ├── core/
-│   │   │   ├── db/           # connection factory, transaction(), migration runner, backup
+│   │   │   ├── db/           # connection.py, migrations.py, backup.py, deps.py (FastAPI deps)
 │   │   │   ├── migrations/   # core's own numbered .sql files
 │   │   │   ├── ids.py        # new_id() -> UUIDv7 text
 │   │   │   ├── clock.py      # Clock protocol, SystemClock, utc_now_iso()
@@ -25,7 +25,7 @@ ProjectPlanBox/
 │   │   │   ├── errors.py     # domain errors -> RFC 9457 problem+json
 │   │   │   ├── entities.py   # EntityRef, EntityType registry
 │   │   │   ├── module.py     # the Module manifest type
-│   │   │   ├── meta/         # GET /api/health, GET /api/meta
+│   │   │   ├── meta/         # GET /api/health, GET /api/meta (router/service/repository)
 │   │   │   ├── tags/         # repository / service / router / schemas
 │   │   │   ├── links/        # (built later)
 │   │   │   └── search/       # (built later)
@@ -41,16 +41,19 @@ ProjectPlanBox/
 │   │           └── router.py        # HTTP only
 │   └── tests/                # mirrors planbox/; plus test_boundaries.py
 ├── frontend/
-│   ├── package.json, vite.config.ts, tsconfig.json, eslint.config.js
+│   ├── package.json, vite.config.ts, tsconfig*.json, eslint.config.js
+│   ├── eslint-rules.js       # local rules: module boundaries, Base UI only in ui/, one component per file
 │   ├── index.html            # inline theme bootstrap (avoids a flash of the wrong theme)
 │   ├── e2e/                  # Playwright smoke suite (from phase 1)
 │   └── src/
 │       ├── main.tsx
-│       ├── app/              # shell, router assembly, providers, module registry
-│       ├── core/             # api client + generated schema, query client, shortcuts,
-│       │                     # command palette, quick-add host, toasts/undo, theme, time, ids
-│       ├── ui/               # design-system components (Base UI wrappers, Button, Input…)
-│       ├── styles/           # tokens.css, base.css
+│       ├── app/              # App (providers), router, AppShell, Sidebar, DetailPanel, pages
+│       ├── core/             # api/ (client, generated schema, queries), commands/ (registry,
+│       │                     # palette), shortcuts/ (registry, overview), theme/, time, ids, module
+│       ├── ui/               # design system: Base UI wrappers (Dialog, Sheet, Tooltip, Toaster,
+│       │                     # SegmentedControl), Button, IconButton, Kbd, motion presets
+│       ├── styles/           # tokens.css (+ contrast test), index.css
+│       ├── test/             # Vitest setup, renderApp() with a fake API
 │       └── modules/
 │           ├── index.ts      # MODULES: the only list of modules
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
@@ -87,9 +90,10 @@ The rules are enforced, not just written down:
 - Backend: `tests/test_boundaries.py` walks every module's imports with
   `ast` and fails on a forbidden import. It also checks that each module's
   tables use its own prefix.
-- Frontend: ESLint `no-restricted-imports` with per-folder overrides.
-  `modules/x/**` may not import `modules/y/**`, and `core/**` and `ui/**`
-  may not import `modules/**`.
+- Frontend: the local ESLint rule `planbox/boundaries`
+  (`frontend/eslint-rules.js`) resolves every relative import.
+  `modules/x/**` may not import `modules/y/**`, `core/**` and `ui/**` may not
+  import `modules/**`, and only `ui/**` may import `@base-ui/*`.
 
 > **Why explicit registration rather than auto-discovery?** A plugin scanner
 > would remove the one-line edit, but it adds import-order magic and makes
@@ -111,19 +115,23 @@ class Module:
 ### Frontend module manifest
 
 ```ts
+// src/core/module.ts
 interface ModuleManifest {
-  id: string;                       // matches the backend module id
+  id: string;                                  // matches the backend module id
   label: string;
-  icon: LucideIcon;
-  basePath: string;                 // "/todos"
-  routes: (parent: AnyRoute) => AnyRoute[];
-  navItems: NavItem[];              // sidebar entries (e.g. Inbox, Today, Upcoming, lists)
-  commands?: () => Command[];       // command palette entries
-  quickAdd?: QuickAddProvider;      // global quick-add target
-  detail?: DetailPanelProvider;     // renders ?item=<entity_type>:<id> in the right panel
-  entityTypes?: EntityTypeUi[];     // title/icon/route for EntityRefs (links, search)
+  routes: (parent: AnyRoute) => AnyRoute[];    // attached under the root route
+  SidebarSection?: ComponentType;              // the module renders its own nav (lists, counts)
+  Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
+  detail?: Record<string, ComponentType<{ id: string }>>; // per entity type, for ?item=
 }
 ```
+
+Modules contribute through **components rather than data**. A
+`SidebarSection` can show live counts from the query cache, and a `Host` can
+call `useCommands()` and `useShortcut()` like any other component, so the
+shell needs no plugin API for each concern. Quick-add and entity display for
+links and search will be added to the manifest when phase 1 and phase 2 need
+them.
 
 ## 3. Backend layers
 

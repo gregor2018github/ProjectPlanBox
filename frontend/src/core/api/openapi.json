@@ -1,0 +1,191 @@
+{
+  "components": {
+    "schemas": {
+      "HealthOut": {
+        "description": "Liveness and schema state.\n\nAttributes:\n    status: ``ok`` when the database answers.\n    version: Application version.\n    schema_versions: Highest applied migration per owner (``core``, module ids).",
+        "properties": {
+          "schema_versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Schema Versions",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "schema_versions"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "MetaOut": {
+        "description": "Facts the frontend needs to agree with the backend.\n\nAttributes:\n    version: Application version.\n    mode: ``serve``, ``dev`` or ``test``.\n    timezone: IANA zone that defines \"today\".\n    week_starts_on: ISO weekday the week starts on (1 = Monday).",
+        "properties": {
+          "mode": {
+            "enum": [
+              "serve",
+              "dev",
+              "test"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          },
+          "week_starts_on": {
+            "title": "Week Starts On",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "mode",
+          "timezone",
+          "week_starts_on"
+        ],
+        "title": "MetaOut",
+        "type": "object"
+      },
+      "Problem": {
+        "description": "An RFC 9457 problem document.\n\nAttributes:\n    type: URI reference identifying the problem type (``about:blank`` here).\n    title: Short, human-readable summary of the problem type.\n    status: The HTTP status code.\n    detail: Explanation specific to this occurrence.\n    code: Stable machine-readable code, e.g. ``not_found``.\n    errors: Field-level details for validation problems.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
+        "title": "Problem",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "PlanBox",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "description": "Reports liveness and the applied schema versions.",
+        "operationId": "core_get_health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Health",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "description": "Returns the app version, mode, timezone and week start.",
+        "operationId": "core_get_meta",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Meta",
+        "tags": [
+          "core"
+        ]
+      }
+    }
+  }
+}
