@@ -25,7 +25,7 @@ treat their database as precious.
   folder and port, and `BROWSER=echo` to avoid opening tabs.
 - The server binds to `127.0.0.1` only and accepts only loopback `Host`
   headers. Never change either without an explicit instruction. Mutating
-  endpoints take JSON bodies (cross-site protection; see ARCHITECTURE §9).
+  endpoints take JSON bodies (cross-site protection; see ARCHITECTURE §9, Local-server protections).
 
 ## Hard rules
 1. **Layers:** router (HTTP only) → service (logic, transactions) →

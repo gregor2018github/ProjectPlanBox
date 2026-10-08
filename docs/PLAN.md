@@ -85,7 +85,22 @@ responsive, keyboard-navigable empty shell showing a live health indicator;
 migration runner has tests for ordering, checksum refusal, rollback on
 failure, backup and the directive.
 
-## Phase 1: Todos (the reference vertical slice)
+## Phase 1: Todos (the reference vertical slice). Done 2026-10-08
+
+**As built, differences from the plan below:**
+- Drag and drop wraps `@dnd-kit/react` + `@dnd-kit/dom` in `ui/dnd.ts` and
+  `ui/DndRoot.tsx` (not a `ui/Sortable` component). Each dragged item carries
+  its own drop handler. dnd-kit's Accessibility plugin is turned off because
+  it made every row a `role="button"` around the row's own buttons. Keyboard
+  reordering is Alt+↑/↓ and "Move to…" (V), not dnd-kit's keyboard sensor.
+- Todo routes live under `/todos/…`, and `/` redirects to `/todos/today`
+  (the manifest's `homePath`).
+- The tag and move-to pickers use our own `ui/PickerList` inside a Popover
+  rather than Base UI's Combobox. This keeps "create on Enter" simple.
+- Logbook rows can be reopened but not opened in the detail panel, because
+  completed todos from earlier days are not in the shared cache.
+- The generated API types use `--default-non-nullable false`, so fields
+  with server defaults stay optional in request bodies.
 
 This slice sets the pattern every later module copies. Each step lands with
 its tests. Adding areas, sections and subtasks (decision 2) makes this phase
@@ -291,7 +306,7 @@ Radix, the cost of switching is limited to `src/ui/`.
 |---|---|---|
 | openapi-fetch | 0.17.0 | A 6 KB typed `fetch` driven by the generated `paths` type. The type-level path/param/body inference is hard to write well. It comes from the openapi-typescript project, active (June 2026), but is still 0.x. |
 | @tanstack/react-router | 1.170.41 | Routing with typed, validated search params (the detail panel `?item=`, filters). We need nested layouts, history and URL state. It pairs with Query. Very active. Code-based routes, so no codegen plugin. |
-| @dnd-kit/react (+ @dnd-kit/helpers) | 0.5.0 | Accessible drag and drop with pointer, touch and **keyboard** sensors and sortable lists. Accessible cross-container DnD is a serious amount of work. **Caveat:** it is the new 0.x API, actively released (Sept 2026), while the stable `@dnd-kit/core` 6.3.1 has had no release since Dec 2024. I wrap it in `ui/Sortable` so a swap stays local. See question 9. |
+| @dnd-kit/react, @dnd-kit/dom | 0.5.0 | Drag and drop with pointer and touch sensors, sortable groups and cross-container moves, which is a serious amount of work to do well. `dom` is pinned only to configure its plugins. **Caveat:** it is the new 0.x API, actively released (Sept 2026), while the stable `@dnd-kit/core` 6.3.1 has had no release since Dec 2024. Lint confines it to `src/ui/` so a swap stays local. (`@dnd-kit/helpers` was planned but not needed.) |
 | date-fns, @date-fns/tz | 4.4.0 / 1.5.0 | Date arithmetic, Monday-start weeks, formatting in a named zone, for "today", Upcoming grouping and the date picker. Calendar maths is a classic bug source. Actively maintained. These are also optional peers of Base UI. (`Temporal` is not yet usable on every target browser, including iOS Safari for the future PWA.) |
 | lucide-react | 1.53.0 | The icon set (tree-shaken). We don't draw icons. Very active. |
 | prettier | 3.9.9 | dev. Formats TS/CSS/JSON (ESLint no longer formats). The JS equivalent of the Ruff formatter. Active. |
@@ -334,7 +349,7 @@ is simpler).
    real DB, `settings.toml`, backups and the dev DB (`private_data/dev/`).
 8. **The shortcut set is approved** and extended for the hierarchy (see the
    phase 1 table).
-9. **`@dnd-kit/react` 0.5.0** (the new API), wrapped in `ui/Sortable`.
+9. **`@dnd-kit/react` 0.5.0** (the new API), wrapped in `ui/dnd.ts`.
 10. **Pin versions released today** (React 19.3.0, FastAPI 0.143.0, Pydantic
     2.14.0), with fallbacks: React 19.2.8, and the previous FastAPI/Pydantic
     patches.

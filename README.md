@@ -6,9 +6,30 @@ collections), a calendar and habit tracking. The app grows one module at a
 time. The desktop is the hub. Mobile access as a PWA over a private network
 will come later.
 
-> **Status:** phase 0 (foundation) is done. The app shell, tooling and
-> pipelines run, but there are no features yet. Todos arrive in phase 1. See
+> **Status:** phase 1 (todos) is done. That covers areas, lists, sections,
+> todos and subtasks, plus Today, Upcoming and Logbook, quick-add, keyboard
+> control, drag and drop and undo. Knowledge collections come next. See
 > [docs/PLAN.md](docs/PLAN.md).
+
+## Using it
+
+- **Ctrl+K** opens the command palette (every action and every list).
+  **?** shows all keyboard shortcuts.
+- **Q** is quick-add. Type, for example,
+  `Pay rent fri !1 @money #Home/Bills`:
+  - a date: `today`, `tomorrow`, `fri`, `next week`, `in 3 days`, `24.12`
+  - a priority: `!1` high to `!3` low
+  - tags: `@tag`
+  - a list and optional section: `#List/Section`
+
+  **Shift+Q** adds a subtask to the selected todo.
+- In a list: **↑/↓** select, **Space** or **X** completes, **Enter** opens
+  details, **Alt+↑/↓** moves, **Alt+→/←** makes a subtask or promotes it,
+  **T/M** set the date to today or tomorrow, **D** picks a date, **V** moves
+  the todo to another list, **1/2/3/0** set the priority, **Delete** deletes.
+- **Ctrl+Z** undoes the last delete, completion or move.
+- Drag todos to reorder them, or drop them on a list in the sidebar. Drag
+  lists between areas, and drag sections by their grip.
 
 ## What it is
 
@@ -70,7 +91,7 @@ own, so you do not need to activate it first.
 | Command | What it does |
 |---|---|
 | `py scripts\dev.py` | **Start the dev environment.** Runs the backend with reload on `127.0.0.1:8000` and Vite on `127.0.0.1:5173` (which proxies `/api`). Uses the dev database in `private_data\dev\`. Press Ctrl+C to stop both. Open <http://127.0.0.1:5173>. |
-| `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (from phase 1). |
+| `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (Chromium against a throwaway server). After a fresh setup, run `npx playwright install chromium` in `frontend\` once. |
 | `py scripts\check.py` | The full quality gate: Ruff format and lint, pyright, an API types drift check, Prettier, ESLint, `tsc`, then all tests. Run it before every commit. `--full` adds the Playwright smoke suite. |
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
 | `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |

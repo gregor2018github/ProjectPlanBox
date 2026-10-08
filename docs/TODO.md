@@ -26,6 +26,14 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
       filter and the pyright relaxation for `backend/tests`. It needs owner
       approval because it adds a package that was not on the agreed list.
 
+## Todos follow-ups (deferred from phase 1)
+
+- [ ] Markdown rendering for todo notes (plain text for now).
+- [ ] Open Logbook items in the detail panel (needs a single-todo GET).
+- [ ] A trash view (undo covers deletes for now).
+- [ ] Manual order inside Today, if wanted (it is auto-sorted now).
+- [ ] Split the frontend bundle per module once a second module exists.
+
 ## Data safety
 
 - [ ] Off-machine backups. Backups currently live inside `private_data/`, so

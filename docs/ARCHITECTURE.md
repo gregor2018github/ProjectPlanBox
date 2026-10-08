@@ -121,6 +121,7 @@ class Module:
 interface ModuleManifest {
   id: string;                                  // matches the backend module id
   label: string;
+  homePath?: string;                           // where "/" redirects (first module wins)
   routes: (parent: AnyRoute) => AnyRoute[];    // attached under the root route
   SidebarSection?: ComponentType;              // the module renders its own nav (lists, counts)
   Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
@@ -511,6 +512,34 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
   toasts/undo, keyboard shortcut registry, theme. Modules contribute through
   the manifest.
 
+### Undo
+
+`core/undo` keeps a bounded stack. Every user action pushes its inverse:
+deletes show a toast with "Undo", while completing, moving and re-dating
+push silently. Ctrl+Z pops the newest entry. Undo runs a normal mutation
+(restore, reopen, or a move back between the previous neighbours), so it is
+optimistic too.
+
+### Drag and drop
+
+One `DndRoot` (in `ui/`) wraps the shell, so todos can be dropped onto
+sidebar lists. Every draggable carries its own `onDragEnd` in its data, and
+`DndRoot` calls it with a library-neutral `DropInfo`. Modules turn that into
+a move with pure, tested rules (`modules/todos/dropRules.ts`):
+- the target's data names its container and the ids shown there
+- the new index picks the neighbours
+- the move goes through the same optimistic mutation as Alt+↑/↓
+
+Groups (`todos:<list>:<section>:<parent>`) keep subtasks inside their
+parent. Lists are grouped per area and sections per list.
+
+### Todo UI state
+
+Selection, expanded parents, todos "lingering" for 600 ms after completion
+(motion rule 4) and pending pickers (D / V) live in a tiny external store
+(`modules/todos/uiStore.ts`). The views, the detail panel and the module
+Host share it, and none of them is an ancestor of the others.
+
 ## 9. Runtime topology
 
 | Mode | Processes | Origin |
@@ -548,7 +577,32 @@ task, so the 202 response reaches the browser before the server stops.
 the power button; the dev server is stopped by `dev.py`. After a successful
 shutdown the frontend replaces the shell with a "PlanBox has stopped" screen.
 
-## 10. Testing architecture
+## 10. Module recipe (learned from todos)
+
+To add a module `notes`, do the following. Nothing outside these places
+changes.
+
+1. **Backend** `backend/planbox/modules/notes/`:
+   - `migrations/0001_….sql`: tables prefixed `notes…` with `id`,
+     `created_at`, `updated_at` and `deleted_at`. `STRICT`, with partial
+     unique indexes on live rows.
+   - `models.py` (frozen dataclasses), `repository.py` (SQL only),
+     `service.py` (rules, `with transaction(...)`, domain errors),
+     `schemas.py` (Pydantic, client ids allowed), `router.py` (thin).
+   - `__init__.py` exports `module = Module(id="notes", …, entity_types=…)`.
+   - Add one line to `planbox/modules/__init__.py`.
+   - Tests: API tests per endpoint, plus the invariants and cascades. The
+     boundary test already checks imports and tables.
+2. **API types:** `py scripts\gen_api.py`.
+3. **Frontend** `frontend/src/modules/notes/`:
+   - `types.ts` (aliases of generated types), `queries.ts` (keys and
+     queries), `mutations.ts` (optimistic, one serial scope), `apply.ts` and
+     `selectors.ts` (pure, tested), actions with undo, pages, and a `Host`
+     for commands and shortcuts.
+   - `index.ts` exports the manifest. Add one line to `src/modules/index.ts`.
+   - UI flow tests with a fake API, plus one or two Playwright smoke tests.
+
+## 11. Testing architecture
 
 | Layer | Tool | Database |
 |---|---|---|
