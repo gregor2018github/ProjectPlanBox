@@ -10,6 +10,8 @@ export interface ModuleManifest {
   id: string;
   /** Human-readable name. */
   label: string;
+  /** Where "/" sends the user (the first module with one wins). */
+  homePath?: string;
   /** The module's routes, attached under the root route. */
   routes: (parent: AnyRoute) => AnyRoute[];
   /** Rendered in the sidebar navigation. */

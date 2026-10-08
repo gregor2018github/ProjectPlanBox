@@ -17,7 +17,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "useDefineForClassFields": true
+    "useDefineForClassFields": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src", "../shared/*.json"]
 }

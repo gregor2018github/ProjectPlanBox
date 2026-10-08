@@ -1,4 +1,11 @@
-import { chordMatches, isTypingTarget, parseKeys, type KeyChord, type KeyEventLike } from "./keys";
+import {
+  chordMatches,
+  isInteractiveTarget,
+  isTypingTarget,
+  parseKeys,
+  type KeyChord,
+  type KeyEventLike,
+} from "./keys";
 
 /** A registered keyboard shortcut. */
 export interface Shortcut {
@@ -14,6 +21,8 @@ export interface Shortcut {
   allowInInput?: boolean;
   /** Hide from the overview (e.g. aliases). */
   hidden?: boolean;
+  /** Let focused buttons, links and menu items keep the key (for Enter and Space). */
+  skipOnInteractive?: boolean;
   /** Runs when the shortcut matches. */
   run: (event: KeyboardEvent) => void;
 }
@@ -74,9 +83,11 @@ export class ShortcutRegistry {
   handle(event: ShortcutEvent, now: number = Date.now()): boolean {
     if (event.isComposing === true || event.defaultPrevented === true) return false;
     const typing = isTypingTarget(event.target);
+    const interactive = isInteractiveTarget(event.target);
     const candidates = [...this.entries]
       .reverse()
-      .filter((e) => !typing || e.shortcut.allowInInput === true);
+      .filter((e) => !typing || e.shortcut.allowInInput === true)
+      .filter((e) => !interactive || e.shortcut.skipOnInteractive !== true);
 
     const pending = this.pending;
     this.pending = null;

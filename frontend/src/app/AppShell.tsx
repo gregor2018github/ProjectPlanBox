@@ -5,6 +5,7 @@ import { useMeta } from "../core/api/coreQueries";
 import { CommandPalette } from "../core/commands/CommandPalette";
 import { ShortcutsDialog } from "../core/shortcuts/ShortcutsDialog";
 import { DESKTOP_QUERY, useMediaQuery } from "../core/useMediaQuery";
+import { DndRoot } from "../ui/DndRoot";
 import { Sheet } from "../ui/Sheet";
 import { Toaster } from "../ui/Toaster";
 import { DetailPanel } from "./DetailPanel";
@@ -81,40 +82,42 @@ export function AppShell() {
   const onRequestShutdown = canShutdown ? requestShutdown : undefined;
 
   return (
-    <div className="flex h-full overflow-hidden bg-bg">
-      {isDesktop ? (
-        <Sidebar
-          collapsed={collapsed}
-          onCollapse={toggleCollapsed}
-          onOpenPalette={openPalette}
-          onRequestShutdown={onRequestShutdown}
-        />
-      ) : (
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen} title="Navigation">
-          <SidebarContent
+    <DndRoot>
+      <div className="flex h-full overflow-hidden bg-bg">
+        {isDesktop ? (
+          <Sidebar
+            collapsed={collapsed}
+            onCollapse={toggleCollapsed}
             onOpenPalette={openPalette}
-            onClose={() => {
-              setMobileNavOpen(false);
-            }}
-            closeLabel="Close navigation"
             onRequestShutdown={onRequestShutdown}
           />
-        </Sheet>
-      )}
-      <main className="flex min-w-0 flex-1 flex-col">
-        {showTopBar && <TopBar onToggleSidebar={toggleSidebar} isDesktop={isDesktop} />}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <Outlet />
-        </div>
-      </main>
-      <DetailPanel item={item} onClose={closeDetail} />
+        ) : (
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen} title="Navigation">
+            <SidebarContent
+              onOpenPalette={openPalette}
+              onClose={() => {
+                setMobileNavOpen(false);
+              }}
+              closeLabel="Close navigation"
+              onRequestShutdown={onRequestShutdown}
+            />
+          </Sheet>
+        )}
+        <main className="flex min-w-0 flex-1 flex-col">
+          {showTopBar && <TopBar onToggleSidebar={toggleSidebar} isDesktop={isDesktop} />}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Outlet />
+          </div>
+        </main>
+        <DetailPanel item={item} onClose={closeDetail} />
 
-      {modules.map((module) => module.Host && <module.Host key={module.id} />)}
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-      <ShutdownDialog open={shutdownOpen} onOpenChange={setShutdownOpen} onStopped={stop} />
-      <Toaster />
-    </div>
+        {modules.map((module) => module.Host && <module.Host key={module.id} />)}
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        <ShutdownDialog open={shutdownOpen} onOpenChange={setShutdownOpen} onStopped={stop} />
+        <Toaster />
+      </div>
+    </DndRoot>
   );
 }
 

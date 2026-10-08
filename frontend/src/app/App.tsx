@@ -10,6 +10,7 @@ import { CommandRegistry } from "../core/commands/registry";
 import type { ModuleManifest } from "../core/module";
 import { createQueryClient } from "../core/queryClient";
 import { ShortcutsProvider } from "../core/shortcuts/ShortcutsProvider";
+import { UndoProvider } from "../core/undo/UndoProvider";
 import { MODULES } from "../modules";
 import { ToastProvider } from "../ui/ToastProvider";
 import { TooltipProvider } from "../ui/TooltipProvider";
@@ -39,9 +40,11 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
             <TooltipProvider>
               <ToastProvider>
                 <ShortcutsProvider>
-                  <CommandsContext value={commands}>
-                    <RouterProvider router={router} />
-                  </CommandsContext>
+                  <UndoProvider>
+                    <CommandsContext value={commands}>
+                      <RouterProvider router={router} />
+                    </CommandsContext>
+                  </UndoProvider>
                 </ShortcutsProvider>
               </ToastProvider>
             </TooltipProvider>

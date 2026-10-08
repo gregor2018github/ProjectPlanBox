@@ -126,3 +126,11 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
   return target instanceof HTMLInputElement && !NON_TEXT_INPUTS.has(target.type);
 }
+
+const INTERACTIVE =
+  'button, a[href], summary, [role="button"], [role="menuitem"], [role="option"], [role="checkbox"], [role="switch"], [role="tab"]';
+
+/** Tells whether the target handles Enter/Space itself (buttons, links, menu items…). */
+export function isInteractiveTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(INTERACTIVE) !== null;
+}

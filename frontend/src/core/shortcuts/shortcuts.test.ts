@@ -104,6 +104,24 @@ describe("ShortcutRegistry", () => {
     expect(palette).toHaveBeenCalledOnce();
   });
 
+  it("leaves Enter to a focused button when asked to", () => {
+    const registry = new ShortcutRegistry();
+    const run = vi.fn();
+    registry.register({
+      id: "open",
+      keys: "Enter",
+      description: "",
+      group: "",
+      skipOnInteractive: true,
+      run,
+    });
+    const button = document.createElement("button");
+
+    expect(registry.handle(press("Enter", { target: button }))).toBe(false);
+    expect(registry.handle(press("Enter"))).toBe(true);
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it("completes sequences within the timeout only", () => {
     const registry = new ShortcutRegistry();
     const run = vi.fn();

@@ -41,7 +41,7 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
               <IconButton label="Close details" icon={X} shortcut="]" onClick={onClose} />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
-              <Content id={id} />
+              <Content key={id} id={id} />
             </div>
           </div>
         </motion.aside>

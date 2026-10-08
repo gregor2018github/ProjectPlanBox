@@ -4,6 +4,13 @@ import { afterEach, beforeEach, vi } from "vitest";
 
 import { installMatchMedia } from "./matchMedia";
 
+// jsdom has no ResizeObserver; drag and drop only needs it to exist.
+globalThis.ResizeObserver = class {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+};
+
 beforeEach(() => {
   // jsdom has no matchMedia; default to a phone-sized window with no OS preferences.
   installMatchMedia(() => false);

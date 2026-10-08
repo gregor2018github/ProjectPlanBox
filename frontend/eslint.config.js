@@ -27,6 +27,7 @@ export default defineConfig([
       "planbox/boundaries": "error",
       "planbox/one-component-per-file": "error",
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
       // Conflicts with no-non-null-assertion (strict); we prefer explicit `as` after a length check.
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "react-refresh/only-export-components": ["error", { allowConstantExport: true }],

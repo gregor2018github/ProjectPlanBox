@@ -21,6 +21,7 @@ export function useShortcut(shortcut: Shortcut | null): void {
   const group = shortcut?.group ?? "General";
   const allowInInput = shortcut?.allowInInput ?? false;
   const hidden = shortcut?.hidden ?? false;
+  const skipOnInteractive = shortcut?.skipOnInteractive ?? false;
 
   useEffect(() => {
     if (id === undefined || keys === undefined) return;
@@ -31,9 +32,10 @@ export function useShortcut(shortcut: Shortcut | null): void {
       group,
       allowInInput,
       hidden,
+      skipOnInteractive,
       run: (event) => runRef.current?.(event),
     });
-  }, [registry, id, keys, description, group, allowInInput, hidden]);
+  }, [registry, id, keys, description, group, allowInInput, hidden, skipOnInteractive]);
 }
 
 /** Returns the currently registered shortcuts and re-renders when they change. */

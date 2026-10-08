@@ -5,6 +5,7 @@ import { render } from "@testing-library/react";
 import { App } from "../app/App";
 import { createApiClient, type FetchFn } from "../core/api/client";
 import type { Health, Meta } from "../core/api/types";
+import type { ModuleManifest } from "../core/module";
 import { installMatchMedia } from "./matchMedia";
 
 /** Canned API responses keyed by path; a function may fail on purpose. */
@@ -49,7 +50,9 @@ export function useDesktopViewport(): void {
 }
 
 /** Renders the whole app at `path` against a fake API. */
-export function renderApp(options: { path?: string; fetch?: FetchFn } = {}) {
+export function renderApp(
+  options: { path?: string; fetch?: FetchFn; modules?: readonly ModuleManifest[] } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -59,7 +62,7 @@ export function renderApp(options: { path?: string; fetch?: FetchFn } = {}) {
       apiClient={createApiClient(options.fetch ?? fakeFetch())}
       queryClient={queryClient}
       history={history}
-      modules={[]}
+      modules={options.modules ?? []}
     />,
   );
 }

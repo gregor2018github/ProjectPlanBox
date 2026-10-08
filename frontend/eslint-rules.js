@@ -3,6 +3,9 @@ import path from "node:path";
 
 const SRC = path.resolve(import.meta.dirname, "src");
 
+/** Libraries only src/ui/ may import (so swapping them stays local). */
+const UI_ONLY_PACKAGES = ["@base-ui/", "@dnd-kit/"];
+
 /** Returns "modules/<id>", "core", "ui", "app", ... for a file inside src, else null. */
 function areaOf(file) {
   const rel = path.relative(SRC, file);
@@ -20,7 +23,7 @@ const boundaries = {
     messages: {
       crossModule: "Module '{{from}}' may not import from '{{to}}'. Go through core instead.",
       coreToModule: "'{{from}}' may not import from feature modules.",
-      baseUi: "Use the wrappers in src/ui/ instead of importing Base UI directly.",
+      baseUi: "Use the wrappers in src/ui/ instead of importing {{lib}} directly.",
     },
   },
   create(context) {
@@ -30,8 +33,9 @@ const boundaries = {
 
     function check(node, source) {
       if (typeof source !== "string") return;
-      if (source.startsWith("@base-ui/") && from !== "ui") {
-        context.report({ node, messageId: "baseUi" });
+      const wrapped = UI_ONLY_PACKAGES.find((prefix) => source.startsWith(prefix));
+      if (wrapped !== undefined && from !== "ui") {
+        context.report({ node, messageId: "baseUi", data: { lib: wrapped.slice(0, -1) } });
         return;
       }
       if (!source.startsWith(".")) return;

@@ -80,8 +80,9 @@ treat their database as precious.
   **built / deferred / diverged**.
 - If you think something in the brief or these docs is wrong, argue for the
   alternative before building. Do not silently comply or silently deviate.
-- Commit only when asked. Use imperative, scoped messages (`todos: …`,
-  `core: …`).
+- Commit regularly without being asked: whenever a coherent step is done and
+  `check.py` is green. Use imperative, scoped messages (`todos: …`,
+  `core: …`). Never push unless asked.
 - `private_data/` (gitignored) holds everything that must not leave this
   PC: the real DB, `settings.toml`, backups and the dev DB
   (`private_data/dev/`). Never read its contents into commits, logs or
