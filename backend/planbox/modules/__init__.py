@@ -5,5 +5,6 @@ entry here and touching no other module.
 """
 
 from planbox.core.module import Module
+from planbox.modules.todos import module as todos
 
-ENABLED_MODULES: tuple[Module, ...] = ()
+ENABLED_MODULES: tuple[Module, ...] = (todos,)

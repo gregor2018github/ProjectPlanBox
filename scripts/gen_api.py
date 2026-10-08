@@ -33,7 +33,18 @@ def generate(target: Path) -> None:
     spec = target / "openapi.json"
     spec.write_text(export_schema(), encoding="utf-8", newline="\n")
     run(
-        [npm(), "exec", "--", "openapi-typescript", str(spec), "-o", str(target / "schema.d.ts")],
+        [
+            npm(),
+            "exec",
+            "--",
+            "openapi-typescript",
+            str(spec),
+            "-o",
+            str(target / "schema.d.ts"),
+            # Fields with server-side defaults stay optional in request bodies.
+            "--default-non-nullable",
+            "false",
+        ],
         cwd=FRONTEND,
     )
 
