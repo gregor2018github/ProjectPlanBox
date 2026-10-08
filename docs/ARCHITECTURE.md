@@ -26,6 +26,7 @@ ProjectPlanBox/
 │   │   │   ├── entities.py   # EntityRef, EntityType registry
 │   │   │   ├── module.py     # the Module manifest type
 │   │   │   ├── meta/         # GET /api/health, GET /api/meta (router/service/repository)
+│   │   │   ├── lifecycle/    # POST /api/shutdown (only when started by the launcher)
 │   │   │   ├── tags/         # repository / service / router / schemas
 │   │   │   ├── links/        # (built later)
 │   │   │   └── search/       # (built later)
@@ -58,6 +59,7 @@ ProjectPlanBox/
 │           ├── index.ts      # MODULES: the only list of modules
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
 ├── shared/                   # language-neutral fixtures (e.g. ordering test vectors)
+├── main.py                   # the launcher: py main.py starts PlanBox and opens the browser
 ├── scripts/                  # setup.py, dev.py, test.py, check.py, gen_api.py, serve.py
 ├── private_data/             # everything that must not leave this PC: DB, settings, backups (gitignored)
 └── docs/
@@ -514,12 +516,37 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
 | Mode | Processes | Origin |
 |---|---|---|
 | Dev | uvicorn `--reload` on 127.0.0.1:8000 and Vite on 127.0.0.1:5173 (`/api` proxied) | 5173 |
-| Daily use | One uvicorn on 127.0.0.1:8765 serving `/api` and the built `frontend/dist` (SPA fallback) | 8765 |
+| Daily use (`main.py` → `scripts/serve.py`) | One in-process uvicorn on 127.0.0.1:8765 serving `/api` and the built `frontend/dist` (SPA fallback). It can be stopped from the app. | 8765 |
 | Later (PWA) | The same single process, bound to the private-network interface behind auth. A deliberate change, not a flag. | n/a |
 
 The server is single-origin in production, so the future PWA (service
 worker, manifest) needs no CORS. The dev server sends no CORS headers either,
 because Vite proxies.
+
+### Local-server protections
+
+Binding to 127.0.0.1 stops other machines, but not websites open in your own
+browser. Two cheap guards cover that:
+
+- **Host check.** Starlette's `TrustedHostMiddleware` accepts only
+  `127.0.0.1` and `localhost` as the `Host` header. This defeats DNS
+  rebinding, where a site points its own domain at 127.0.0.1 to read or
+  change local data. When the PWA arrives (phase 7) the private-network name
+  is added here, together with authentication.
+- **JSON-only mutations.** Write endpoints take JSON bodies. Browsers cannot
+  send `application/json` cross-site without a CORS preflight, which we
+  never answer. FastAPI rejects form-encoded or `text/plain` bodies for
+  JSON models (422). There is a test for this on `/api/shutdown`.
+
+### Shutdown
+
+`main.py` (via `serve.py`) runs uvicorn in-process and passes
+`create_app(request_shutdown=...)` a hook that sets `server.should_exit`.
+`POST /api/shutdown {"confirm": true}` schedules that hook as a background
+task, so the 202 response reaches the browser before the server stops.
+`GET /api/meta` reports `can_shutdown`. Only launcher-started servers offer
+the power button; the dev server is stopped by `dev.py`. After a successful
+shutdown the frontend replaces the shell with a "PlanBox has stopped" screen.
 
 ## 10. Testing architecture
 

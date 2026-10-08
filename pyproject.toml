@@ -32,7 +32,7 @@ include = ["planbox*"]
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-src = ["backend", "scripts"]
+src = ["backend", "scripts", "."]
 
 [tool.ruff.lint]
 select = [
@@ -58,15 +58,18 @@ convention = "google"
 "backend/tests/**" = ["S101", "PLR2004", "D100", "D104"]
 "backend/planbox/core/clock.py" = ["TID251"]
 "scripts/**" = ["S603", "S607", "T201"]
+"main.py" = ["S603", "T201"]
 
 # ------------------------------------------------------------- pyright
 [tool.pyright]
-include = ["backend", "scripts"]
+include = ["backend", "scripts", "main.py"]
 pythonVersion = "3.14"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
 reportMissingTypeStubs = false
+# main.py (repo root, default environment) imports from scripts/ and backend/.
+extraPaths = ["backend", "scripts"]
 
 [[tool.pyright.executionEnvironments]]
 # Starlette's TestClient types resolve through `httpx2`; with the pinned `httpx`

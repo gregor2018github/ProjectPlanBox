@@ -27,14 +27,18 @@ class Meta:
     mode: str
     timezone: str
     week_starts_on: int
+    can_shutdown: bool
 
 
 class MetaService:
     """Answers health and metadata questions."""
 
-    def __init__(self, repository: MetaRepository, settings: Settings) -> None:
+    def __init__(
+        self, repository: MetaRepository, settings: Settings, *, can_shutdown: bool
+    ) -> None:
         self._repository = repository
         self._settings = settings
+        self._can_shutdown = can_shutdown
 
     def health(self) -> Health:
         """Reports whether the database answers and which migrations are applied."""
@@ -46,10 +50,11 @@ class MetaService:
         )
 
     def meta(self) -> Meta:
-        """Returns the app version, mode, timezone and week start."""
+        """Returns the app version, mode, timezone, week start and shutdown support."""
         return Meta(
             version=__version__,
             mode=self._settings.mode,
             timezone=self._settings.timezone,
             week_starts_on=WEEK_STARTS_ON,
+            can_shutdown=self._can_shutdown,
         )

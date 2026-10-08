@@ -37,6 +37,21 @@ Further reading:
 - Python 3.14.8 (`py -3.14` must work)
 - Node.js 24 LTS (or newer) and npm
 
+## Start PlanBox
+
+```powershell
+py main.py
+```
+
+This starts PlanBox and opens it in your browser at <http://127.0.0.1:8765>.
+On the very first run it does the one-time setup (described below)
+automatically. If PlanBox is already running, it just opens the browser.
+The frontend is rebuilt automatically when its sources changed.
+
+To stop PlanBox, click the **power button** at the bottom of the sidebar (or
+run "Shut down PlanBox" from the Ctrl+K palette). You can also press Ctrl+C
+in the console window.
+
 ## First-time setup
 
 ```powershell
@@ -60,7 +75,7 @@ own, so you do not need to activate it first.
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
 | `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
-| `py scripts\serve.py` | **Daily use.** Builds the frontend if needed and serves app and API from one process on <http://127.0.0.1:8765>, using your real data directory. |
+| `py scripts\serve.py` | What `main.py` runs, without opening the browser (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
 
 ## Data
 

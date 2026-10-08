@@ -27,9 +27,11 @@ class MetaOut(BaseModel):
         mode: ``serve``, ``dev`` or ``test``.
         timezone: IANA zone that defines "today".
         week_starts_on: ISO weekday the week starts on (1 = Monday).
+        can_shutdown: Whether the app may stop the server (daily-use launcher only).
     """
 
     version: str
     mode: Literal["serve", "dev", "test"]
     timezone: str
     week_starts_on: int
+    can_shutdown: bool

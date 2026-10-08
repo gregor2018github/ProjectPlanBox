@@ -33,11 +33,31 @@ export interface paths {
         };
         /**
          * Get Meta
-         * @description Returns the app version, mode, timezone and week start.
+         * @description Returns the app version, mode, timezone, week start and shutdown support.
          */
         get: operations["core_get_meta"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shutdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shutdown
+         * @description Stops the server after this response has been sent.
+         */
+        post: operations["core_shutdown"];
         delete?: never;
         options?: never;
         head?: never;
@@ -79,8 +99,11 @@ export interface components {
          *         mode: ``serve``, ``dev`` or ``test``.
          *         timezone: IANA zone that defines "today".
          *         week_starts_on: ISO weekday the week starts on (1 = Monday).
+         *         can_shutdown: Whether the app may stop the server (daily-use launcher only).
          */
         MetaOut: {
+            /** Can Shutdown */
+            can_shutdown: boolean;
             /**
              * Mode
              * @enum {string}
@@ -123,6 +146,37 @@ export interface components {
              * @default about:blank
              */
             type: string;
+        };
+        /**
+         * ShutdownIn
+         * @description Body of a shutdown request.
+         *
+         *     Requiring a JSON body means a plain HTML form or a "simple" cross-site
+         *     request cannot trigger a shutdown.
+         *
+         *     Attributes:
+         *         confirm: Must be ``true``.
+         */
+        ShutdownIn: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+        };
+        /**
+         * ShutdownOut
+         * @description Acknowledgement; the server stops right after sending it.
+         *
+         *     Attributes:
+         *         status: Always ``stopping``.
+         */
+        ShutdownOut: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "stopping";
         };
     };
     responses: never;
@@ -178,6 +232,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetaOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_shutdown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShutdownIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShutdownOut"];
                 };
             };
             /** @description Problem details */

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { House, PanelLeftClose, Search } from "lucide-react";
+import { House, PanelLeftClose, Power, Search } from "lucide-react";
 
 import { IconButton } from "../ui/IconButton";
 import { Kbd } from "../ui/Kbd";
@@ -14,6 +14,8 @@ export interface SidebarContentProps {
   onClose: () => void;
   closeLabel: string;
   closeShortcut?: string;
+  /** Present when the server can be shut down from the app. */
+  onRequestShutdown?: (() => void) | undefined;
 }
 
 /** Sidebar body shared by the desktop sidebar and the mobile sheet. */
@@ -22,6 +24,7 @@ export function SidebarContent({
   onClose,
   closeLabel,
   closeShortcut,
+  onRequestShutdown,
 }: SidebarContentProps) {
   const modules = useModules();
   return (
@@ -62,7 +65,17 @@ export function SidebarContent({
 
       <div className="flex items-center justify-between gap-2 pl-2">
         <ConnectionStatus />
-        <ThemeSwitch />
+        <div className="flex items-center gap-1">
+          <ThemeSwitch />
+          {onRequestShutdown && (
+            <IconButton
+              label="Shut down PlanBox"
+              icon={Power}
+              tooltipSide="top"
+              onClick={onRequestShutdown}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

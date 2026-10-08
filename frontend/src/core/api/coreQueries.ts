@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 
 import { useApiClient } from "./apiContext";
 import { unwrap, type ApiClient } from "./client";
@@ -36,4 +36,12 @@ export function useHealth() {
 /** Subscribes to the app metadata. */
 export function useMeta() {
   return useQuery(metaQueryOptions(useApiClient()));
+}
+
+/** Stops the server (daily-use mode only; see Meta.can_shutdown). */
+export function useShutdown() {
+  const client = useApiClient();
+  return useMutation({
+    mutationFn: () => unwrap(client.POST("/api/shutdown", { body: { confirm: true } })),
+  });
 }

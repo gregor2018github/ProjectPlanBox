@@ -17,12 +17,14 @@ export const defaultRoutes: Routes = {
     mode: "test",
     timezone: "Europe/Amsterdam",
     week_starts_on: 1,
+    can_shutdown: false,
   } satisfies Meta,
 };
 
 /** A fetch that answers from `routes` and 404s everything else. */
-export function fakeFetch(routes: Routes = defaultRoutes): FetchFn {
+export function fakeFetch(routes: Routes = defaultRoutes, calls: Request[] = []): FetchFn {
   return (request) => {
+    calls.push(request);
     const path = new URL(request.url).pathname;
     if (!(path in routes)) {
       return Promise.resolve(

@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRoute
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from planbox import __version__
 from planbox.config import Settings, load_settings, mode_from_env
@@ -15,11 +16,17 @@ from planbox.core.db import connect, init_database
 from planbox.core.db.migrations import Migration, MigrationSource, migrate
 from planbox.core.entities import EntityRegistry
 from planbox.core.errors import NotFound, Problem, install_error_handlers
+from planbox.core.lifecycle.router import router as lifecycle_router
+from planbox.core.lifecycle.service import ShutdownHook
 from planbox.core.meta.router import router as meta_router
 from planbox.core.module import Module
 from planbox.modules import ENABLED_MODULES
 
 CORE_MIGRATIONS_DIR = Path(__file__).parent / "core" / "migrations"
+
+LOOPBACK_HOSTS = ["127.0.0.1", "localhost"]
+"""Accepted Host headers. Rejecting others blocks DNS-rebinding attacks, where a
+website points its own domain at 127.0.0.1 to read or change local data."""
 
 
 def migration_sources(modules: Sequence[Module]) -> list[MigrationSource]:
@@ -57,6 +64,7 @@ def create_app(
     *,
     modules: Sequence[Module] | None = None,
     clock: Clock | None = None,
+    request_shutdown: ShutdownHook | None = None,
 ) -> FastAPI:
     """Builds the application.
 
@@ -67,6 +75,8 @@ def create_app(
         settings: Resolved settings.
         modules: Modules to mount; defaults to ``ENABLED_MODULES``.
         clock: Time source; defaults to the system clock.
+        request_shutdown: Stops the server gracefully. Only the daily-use launcher
+            passes one; without it the app's shutdown button is unavailable.
 
     Returns:
         The configured FastAPI app.
@@ -97,10 +107,14 @@ def create_app(
     )
     app.state.settings = settings
     app.state.clock = clock
+    app.state.request_shutdown = request_shutdown
     app.state.entity_registry = EntityRegistry(t for m in modules for t in m.entity_types)
     install_error_handlers(app)
+    allowed_hosts = [*LOOPBACK_HOSTS, "testserver"] if settings.mode == "test" else LOOPBACK_HOSTS
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
     app.include_router(meta_router, prefix="/api")
+    app.include_router(lifecycle_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

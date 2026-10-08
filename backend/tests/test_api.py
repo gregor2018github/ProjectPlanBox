@@ -34,6 +34,7 @@ def test_meta_exposes_timezone_and_week_start(client: TestClient) -> None:
         "mode": "test",
         "timezone": "Europe/Amsterdam",
         "week_starts_on": 1,
+        "can_shutdown": False,
     }
 
 
@@ -97,6 +98,10 @@ def test_operation_ids_are_prefixed_by_owner(app: FastAPI) -> None:
     assert operation["operationId"] == "core_get_health"
 
 
+LOOPBACK = "http://127.0.0.1"
+"""Serve mode only accepts loopback Host headers, like a real browser sends."""
+
+
 def _serve_app(settings: Settings, clock: FixedClock, dist: Path) -> FastAPI:
     serve_settings = Settings(mode="serve", data_dir=settings.data_dir, frontend_dist=dist)
     return create_app(serve_settings, clock=clock)
@@ -112,7 +117,7 @@ def test_spa_serves_files_and_falls_back_to_index(
     (dist / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
     (tmp_path / "secret.txt").write_text("nope", encoding="utf-8")
 
-    with TestClient(_serve_app(settings, clock, dist)) as client:
+    with TestClient(_serve_app(settings, clock, dist), base_url=LOOPBACK) as client:
         asset = client.get("/assets/app.js")
         deep_link = client.get("/todos/today")
         traversal = client.get("/..%2Fsecret.txt")
@@ -133,7 +138,7 @@ def test_unbuilt_frontend_is_reported(
     settings: Settings, clock: FixedClock, tmp_path: Path
 ) -> None:
     """Serving without a build explains what to do."""
-    with TestClient(_serve_app(settings, clock, tmp_path / "missing")) as client:
+    with TestClient(_serve_app(settings, clock, tmp_path / "missing"), base_url=LOOPBACK) as client:
         response = client.get("/")
 
     assert response.status_code == 404

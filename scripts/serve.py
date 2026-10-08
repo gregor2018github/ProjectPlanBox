@@ -2,16 +2,28 @@ r"""Daily use: builds the frontend if needed and serves app + API from one proce
 
 Usage:
     py scripts\serve.py              http://127.0.0.1:8765 (real data in private_data/)
+    py scripts\serve.py --open       also open it in the browser (what main.py does)
     py scripts\serve.py --no-build   skip the freshness check
+
+The app's "Shut down" button stops this process.
 """
 
 import argparse
+import json
+import socket
 import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+import webbrowser
 from pathlib import Path
+from typing import Literal
 
 from _common import FRONTEND, ensure_venv, heading, npm, run
 
 BUILD_INPUTS = ("src", "public", "index.html", "package-lock.json", "vite.config.ts")
+STARTUP_TIMEOUT_S = 30.0
 
 
 def newest_mtime(paths: list[Path]) -> float:
@@ -33,27 +45,91 @@ def build_is_stale() -> bool:
     return newest_mtime([FRONTEND / p for p in BUILD_INPUTS]) > index.stat().st_mtime
 
 
-def main() -> int:
-    """Entry point."""
-    ensure_venv()
+def probe(host: str, port: int) -> Literal["free", "planbox", "other"]:
+    """Tells whether the port is free, already serving PlanBox, or taken by something else."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        if sock.connect_ex((host, port)) != 0:
+            return "free"
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/api/health", timeout=2) as response:
+            body = json.load(response)
+    except urllib.error.URLError, TimeoutError, ValueError:
+        return "other"
+    is_planbox = isinstance(body, dict) and "schema_versions" in body
+    return "planbox" if is_planbox else "other"
+
+
+def serve(*, open_browser: bool, build: bool = True) -> int:
+    """Runs PlanBox until it is shut down (from the app or with Ctrl+C).
+
+    Args:
+        open_browser: Open the app in the default browser once the server answers.
+        build: Rebuild the frontend first if its sources changed.
+
+    Returns:
+        A process exit code.
+    """
     import uvicorn  # noqa: PLC0415 - needs the venv
 
     from planbox.config import HOST, load_settings  # noqa: PLC0415
     from planbox.main import create_app  # noqa: PLC0415
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--no-build", action="store_true", help="do not rebuild the frontend")
-    args = parser.parse_args()
+    settings = load_settings("serve")
+    url = f"http://{HOST}:{settings.port}"
 
-    if not args.no_build and build_is_stale():
+    state = probe(HOST, settings.port)
+    if state == "planbox":
+        print(f"PlanBox is already running at {url}.")
+        if open_browser:
+            webbrowser.open(url)
+        return 0
+    if state == "other":
+        print(f"Port {settings.port} is used by another program. Set `port` in")
+        print("private_data/settings.toml (or PLANBOX_PORT) to a free port.")
+        return 1
+
+    if build and build_is_stale():
         heading("Building the frontend")
         run([npm(), "run", "build", "--silent"], cwd=FRONTEND)
 
-    settings = load_settings("serve")
-    heading(f"PlanBox on http://{HOST}:{settings.port}")
+    server: uvicorn.Server | None = None
+
+    def request_shutdown() -> None:
+        if server is not None:
+            server.should_exit = True
+
+    app = create_app(settings, request_shutdown=request_shutdown)
+    server = uvicorn.Server(uvicorn.Config(app, host=HOST, port=settings.port, log_level="warning"))
+
+    heading(f"PlanBox on {url}")
     print(f"Database: {settings.db_path}")
-    uvicorn.run(create_app(settings), host=HOST, port=settings.port, log_level="warning")
+    print("Stop it with the power button in the app, or Ctrl+C here.")
+    if open_browser:
+        threading.Thread(target=_open_when_ready, args=(server, url), daemon=True).start()
+    server.run()
+    print("PlanBox stopped.")
     return 0
+
+
+def _open_when_ready(server: object, url: str) -> None:
+    deadline = time.monotonic() + STARTUP_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if getattr(server, "started", False):
+            webbrowser.open(url)
+            return
+        time.sleep(0.05)
+    print(f"PlanBox did not start within {STARTUP_TIMEOUT_S:.0f} s; open {url} yourself.")
+
+
+def main() -> int:
+    """Entry point."""
+    ensure_venv()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--open", action="store_true", help="open the app in the browser")
+    parser.add_argument("--no-build", action="store_true", help="do not rebuild the frontend")
+    args = parser.parse_args()
+    return serve(open_browser=args.open, build=not args.no_build)
 
 
 if __name__ == "__main__":

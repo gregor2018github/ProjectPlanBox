@@ -8,12 +8,14 @@ export interface SidebarProps {
   collapsed: boolean;
   onCollapse: () => void;
   onOpenPalette: () => void;
+  /** Present when the server can be shut down from the app. */
+  onRequestShutdown?: (() => void) | undefined;
 }
 
 const WIDTH = 256;
 
 /** The desktop sidebar; collapses to zero width and becomes inert. */
-export function Sidebar({ collapsed, onCollapse, onOpenPalette }: SidebarProps) {
+export function Sidebar({ collapsed, onCollapse, onOpenPalette, onRequestShutdown }: SidebarProps) {
   return (
     <motion.aside
       aria-label="Sidebar"
@@ -29,6 +31,7 @@ export function Sidebar({ collapsed, onCollapse, onOpenPalette }: SidebarProps) 
           onClose={onCollapse}
           closeLabel="Collapse sidebar"
           closeShortcut="["
+          onRequestShutdown={onRequestShutdown}
         />
       </div>
     </motion.aside>

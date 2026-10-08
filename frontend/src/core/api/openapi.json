@@ -33,8 +33,12 @@
         "type": "object"
       },
       "MetaOut": {
-        "description": "Facts the frontend needs to agree with the backend.\n\nAttributes:\n    version: Application version.\n    mode: ``serve``, ``dev`` or ``test``.\n    timezone: IANA zone that defines \"today\".\n    week_starts_on: ISO weekday the week starts on (1 = Monday).",
+        "description": "Facts the frontend needs to agree with the backend.\n\nAttributes:\n    version: Application version.\n    mode: ``serve``, ``dev`` or ``test``.\n    timezone: IANA zone that defines \"today\".\n    week_starts_on: ISO weekday the week starts on (1 = Monday).\n    can_shutdown: Whether the app may stop the server (daily-use launcher only).",
         "properties": {
+          "can_shutdown": {
+            "title": "Can Shutdown",
+            "type": "boolean"
+          },
           "mode": {
             "enum": [
               "serve",
@@ -61,7 +65,8 @@
           "version",
           "mode",
           "timezone",
-          "week_starts_on"
+          "week_starts_on",
+          "can_shutdown"
         ],
         "title": "MetaOut",
         "type": "object"
@@ -114,6 +119,36 @@
         ],
         "title": "Problem",
         "type": "object"
+      },
+      "ShutdownIn": {
+        "description": "Body of a shutdown request.\n\nRequiring a JSON body means a plain HTML form or a \"simple\" cross-site\nrequest cannot trigger a shutdown.\n\nAttributes:\n    confirm: Must be ``true``.",
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "ShutdownIn",
+        "type": "object"
+      },
+      "ShutdownOut": {
+        "description": "Acknowledgement; the server stops right after sending it.\n\nAttributes:\n    status: Always ``stopping``.",
+        "properties": {
+          "status": {
+            "const": "stopping",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ShutdownOut",
+        "type": "object"
       }
     }
   },
@@ -157,7 +192,7 @@
     },
     "/api/meta": {
       "get": {
-        "description": "Returns the app version, mode, timezone and week start.",
+        "description": "Returns the app version, mode, timezone, week start and shutdown support.",
         "operationId": "core_get_meta",
         "responses": {
           "200": {
@@ -182,6 +217,48 @@
           }
         },
         "summary": "Get Meta",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/shutdown": {
+      "post": {
+        "description": "Stops the server after this response has been sent.",
+        "operationId": "core_shutdown",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShutdownIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShutdownOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Shutdown",
         "tags": [
           "core"
         ]

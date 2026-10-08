@@ -17,10 +17,15 @@ treat their database as precious.
 - The Python virtual env is **`.venv`** at the repo root. Call
   `.venv\Scripts\python.exe` directly or use the `scripts\*.py` entry points.
   Do not rely on an activated shell.
-- Dev: `py scripts\dev.py`. Tests: `py scripts\test.py`. Full gate:
-  `py scripts\check.py` (`--full` adds Playwright).
-- The server binds to `127.0.0.1` only. Never change that without an
-  explicit instruction.
+- Owner's daily start: `py main.py` (opens the browser; the sidebar's power
+  button stops it). Dev: `py scripts\dev.py`. Tests: `py scripts\test.py`.
+  Full gate: `py scripts\check.py` (`--full` adds Playwright).
+- Never run `main.py`/`serve.py` against the real `private_data/` while
+  testing. Use `PLANBOX_DATA_DIR` and `PLANBOX_PORT` pointing at a scratch
+  folder and port, and `BROWSER=echo` to avoid opening tabs.
+- The server binds to `127.0.0.1` only and accepts only loopback `Host`
+  headers. Never change either without an explicit instruction. Mutating
+  endpoints take JSON bodies (cross-site protection; see ARCHITECTURE §9).
 
 ## Hard rules
 1. **Layers:** router (HTTP only) → service (logic, transactions) →

@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from planbox.core.db.deps import ConnectionDep, SettingsDep
+from planbox.core.lifecycle.deps import LifecycleDep
 from planbox.core.meta.repository import MetaRepository
 from planbox.core.meta.schemas import HealthOut, MetaOut
 from planbox.core.meta.service import MetaService
@@ -12,8 +13,8 @@ from planbox.core.meta.service import MetaService
 router = APIRouter(tags=["core"])
 
 
-def _service(conn: ConnectionDep, settings: SettingsDep) -> MetaService:
-    return MetaService(MetaRepository(conn), settings)
+def _service(conn: ConnectionDep, settings: SettingsDep, lifecycle: LifecycleDep) -> MetaService:
+    return MetaService(MetaRepository(conn), settings, can_shutdown=lifecycle.can_shutdown)
 
 
 ServiceDep = Annotated[MetaService, Depends(_service)]
@@ -28,6 +29,6 @@ def get_health(service: ServiceDep) -> HealthOut:
 
 @router.get("/meta")
 def get_meta(service: ServiceDep) -> MetaOut:
-    """Returns the app version, mode, timezone and week start."""
+    """Returns the app version, mode, timezone, week start and shutdown support."""
     meta = service.meta()
     return MetaOut.model_validate(meta, from_attributes=True)

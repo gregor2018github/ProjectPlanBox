@@ -14,6 +14,8 @@ from pathlib import Path
 from _common import FRONTEND, ROOT, VENV_PYTHON, ensure_venv, heading, npm, run, venv_tool
 from test import run_tests
 
+PY_PATHS = ("backend", "scripts", "main.py")
+
 
 def main() -> int:
     """Entry point."""
@@ -26,14 +28,14 @@ def main() -> int:
     ruff = venv_tool("ruff")
     if args.fix:
         heading("Fixing")
-        run([ruff, "format", "backend", "scripts"], check=False)
-        run([ruff, "check", "--fix", "backend", "scripts"], check=False)
+        run([ruff, "format", *PY_PATHS], check=False)
+        run([ruff, "check", "--fix", *PY_PATHS], check=False)
         run([npm(), "run", "format", "--silent"], cwd=FRONTEND, check=False)
         run([npm(), "exec", "--", "eslint", "--fix", "."], cwd=FRONTEND, check=False)
 
     steps: list[tuple[str, Sequence[str], Path]] = [
-        ("ruff format", [ruff, "format", "--check", "backend", "scripts"], ROOT),
-        ("ruff lint", [ruff, "check", "backend", "scripts"], ROOT),
+        ("ruff format", [ruff, "format", "--check", *PY_PATHS], ROOT),
+        ("ruff lint", [ruff, "check", *PY_PATHS], ROOT),
         ("pyright", [venv_tool("pyright")], ROOT),
         ("API types", [str(VENV_PYTHON), str(ROOT / "scripts" / "gen_api.py"), "--check"], ROOT),
         ("prettier", [npm(), "run", "format:check", "--silent"], FRONTEND),

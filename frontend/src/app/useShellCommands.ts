@@ -13,11 +13,13 @@ export interface ShellActions {
   showShortcuts: () => void;
   /** Present only while the detail panel is open. */
   closeDetail: (() => void) | null;
+  /** Present only when the server can be shut down from the app. */
+  requestShutdown: (() => void) | null;
 }
 
 /** Registers the shell's own commands and shortcuts. */
 export function useShellCommands(actions: ShellActions): void {
-  const { togglePalette, toggleSidebar, showShortcuts, closeDetail } = actions;
+  const { togglePalette, toggleSidebar, showShortcuts, closeDetail, requestShutdown } = actions;
   const { setPreference } = useTheme();
   const navigate = useNavigate();
 
@@ -113,8 +115,19 @@ export function useShellCommands(actions: ShellActions): void {
           setPreference("dark");
         },
       },
+      ...(requestShutdown
+        ? [
+            {
+              id: "shell.shutdown",
+              title: "Shut down PlanBox",
+              group: "General",
+              keywords: ["quit", "exit", "stop", "close"],
+              run: requestShutdown,
+            },
+          ]
+        : []),
     ],
-    [toggleSidebar, showShortcuts, navigate, setPreference],
+    [toggleSidebar, showShortcuts, navigate, setPreference, requestShutdown],
   );
   useCommands(commands);
 }

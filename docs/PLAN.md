@@ -74,6 +74,11 @@ later phases depend on is in place and tested.
     recommended settings/extensions.
 19. README, ARCHITECTURE and STYLE_GUIDE updated to match reality.
 
+**Added after phase 0 (owner request):** `main.py` launcher (first-run
+setup, rebuild if stale, open the browser, detect a running instance), a
+shutdown button and palette command (`POST /api/shutdown`, launcher-only),
+and the loopback `Host` check that the shutdown endpoint made necessary.
+
 **Done when:** `setup.py` on a fresh clone and then `dev.py` gives a themed,
 responsive, keyboard-navigable empty shell showing a live health indicator;
 `serve.py` serves the same from one port; `check.py` is green; and the
