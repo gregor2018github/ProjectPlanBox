@@ -2,10 +2,13 @@ import { Archive, CalendarDays, FolderPlus, Inbox, ListPlus, Plus, Sun } from "l
 import { useMemo, useState } from "react";
 
 import { readStorage, writeStorage } from "../../../core/storage";
+import { cx } from "../../../ui/cx";
+import { useDropTarget } from "../../../ui/dnd";
 import { IconButton } from "../../../ui/IconButton";
 import { Menu } from "../../../ui/Menu";
 import { todoPaths } from "../paths";
 import { counts, listTree } from "../selectors";
+import { INBOX } from "../types";
 import { useContainerActions } from "../useContainerActions";
 import { useTodoData } from "../useTodoData";
 import { AreaNavGroup } from "./AreaNavGroup";
@@ -35,6 +38,14 @@ export function TodosSidebarSection() {
   const badge = useMemo(() => counts(data.todos, data.today), [data.todos, data.today]);
   const tree = useMemo(() => listTree(data.areas, data.lists), [data.areas, data.lists]);
 
+  const looseIds = tree.loose.map((l) => l.id);
+  // Dropping a list on the "Lists" heading takes it out of its area.
+  const { ref: listsHeaderRef, isDropTarget: listsHeaderActive } = useDropTarget({
+    id: "lists:loose-heading",
+    accept: "list",
+    data: { kind: "container-destination", parentId: null },
+  });
+
   const toggleArea = (id: string) => {
     const next = new Set(collapsed);
     if (next.has(id)) next.delete(id);
@@ -45,7 +56,13 @@ export function TodosSidebarSection() {
 
   return (
     <>
-      <SidebarLink to={todoPaths.inbox} label="Inbox" icon={Inbox} count={badge.inbox} />
+      <SidebarLink
+        to={todoPaths.inbox}
+        label="Inbox"
+        icon={Inbox}
+        count={badge.inbox}
+        dropPlacement={INBOX}
+      />
       <SidebarLink
         to={todoPaths.today}
         label="Today"
@@ -56,7 +73,13 @@ export function TodosSidebarSection() {
       <SidebarLink to={todoPaths.upcoming} label="Upcoming" icon={CalendarDays} />
       <SidebarLink to={todoPaths.logbook} label="Logbook" icon={Archive} />
 
-      <div className="mt-4 flex items-center justify-between pl-2">
+      <div
+        ref={listsHeaderRef}
+        className={cx(
+          "mt-4 flex items-center justify-between rounded-md pl-2",
+          listsHeaderActive && "bg-accent-subtle ring-2 ring-accent",
+        )}
+      >
         <span className="text-xs font-medium text-text-muted">Lists</span>
         <Menu
           entries={[
@@ -80,14 +103,18 @@ export function TodosSidebarSection() {
           trigger={<IconButton label="New list or area" icon={Plus} />}
         />
       </div>
-      {tree.loose.map((list) => (
-        <ListLink
-          key={list.id}
-          list={list}
-          count={badge.lists[list.id] ?? 0}
-          containers={containers}
-        />
-      ))}
+      <div className="flex flex-col gap-0.5">
+        {tree.loose.map((list, index) => (
+          <ListLink
+            key={list.id}
+            list={list}
+            count={badge.lists[list.id] ?? 0}
+            containers={containers}
+            index={index}
+            siblingIds={looseIds}
+          />
+        ))}
+      </div>
       {tree.areas.map(({ area, lists }) => (
         <AreaNavGroup
           key={area.id}

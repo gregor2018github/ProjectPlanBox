@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
 import { cx } from "../../../ui/cx";
+import { useDropTarget } from "../../../ui/dnd";
 import { todoPaths } from "../paths";
 import type { Area, TodoList } from "../types";
 import type { ContainerActions } from "../useContainerActions";
@@ -17,7 +18,7 @@ export interface AreaNavGroupProps {
   containers: ContainerActions;
 }
 
-/** An area in the sidebar: a collapsible heading with its lists. */
+/** An area in the sidebar: a collapsible heading (drop lists on it) with its lists. */
 export function AreaNavGroup({
   area,
   lists,
@@ -26,9 +27,22 @@ export function AreaNavGroup({
   onToggle,
   containers,
 }: AreaNavGroupProps) {
+  const { ref, isDropTarget } = useDropTarget({
+    id: `area:${area.id}`,
+    accept: "list",
+    data: { kind: "container-destination", parentId: area.id },
+  });
+  const ids = lists.map((l) => l.id);
+
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex h-8 items-center gap-1 coarse:h-11">
+      <div
+        ref={ref}
+        className={cx(
+          "flex h-8 items-center gap-1 rounded-md coarse:h-11",
+          isDropTarget && "bg-accent-subtle ring-2 ring-accent",
+        )}
+      >
         <button
           type="button"
           aria-expanded={!collapsed}
@@ -53,16 +67,21 @@ export function AreaNavGroup({
           {area.name}
         </Link>
       </div>
-      {!collapsed &&
-        lists.map((list) => (
-          <ListLink
-            key={list.id}
-            list={list}
-            count={counts[list.id] ?? 0}
-            containers={containers}
-            indent
-          />
-        ))}
+      {!collapsed && (
+        <div className="flex flex-col gap-0.5">
+          {lists.map((list, index) => (
+            <ListLink
+              key={list.id}
+              list={list}
+              count={counts[list.id] ?? 0}
+              containers={containers}
+              index={index}
+              siblingIds={ids}
+              indent
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

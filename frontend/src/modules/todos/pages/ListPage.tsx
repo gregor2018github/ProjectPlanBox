@@ -10,6 +10,7 @@ import { NameDialog } from "../components/NameDialog";
 import { NewTodoInline } from "../components/NewTodoInline";
 import { PageHeader } from "../components/PageHeader";
 import { SectionHeader } from "../components/SectionHeader";
+import { SortableSection } from "../components/SortableSection";
 import { TodoGroup } from "../components/TodoGroup";
 import { ViewLayout } from "../components/ViewLayout";
 import { paramOf, todoPaths } from "../paths";
@@ -56,6 +57,7 @@ export function ListPage() {
   }
 
   const empty = visible.length === 0 && view.groups.length === 1;
+  const sectionIds = view.groups.flatMap((g) => (g.section ? [g.section.id] : []));
 
   return (
     <ViewLayout>
@@ -97,13 +99,12 @@ export function ListPage() {
         }
       />
       {!data.loading && empty && <EmptyHint text="This list is empty." />}
-      {view.groups.map((group) => {
+      {view.groups.map((group, groupIndex) => {
         const sectionId = group.section?.id ?? null;
         const belongs = (t: Todo) =>
           t.list_id === list.id && t.section_id === sectionId && t.parent_id === null;
-        return (
-          <section key={sectionId ?? "top"} aria-label={group.section?.name ?? list.name}>
-            {group.section && <SectionHeader section={group.section} containers={containers} />}
+        const body = (
+          <>
             <TodoGroup
               todos={group.todos}
               data={data}
@@ -117,7 +118,31 @@ export function ListPage() {
               data={data}
               actions={actions}
             />
-          </section>
+          </>
+        );
+        if (group.section === null) {
+          return (
+            <section key="top" aria-label={list.name}>
+              {body}
+            </section>
+          );
+        }
+        const section = group.section;
+        return (
+          <SortableSection
+            key={section.id}
+            section={section}
+            index={groupIndex - 1}
+            siblingIds={sectionIds}
+            containers={containers}
+          >
+            {(handleRef) => (
+              <>
+                <SectionHeader section={section} containers={containers} handleRef={handleRef} />
+                {body}
+              </>
+            )}
+          </SortableSection>
         );
       })}
       <CompletedGroup todos={view.done} data={data} actions={actions} />
