@@ -66,7 +66,7 @@ treat their database as precious.
 - TS: strict, no `any`, JSDoc on exports, one component per file, ESLint and
   Prettier clean.
 - Every behaviour change comes with tests: pytest against a temporary SQLite
-  DB (never `var/` or the real data dir) and Vitest/RTL for frontend logic
+  DB (never anything in `private_data/`) and Vitest/RTL for frontend logic
   and key components.
 
 ## Working style
@@ -77,5 +77,10 @@ treat their database as precious.
   alternative before building. Do not silently comply or silently deviate.
 - Commit only when asked. Use imperative, scoped messages (`todos: …`,
   `core: …`).
-- Never delete or rewrite anything in the user's data dir
-  (`%LOCALAPPDATA%\PlanBox`) or `private_data/`.
+- `private_data/` (gitignored) holds everything that must not leave this
+  PC: the real DB, `settings.toml`, backups and the dev DB
+  (`private_data/dev/`). Never read its contents into commits, logs or
+  external services. Never delete or rewrite anything in it except
+  `private_data/dev/`. **Never run `git clean -x`/`-X`**, because it would
+  wipe the database.
+- Deferred items (e.g. claude.ai connectors) are tracked in `docs/TODO.md`.

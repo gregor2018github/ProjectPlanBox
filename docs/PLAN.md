@@ -12,8 +12,9 @@ later phases depend on is in place and tested.
 ### Backend
 1. `pyproject.toml`: Python 3.14, exact pins, a `dev` dependency group, and
    Ruff, pyright (strict) and pytest config.
-2. `config.py`: a `Settings` frozen dataclass from env vars (data dir,
-   timezone, port, mode).
+2. `config.py`: a `Settings` frozen dataclass built from defaults, then
+   `private_data/settings.toml` (stdlib `tomllib`), then `PLANBOX_*` env vars
+   (data dir, timezone, port, mode).
 3. `core/db`: a connection factory with pragmas (WAL, foreign keys,
    busy_timeout, synchronous=NORMAL), a `transaction()` context manager and
    a request-scoped connection dependency.
@@ -67,9 +68,10 @@ later phases depend on is in place and tested.
     drift check), `gen_api.py`, `serve.py`, `migrate.py`. Windows-first
     (they call `.venv\Scripts\python.exe` directly) but written in plain
     Python, so they would also run elsewhere.
-18. `.gitignore` (`.venv/`, `var/`, `frontend/node_modules/`,
-    `frontend/dist/`, …), `.editorconfig`, VS Code recommended
-    settings/extensions.
+18. `.gitignore` (`.venv/`, `private_data/`, `frontend/node_modules/`,
+    `frontend/dist/`, …), `.gitattributes` (`* text=auto eol=lf`, which stops
+    the CRLF warnings from the first commit), `.editorconfig`, VS Code
+    recommended settings/extensions.
 19. README, ARCHITECTURE and STYLE_GUIDE updated to match reality.
 
 **Done when:** `setup.py` on a fresh clone and then `dev.py` gives a themed,
@@ -81,75 +83,98 @@ failure, backup and the directive.
 ## Phase 1: Todos (the reference vertical slice)
 
 This slice sets the pattern every later module copies. Each step lands with
-its tests.
+its tests. Adding areas, sections and subtasks (decision 2) makes this phase
+noticeably bigger than first sketched. I'll report at the end of each
+milestone 1a–1f, not just at the end of the phase.
 
 ### 1a. Backend
 - `core/ordering.py`: fractional index keys, plus
   `shared/ordering-vectors.json` used by both pytest and Vitest.
 - Core tags: migration, repository, service (`set_tags(ref, ids)`,
   case-insensitive unique names), router, tests.
-- Todos: migration (`todos_lists`, `todos`), models, repository, service and
-  router per ARCHITECTURE §7. This covers idempotent create with a
-  client-sent id, PATCH with absent-vs-null handling, complete/reopen,
-  move (`before_id`/`after_id`, across lists), soft delete/restore (a list
-  cascades with a shared `deleted_at`), and the logbook. Registers the
-  `todos.todo` entity type.
+- Todos: migration (`todos_areas`, `todos_lists`, `todos_sections`,
+  `todos`), models, repository, service and router per ARCHITECTURE §7. This
+  covers idempotent create with a client-sent id, PATCH with absent-vs-null
+  handling, complete/reopen (cascading to subtasks), one `move` for reorder,
+  re-home and indent/outdent with all hierarchy invariants checked, soft
+  delete/restore cascading down the hierarchy with a shared `deleted_at`, and
+  the logbook. Registers the `todos.todo` entity type.
 - Tests: repository and service against a temp DB, API tests for every
   endpoint including the error shapes.
 
 ### 1b. Frontend data layer
 - `modules/todos/types.ts` (aliases of generated types), `api.ts` (query
   options, a key factory, mutation hooks with `scope: 'todos'`),
-  `applyTodoPatch`, and selectors (inbox, today = overdue + due today +
-  completed today, upcoming grouped by day, per list, counts for the
-  sidebar).
+  `applyTodoPatch`/`applyTodoMove` (mirroring the server's invariants), and
+  selectors (inbox; today = overdue + due today + completed today; upcoming
+  grouped by day; per area; per list grouped by section with nested
+  subtasks; counts for the sidebar).
 - The undo stack in `core` (toast "Undo" and Ctrl+Z).
 - Tests for selectors, the optimistic apply/rollback (fetch failure →
   snapshot restored), and ordering parity.
 
 ### 1c. Views and editing
-- Sidebar nav: Inbox, Today, Upcoming, then lists (create, rename, reorder,
-  delete with undo), with open counts.
-- List view: `TodoRow` (checkbox, title, due/priority/tag metadata),
-  inline "new todo" row, completed-today section.
+- Sidebar nav: Inbox, Today, Upcoming and Logbook, then lists outside any
+  area, then collapsible areas containing their lists. Create, rename,
+  reorder and delete (with undo) areas and lists. Open counts.
+- List view: unsectioned todos first, then sections as headings (create,
+  rename, delete, collapse). `TodoRow` shows checkbox, title, due, priority,
+  tags and a subtask progress (`2/5`) that expands the subtasks inline.
+  There is an inline "new todo" row per section and a completed-today group.
+- Area view: its lists, each with its open todos (read-only grouping, links
+  to the list).
 - Detail panel: title, notes (plain textarea that autosaves with a debounce;
   Markdown rendering is deferred), due date picker (a popover with quick
   picks Today/Tomorrow/Next Monday/None and a Monday-start month grid built on
-  date-fns), priority menu, list select, tag combobox (create on Enter),
+  date-fns), priority menu, a list/section picker, tag combobox (create on
+  Enter), a subtask checklist (add, complete, reorder, promote to todo), and
   delete.
 - Today (overdue group first) and Upcoming (grouped by day: "Tomorrow",
-  "Mon 13 Oct", …) views.
+  "Mon 13 Oct", …) views. They are auto-sorted (decision 3). Subtasks show
+  their parent's title as context.
 - Motion: row enter/exit, completion per STYLE_GUIDE B1 rule 4, layout
   springs.
 
 ### 1d. Reordering
-- Drag and drop within a list via `ui/Sortable` (wrapping dnd-kit), with
-  pointer, touch and keyboard sensors. Dropping onto a sidebar list moves the
-  todo there. Dragging is disabled in Today/Upcoming, which are auto-sorted.
-- Keyboard: Alt+↑ / Alt+↓ moves the selected todo.
+- Drag and drop via `ui/Sortable` (wrapping `@dnd-kit/react`), with
+  pointer, touch and keyboard sensors:
+  - todos within and across sections
+  - subtasks within their parent
+  - sections within a list
+  - lists within and across areas in the sidebar
+  - dropping a todo onto a sidebar list or the Inbox moves it there
+
+  Dragging is disabled in Today/Upcoming, which are auto-sorted.
+- Keyboard: Alt+↑ / Alt+↓ moves the selection. Alt+→ makes it a subtask of
+  the todo above (indent) and Alt+← promotes it (outdent).
 
 ### 1e. Keyboard and quick-add
 - Global quick-add (`Q`, or the palette's "New todo") opens a dialog that
   parses as you type and shows the result as chips: `tomorrow`, `fri`,
   `next week`, `in 3 days`, `12.10`, `2026-10-12` → due; `!1`/`!2`/`!3` →
-  priority (high/medium/low); `#list` → list; `@tag` → tag. The parser is
-  pure and tested.
-- Palette commands from the module (go to Today/Upcoming/Inbox/list, new
-  todo, new list) plus client-side todo search by title.
+  priority (high/medium/low); `#list` or `#list/section` → placement;
+  `@tag` → tag. The parser is pure and tested. When a todo is selected,
+  `Shift+Q` opens quick-add for a subtask of it.
+- Palette commands from the module (go to Today/Upcoming/Inbox/Logbook/any
+  area or list; new todo/subtask/section/list/area; move to…) plus
+  client-side todo search by title.
 
 | Key | Action (in list views; not while typing) |
 |---|---|
 | `Ctrl+K` | Command palette |
-| `Q` | Quick-add todo |
+| `Q` / `Shift+Q` | Quick-add todo / subtask of the selection |
 | `↑`/`↓` or `K`/`J` | Move selection |
 | `Enter` | Open in the detail panel / edit title |
 | `Space` or `X` | Complete / reopen |
 | `Alt+↑`/`Alt+↓` | Move up/down |
+| `Alt+→`/`Alt+←` | Indent (make subtask) / outdent |
+| `→`/`←` | Expand/collapse subtasks or section |
+| `V` | Move to list/section… (picker) |
 | `1` `2` `3` `0` | Priority high / medium / low / none |
 | `T` / `M` / `D` | Due today / tomorrow / pick date |
 | `Delete` | Delete (undoable) |
 | `Ctrl+Z` | Undo the last delete/complete/move |
-| `G` then `I`/`T`/`U` | Go to Inbox / Today / Upcoming |
+| `G` then `I`/`T`/`U`/`L` | Go to Inbox / Today / Upcoming / Logbook |
 | `[` / `]` | Toggle sidebar / detail panel |
 | `Esc` | Close panel or dialog, clear selection |
 | `?` | Shortcut overview |
@@ -159,7 +184,7 @@ its tests.
   browser. From now on the suite should guard the slice every module copies.
   It runs Chromium only against a real backend on a temp data dir, with 5–6
   tests: quick-add with parsing → shows in Today; complete + undo; drag
-  reorder survives reload; edit in the detail panel; theme switch; 375 px
+  reorder survives reload; indent to subtask and complete the parent; edit in the detail panel; theme switch; 375 px
   viewport smoke. It runs via `py scripts\test.py --e2e` and is part of
   `check.py --full`. It stays out of the default fast loop.
 - A "module recipe" section in ARCHITECTURE: the checklist for adding a
@@ -199,7 +224,7 @@ pinned exactly.
 
 | Runtime | Pick | Note |
 |---|---|---|
-| Python | **3.14.8** | You have 3.13.3. I recommend 3.14 because `uuid.uuid7()` is in the stdlib (one less dependency), annotations are evaluated lazily, and it is supported until 2030. It has been stable for a year. |
+| Python | **3.14.8** (installed 2026-10-08) | `uuid.uuid7()` is in the stdlib (one less dependency), annotations are evaluated lazily, and it is supported until 2030. Bundles SQLite 3.50.4 with FTS5. |
 | Node.js | **24 LTS** (you have 24.15; latest 24.21) | Vite 8 needs ≥ 20.19. Node 26 becomes LTS on 2026-10-28, and we can move later. |
 | SQLite | 3.49.1 (bundled with CPython) | FTS5 confirmed available |
 
@@ -280,27 +305,53 @@ is simpler).
 
 ---
 
-## Assumptions
+## Decisions (owner, 2026-10-08)
 
-1. The UI language is English. Dates display as `Wed 8 Oct`, `8 Oct 2026`
-   and 24-hour time. Quick-add keywords are English.
-2. Todos belong to **flat lists** plus an implicit **Inbox**
-   (`list_id NULL`). There are no areas, sections, headings or subtasks in
-   phase 1.
-3. Due dates are date-only in phase 1. Times of day arrive with the calendar.
-4. Priorities are none/low/medium/high.
-5. Manual ordering exists inside the Inbox and lists. Today and Upcoming sort
-   automatically (overdue first, then priority, then list position).
-6. Completed todos stay visible, struck through, for the rest of the day,
-   then move to a paginated Logbook.
-7. Notes on a todo are plain text in phase 1. Markdown rendering is deferred.
-8. Deleting is soft and undoable. There is no trash view in phase 1 (undo
-   covers it). Purging waits until sync is designed.
-9. Real data lives in `%LOCALAPPDATA%\PlanBox`. Dev data lives in `var\dev`.
-10. The daily-use server runs on port 8765, separate from dev (8000/5173),
-    so both can run at the same time without sharing a database. Autostart at
-    login is not in scope yet.
-11. Fonts are the system stack (Segoe UI Variable on Windows), so there is no
-    font dependency.
-12. The accent colour is an indigo-blue (`oklch(0.55 0.19 264)`).
-13. The `master` branch is used as is. I commit only when you ask.
+1. **Python 3.14.8.** Installed per-user from the signed python.org
+   installer (winget only had 3.14.7). `py -3.14` works. Its bundled SQLite
+   is 3.50.4, with FTS5.
+2. **Areas, sections and subtasks are in phase 1.** Data model in
+   ARCHITECTURE §7.
+3. **Today/Upcoming ordering:** you're indifferent, so they **auto-sort**
+   (overdue first, then priority, then list position). It is the simpler
+   model, and manual order there can be added later without touching
+   existing tables (a per-view position table).
+4. **Due dates are date-only.** Times arrive with the calendar.
+5. **English** UI and quick-add keywords. Dates display as `Wed 8 Oct` and
+   `8 Oct 2026`, with 24-hour time.
+6. **Design is my call.** I keep the system font stack: Segoe UI Variable is
+   native, superbly hinted on Windows 11, and needs no font dependency, and
+   the future PWA gets SF/Roboto natively. I also keep the single
+   indigo-blue accent (`oklch(0.55 0.19 264)`). It is calm and professional,
+   distinct from the red/amber semantic marks, and contrast-tested in both
+   themes.
+7. **`private_data/` holds everything that must not leave the PC**: the
+   real DB, `settings.toml`, backups and the dev DB (`private_data/dev/`).
+8. **The shortcut set is approved** and extended for the hierarchy (see the
+   phase 1 table).
+9. **`@dnd-kit/react` 0.5.0** (the new API), wrapped in `ui/Sortable`.
+10. **Pin versions released today** (React 19.3.0, FastAPI 0.143.0, Pydantic
+    2.14.0), with fallbacks: React 19.2.8, and the previous FastAPI/Pydantic
+    patches.
+11. **Connectors later.** Tracked in [TODO.md](TODO.md).
+
+## Remaining assumptions
+
+1. Todos live in a list or the Inbox, never directly in an area. Areas group
+   lists only.
+2. Subtasks are one level deep. Sections exist only in lists, not in the
+   Inbox.
+3. Deleting any container (area, list, section, parent todo) soft-deletes
+   everything below it, and a single undo restores it all. There is no
+   confirmation dialog because it is undoable.
+4. Completed todos stay visible, struck through, for the rest of the day,
+   then move to the paginated Logbook.
+5. Notes on a todo are plain text in phase 1. Markdown rendering is deferred.
+6. There is no trash view in phase 1 (undo covers it). Purging waits until
+   sync is designed.
+7. The daily-use server runs on port 8765, separate from dev (8000/5173), so
+   both can run at the same time. Autostart at login is not in scope yet.
+8. The theme preference is stored in the browser (`localStorage`) so it
+   applies before first paint. It moves to `settings.toml`/the server when
+   the PWA needs it on several devices.
+9. The `master` branch is used as is. I commit only when you ask.

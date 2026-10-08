@@ -56,7 +56,7 @@ ProjectPlanBox/
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
 ├── shared/                   # language-neutral fixtures (e.g. ordering test vectors)
 ├── scripts/                  # setup.py, dev.py, test.py, check.py, gen_api.py, serve.py
-├── var/                      # dev database (gitignored)
+├── private_data/             # everything that must not leave this PC: DB, settings, backups (gitignored)
 └── docs/
 ```
 
@@ -318,51 +318,98 @@ CREATE TABLE core_links (
 
 ## 7. Todos module data model (phase 1)
 
+Hierarchy: **Area → List → Section → Todo → Subtask**. Every level below
+Area is optional. Lists may sit outside any area. Todos without a list are in
+the **Inbox**. Todos may sit in a list outside any section. Subtasks are one
+level deep.
+
 ```sql
-CREATE TABLE todos_lists (
+CREATE TABLE todos_areas (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
   position TEXT NOT NULL,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
 ) STRICT;
 
+CREATE TABLE todos_lists (
+  id TEXT PRIMARY KEY,
+  area_id TEXT REFERENCES todos_areas(id),          -- NULL = not in an area
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+  position TEXT NOT NULL,                            -- order within its area (or the top level)
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+) STRICT;
+
+CREATE TABLE todos_sections (
+  id TEXT PRIMARY KEY,
+  list_id TEXT NOT NULL REFERENCES todos_lists(id),
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+  position TEXT NOT NULL,                            -- order within its list
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+) STRICT;
+
 CREATE TABLE todos (
   id TEXT PRIMARY KEY,
   list_id TEXT REFERENCES todos_lists(id),          -- NULL = Inbox
+  section_id TEXT REFERENCES todos_sections(id),    -- NULL = no section
+  parent_id TEXT REFERENCES todos(id),              -- NULL = top-level todo; else a subtask
   title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 500),
   notes TEXT NOT NULL DEFAULT '',
   priority INTEGER NOT NULL DEFAULT 0 CHECK (priority BETWEEN 0 AND 3), -- none, low, medium, high
   due_date TEXT CHECK (due_date IS NULL OR due_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
-  position TEXT NOT NULL,                            -- order within its list (or Inbox)
+  position TEXT NOT NULL,                            -- order among siblings (see below)
   completed_at TEXT,                                 -- UTC instant; NULL = open
-  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT,
+  CHECK (section_id IS NULL OR list_id IS NOT NULL), -- the Inbox has no sections
+  CHECK (parent_id IS NULL OR parent_id <> id)
 ) STRICT;
-CREATE INDEX todos_by_list ON todos (list_id, position) WHERE deleted_at IS NULL;
+CREATE INDEX todos_siblings ON todos (list_id, section_id, parent_id, position) WHERE deleted_at IS NULL;
+CREATE INDEX todos_by_parent ON todos (parent_id) WHERE deleted_at IS NULL AND parent_id IS NOT NULL;
 CREATE INDEX todos_open_by_due ON todos (due_date) WHERE deleted_at IS NULL AND completed_at IS NULL;
 CREATE INDEX todos_completed ON todos (completed_at) WHERE deleted_at IS NULL AND completed_at IS NOT NULL;
 ```
 
-- **Deleting a list** soft-deletes its todos with the *same* `deleted_at`.
-  Restoring the list restores exactly those todos.
+**Invariants.** The service enforces these and tests cover them. The ones
+that can be enforced in SQL are also CHECK constraints.
+
+- **Siblings** are todos sharing `(list_id, section_id, parent_id)`.
+  `position` orders a todo among its siblings only.
+- A section belongs to the same list as the todos in it.
+- **Subtasks are one level deep.** A subtask's parent has no parent, and a
+  todo that has subtasks cannot become a subtask. A subtask always shares its
+  parent's `list_id` and `section_id`. Moving a parent moves its subtasks
+  with it.
+- Subtasks are full todos (their own due date, priority, tags and notes).
+  With a due date, a subtask appears in Today/Upcoming on its own, with its
+  parent's title as context.
+- **Completion:** completing a parent also completes its open subtasks with
+  the *same* `completed_at`. Reopening the parent reopens exactly those
+  subtasks. Completing every subtask does **not** complete the parent.
+- **Deletion cascades down** with one shared `deleted_at`: area → its lists
+  → their sections → their todos → subtasks. Restoring a container restores
+  exactly the rows deleted with it. The undo toast says what went with it
+  ("Deleted area *Work* with 4 lists and 37 todos").
 - **Recurrence (later):** migration `000N_add_recurrence.sql` adds
   `rrule TEXT` and `recurrence_anchor TEXT` (a floating date). Completing a
   recurring todo marks this occurrence done and inserts the next one, with
   the RRULE evaluated by `python-dateutil` on the server. This is why
   completion is its own endpoint (below), not a field patch.
-- Time-of-day due times are deferred to the calendar phase (an assumption).
+- Due dates are date-only for now (decided). Times of day arrive with the
+  calendar.
 
 ### Todos API
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/todos/items?completed_since=<utc>` | All open todos plus those completed since the given instant (the frontend passes the start of today). |
+| GET | `/api/todos/items?completed_since=<utc>` | All open todos (including subtasks) plus those completed since the given instant (the frontend passes the start of today) |
 | GET | `/api/todos/items/completed?before=<utc>&limit=50` | The logbook, cursor-paginated |
-| POST | `/api/todos/items` | Optional client `id`. Repeating a POST with the same id and body returns the existing row (idempotent). |
-| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, list_id, tag_ids. An absent field is left unchanged; `null` clears it. |
-| POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` |
-| POST | `/api/todos/items/{id}/move` | `{list_id?, before_id?, after_id?}`. The server computes `position`. |
-| DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete, undo |
-| GET/POST/PATCH/DELETE | `/api/todos/lists[/{id}]`, `…/move`, `…/restore` | The same patterns for lists |
+| POST | `/api/todos/items` | Optional client `id`, plus `list_id`, `section_id`, `parent_id`. Repeating a POST with the same id and body returns the existing row (idempotent). |
+| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
+| POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks |
+| POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
+| DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |
+| GET/POST/PATCH/DELETE | `/api/todos/areas[/{id}]`, `…/move`, `…/restore` | Areas |
+| GET/POST/PATCH/DELETE | `/api/todos/lists[/{id}]`, `…/move` (`{area_id, before_id?, after_id?}`), `…/restore` | Lists |
+| GET/POST/PATCH/DELETE | `/api/todos/sections[/{id}]`, `…/move` (`{list_id, before_id?, after_id?}`), `…/restore` | Sections |
 | GET/POST/PATCH/DELETE | `/api/tags[/{id}]` | Core |
 | GET | `/api/health`, `/api/meta` | Liveness and schema versions; timezone, week start, app version |
 
@@ -384,9 +431,10 @@ CREATE INDEX todos_completed ON todos (completed_at) WHERE deleted_at IS NULL AN
 ### One cache, derived views
 
 For todos the client loads **all open todos plus today's completed ones** in
-one query (`['todos','items']`). Inbox, Today, Upcoming and each list are
-**selectors** over that array (filter, sort and group, memoised). Lists and
-tags are two more small queries.
+one query (`['todos','items']`). Inbox, Today, Upcoming, each area and each
+list (grouped by section, subtasks nested under their parent) are
+**selectors** over that array (filter, sort and group, memoised). Areas,
+lists, sections and tags are small extra queries.
 
 This is what makes the app feel instant. A single-user todo set is small:
 1,000 open todos is about 300 KB of JSON over localhost. Every optimistic

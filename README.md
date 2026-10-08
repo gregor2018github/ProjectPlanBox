@@ -27,12 +27,13 @@ Further reading:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Structure, modules, data model, data flow |
 | [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) | Code conventions and the design system |
 | [docs/PLAN.md](docs/PLAN.md) | Phased plan, dependencies, assumptions |
+| [docs/TODO.md](docs/TODO.md) | Agreed but unscheduled items |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for agent sessions |
 
 ## Requirements
 
 - Windows 11
-- Python 3.14 (`py -3.14` must work)
+- Python 3.14.8 (`py -3.14` must work)
 - Node.js 24 LTS (or newer) and npm
 
 ## First-time setup
@@ -52,7 +53,7 @@ own, so you do not need to activate it first.
 
 | Command | What it does |
 |---|---|
-| `py scripts\dev.py` | **Start the dev environment.** Runs the backend with reload on `127.0.0.1:8000` and Vite on `127.0.0.1:5173` (which proxies `/api`). Uses the dev database in `var\dev\`. Press Ctrl+C to stop both. Open <http://127.0.0.1:5173>. |
+| `py scripts\dev.py` | **Start the dev environment.** Runs the backend with reload on `127.0.0.1:8000` and Vite on `127.0.0.1:5173` (which proxies `/api`). Uses the dev database in `private_data\dev\`. Press Ctrl+C to stop both. Open <http://127.0.0.1:5173>. |
 | `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (from phase 1). |
 | `py scripts\check.py` | The full quality gate: Ruff format and lint, pyright, an API types drift check, Prettier, ESLint, `tsc`, then all tests. Run it before every commit. `--full` adds the Playwright smoke suite. |
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
@@ -60,21 +61,33 @@ own, so you do not need to activate it first.
 
 ## Data
 
-| Mode | Database location |
-|---|---|
-| `serve.py` (daily use) | `%LOCALAPPDATA%\PlanBox\planbox.db` (override with `PLANBOX_DATA_DIR`) |
-| `dev.py` | `var\dev\planbox.db` (gitignored) |
-| tests | a temporary directory per test |
+Everything that must not leave this PC lives in **`private_data/`** at the
+repo root. Git ignores the folder.
 
-Backups are written to `<data dir>\backups\` before migrations run. The last
-10 are kept.
+```
+private_data/
+├── planbox.db          # your real data (serve.py), plus -wal/-shm files
+├── settings.toml       # optional user settings (see below)
+├── backups/            # automatic pre-migration backups; the newest 10 are kept
+└── dev/planbox.db      # throwaway dev database (dev.py)
+```
+
+Tests never touch `private_data/`. Each test uses a temporary directory.
+
+> **Careful:** `git clean -x` (or `-X`) deletes ignored files, and that
+> includes your database. Never run it in this repo. Backups also live in
+> `private_data/` for now, so they do not protect against losing the
+> folder. Off-machine backups are planned (see [docs/TODO.md](docs/TODO.md)).
 
 ## Configuration
 
-Settings come from environment variables. All of them are optional.
+`private_data/settings.toml`. Every key is optional. Environment variables
+(`PLANBOX_<KEY>`) override the file.
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `PLANBOX_DATA_DIR` | see above | Where the database and backups live |
-| `PLANBOX_TIMEZONE` | `Europe/Amsterdam` | The zone used to decide what "today" is |
-| `PLANBOX_PORT` | `8765` (serve) / `8000` (dev) | Backend port. The host is always `127.0.0.1`. |
+```toml
+timezone = "Europe/Amsterdam"   # the zone used to decide what "today" is
+port = 8765                     # serve.py port (dev uses 8000); the host is always 127.0.0.1
+```
+
+`PLANBOX_DATA_DIR` moves the whole data folder, for example to an external
+drive.
