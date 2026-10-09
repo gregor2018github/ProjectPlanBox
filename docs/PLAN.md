@@ -245,6 +245,51 @@ Pydantic resolve string annotations at runtime.
 - `scripts/package.py` and the release zip.
 - CI on Python 3.12.10 and 3.14 with Node 24, plus releases from `v*` tags.
 
+## Phase 4 (brought forward): Calendar (2026-10-10)
+
+The owner asked for the calendar before phases 2 and 3. Knowledge and Search
+keep their numbers and scope and come next. The calendar shows todo due dates
+now and picks up knowledge links when they exist.
+
+**Scope (owner, 2026-10-10):** events with month, week and day views; todo
+due dates on the calendar; recurring events. Google Calendar sync stays in
+TODO.md.
+
+**Placement (owner, 2026-10-10):** a slim icon rail on the far right of the
+shell. Its calendar icon toggles a calendar pane beside the current view
+(mini month plus agenda), and todos can be dragged onto its days. The pane
+expands to a full-page calendar at `/calendar`. Under 768 px the icon sits in
+the top bar and the pane opens full screen. Rail items come from the module
+manifest (`rail`), so later modules (habits) can add their own.
+
+**Backend** (`modules/calendar`):
+- `calendar_events`: timed events store UTC instants (`start_at`/`end_at`).
+  All-day events store floating dates (`start_date`/`end_date`, end
+  inclusive). `rrule` holds an RRULE without `DTSTART`.
+- `calendar_exceptions`: skipped occurrences of a series, keyed by the
+  occurrence's local date. Soft-deleting one restores the occurrence (undo).
+- Recurrence is expanded on the server in the configured zone, so a weekly
+  09:00 meeting stays at 09:00 across DST. Frequencies are DAILY, WEEKLY,
+  MONTHLY and YEARLY, with INTERVAL, BYDAY, BYMONTHDAY, COUNT and UNTIL.
+- Editing or deleting one occurrence takes a scope, like other calendars:
+  `this` (an exception plus a detached single event), `following` (the
+  series ends before it and a new series starts there) or `all`.
+- `GET /api/calendar/events?start=&end=` returns the events and their
+  occurrences in a date range.
+
+**Frontend** (`modules/calendar`):
+- Month, week and day views. In the time grid you can drag to create, move
+  and resize in 15-minute steps; in the month grid you drag items to another
+  day. Everything is also reachable through the event dialog and the
+  keyboard.
+- Optimistic mutations patch every cached month and refetch afterwards,
+  because only the server expands recurrence.
+- **Todos on the calendar without a module import:** core gains a *calendar
+  feed* registry (like the command registry). The todos Host publishes its
+  dated todos and a `reschedule` action, and the calendar renders every
+  feed. Dropping a todo row on a calendar day uses a core date drop target,
+  which the todos module turns into a due date change.
+
 ## Later phases (sketch)
 
 - **Phase 2: Knowledge collections.** Collections of notes, links and
@@ -252,9 +297,7 @@ Pydantic resolve string annotations at runtime.
   are now two modules.
 - **Phase 3: Search.** Core FTS5 index fed by todos and knowledge, plus
   palette integration.
-- **Phase 4: Calendar.** Events (timed instants and all-day floating dates)
-  with RRULE expansion server-side, and todos with due dates shown in the
-  calendar.
+- **Phase 4: Calendar.** Brought forward; see above.
 - **Phase 5: Habits.** Habits with schedules (RRULE) and daily check-ins
   stored as floating dates, plus streaks.
 - **Phase 6: Recurring todos.** `rrule` on todos, with next-occurrence on
@@ -295,7 +338,8 @@ pinned exactly.
 | Package | Version | Justification |
 |---|---|---|
 | httpx | 0.28.1 | dev. FastAPI's `TestClient` needs it. **Open question:** Starlette 1.7 (pulled in by FastAPI 0.143) now prefers its successor `httpx2` (2.13.1, maintained by the Pydantic team) and warns about `httpx`. We kept the agreed `httpx`, filtered that one warning in pytest, and relaxed pyright's "unknown type" rules for `backend/tests` only. Switching is a one-line change once approved (see TODO.md). |
-| python-dateutil | 2.9.0.post0 | **Phase 4/6 only**, not installed earlier. Evaluates RFC 5545 RRULEs. Correct recurrence expansion (BYSETPOS, DST, EXDATE) is a deep rabbit hole. It is mature and widely used, but updated rarely. |
+| python-dateutil | 2.9.0.post0 | Installed with the calendar (phase 4, brought forward). Evaluates RFC 5545 RRULEs. Correct recurrence expansion (BYSETPOS, DST, EXDATE) is a deep rabbit hole. It is mature and widely used, but updated rarely. Pulls in `six` 1.17.0. Typed through pyright's bundled typeshed stubs. |
+| tzdata | 2026.5 | Added with the calendar (2026-10-10). Windows has no system time zone database, so the stdlib `zoneinfo` cannot load `Europe/Amsterdam` without it. Recurring timed events must keep their wall-clock time across DST, which needs real zone rules. It is the IANA database packaged by CPython core developers (PEP 615), released with every tz update. |
 
 Considered and **not** used: SQLAlchemy/SQLModel (see ARCHITECTURE §3),
 pydantic-settings (a 30-line dataclass does the job), uuid6 (stdlib in 3.14;

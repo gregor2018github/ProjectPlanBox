@@ -4,6 +4,98 @@
  */
 
 export interface paths {
+    "/api/calendar/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Events
+         * @description Events and their occurrences in ``[start, end)``, recurring series expanded.
+         */
+        get: operations["calendar_list_events"];
+        put?: never;
+        /**
+         * Create Event
+         * @description Creates an event or a recurring series (idempotent per client id).
+         */
+        post: operations["calendar_create_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event
+         * @description One live event or series.
+         */
+        get: operations["calendar_get_event"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Event
+         * @description Deletes an event, or this / following / all occurrences of a series.
+         */
+        delete: operations["calendar_delete_event"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Event
+         * @description Changes an event, or this / following / all occurrences of a series.
+         */
+        patch: operations["calendar_update_event"];
+        trace?: never;
+    };
+    "/api/calendar/events/{event_id}/occurrences/{occurrence_date}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Occurrence
+         * @description Brings back one deleted occurrence of a series.
+         */
+        post: operations["calendar_restore_occurrence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/events/{event_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Event
+         * @description Undoes deleting a whole event or series.
+         */
+        post: operations["calendar_restore_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -585,6 +677,16 @@ export interface components {
             updated_at: string;
         };
         /**
+         * CalendarRangeOut
+         * @description The events that appear in a range and their occurrences there, in start order.
+         */
+        CalendarRangeOut: {
+            /** Events */
+            events: components["schemas"]["EventOut"][];
+            /** Occurrences */
+            occurrences: components["schemas"]["OccurrenceOut"][];
+        };
+        /**
          * DeletedOut
          * @description What a (cascading) soft delete or its restore touched.
          */
@@ -599,6 +701,117 @@ export interface components {
             sections: number;
             /** Todos */
             todos: number;
+        };
+        /**
+         * EventCreate
+         * @description Create an event. Give ``start_at``/``end_at`` or, with ``all_day``, the dates.
+         */
+        EventCreate: {
+            /**
+             * All Day
+             * @default false
+             */
+            all_day?: boolean;
+            /** End At */
+            end_at?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Id */
+            id?: string | null;
+            /**
+             * Location
+             * @default
+             */
+            location?: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /** Rrule */
+            rrule?: string | null;
+            /** Start At */
+            start_at?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** Title */
+            title: string;
+        };
+        /**
+         * EventOut
+         * @description An event; with ``rrule`` it is a recurring series anchored at its start.
+         */
+        EventOut: {
+            /** All Day */
+            all_day: boolean;
+            /** Created At */
+            created_at: string;
+            /** End At */
+            end_at: string | null;
+            /** End Date */
+            end_date: string | null;
+            /** Id */
+            id: string;
+            /** Location */
+            location: string;
+            /** Notes */
+            notes: string;
+            /** Rrule */
+            rrule: string | null;
+            /** Start At */
+            start_at: string | null;
+            /** Start Date */
+            start_date: string | null;
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * EventPatch
+         * @description Change an event. Absent fields stay; ``rrule: null`` stops repeating.
+         *
+         *     For a recurring event, ``scope`` picks what changes: ``all`` (the series),
+         *     ``this`` or ``following`` (both need ``occurrence_date``; timing fields
+         *     then describe that occurrence). ``split_id`` names the event split off.
+         */
+        EventPatch: {
+            /** All Day */
+            all_day?: boolean | null;
+            /** End At */
+            end_at?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Occurrence Date */
+            occurrence_date?: string | null;
+            /** Rrule */
+            rrule?: string | null;
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope?: "all" | "this" | "following";
+            /** Split Id */
+            split_id?: string | null;
+            /** Start At */
+            start_at?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * EventsOut
+         * @description Every event a request touched (a series and the event split off it).
+         */
+        EventsOut: {
+            /** Events */
+            events: components["schemas"]["EventOut"][];
         };
         /**
          * HealthOut
@@ -699,6 +912,27 @@ export interface components {
             version: string;
             /** Week Starts On */
             week_starts_on: number;
+        };
+        /**
+         * OccurrenceOut
+         * @description One appearance of an event; ``occurrence_date`` is its local start date (the key).
+         */
+        OccurrenceOut: {
+            /** End At */
+            end_at: string | null;
+            /** End Date */
+            end_date: string | null;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Occurrence Date
+             * Format: date
+             */
+            occurrence_date: string;
+            /** Start At */
+            start_at: string | null;
+            /** Start Date */
+            start_date: string | null;
         };
         /**
          * Problem
@@ -973,6 +1207,236 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    calendar_list_events: {
+        parameters: {
+            query: {
+                /** @description First local date of the range. */
+                start: string;
+                /** @description Local date after the range (exclusive). */
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarRangeOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_create_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_get_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_delete_event: {
+        parameters: {
+            query?: {
+                scope?: "all" | "this" | "following";
+                occurrence_date?: string | null;
+            };
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_update_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_restore_occurrence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+                occurrence_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_restore_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     core_get_health: {
         parameters: {
             query?: never;
