@@ -11,6 +11,7 @@ if str(SCRIPTS) not in sys.path:
 
 import _common  # noqa: E402
 import lock  # noqa: E402
+import package  # noqa: E402
 import serve  # noqa: E402
 
 
@@ -106,3 +107,43 @@ def test_runtime_with_release_dist_never_builds(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(serve, "npm", no_npm)
 
     assert serve.prepare_frontend(build=True) is True
+
+
+def test_package_allowlist_never_ships_private_or_dev_files(tmp_path: Path) -> None:
+    """The zip holds the runtime only, even when private and dev files sit next to it."""
+    root = tmp_path / "repo"
+    for name in package.ROOT_FILES:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text("x", encoding="utf-8")
+    for rel in [
+        "backend/planbox/main.py",
+        "backend/planbox/__pycache__/main.cpython-314.pyc",
+        "backend/tests/test_x.py",
+        "private_data/planbox.db",
+        "frontend/node_modules/x/index.js",
+        "scripts/dev.py",
+        *[f"scripts/{name}" for name in package.RUNTIME_SCRIPTS],
+    ]:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text("x", encoding="utf-8")
+    dist = tmp_path / "dist"
+    for rel in ["index.html", "BUILD_INFO.json", "assets/app.js", "assets/app.js.map"]:
+        (dist / rel).parent.mkdir(parents=True, exist_ok=True)
+        (dist / rel).write_text("x", encoding="utf-8")
+
+    names = [arcname for _, arcname in package.collect(root, dist)]
+    package.verify(names)
+
+    assert "PlanBox/backend/planbox/main.py" in names
+    assert "PlanBox/frontend/dist/assets/app.js" in names
+    assert not [n for n in names if "private_data" in n or "node_modules" in n]
+    assert not [n for n in names if n.endswith((".map", ".pyc")) or "/tests/" in n]
+    assert "PlanBox/scripts/dev.py" not in names
+
+
+def test_package_verify_rejects_leaks_and_gaps() -> None:
+    """A forbidden path or a missing essential file stops packaging."""
+    with pytest.raises(SystemExit, match="forbidden"):
+        package.verify(["PlanBox/private_data/planbox.db"])
+    with pytest.raises(SystemExit, match="missing"):
+        package.verify(["PlanBox/main.py"])

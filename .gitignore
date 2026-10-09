@@ -21,3 +21,6 @@ __pycache__/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Release zips (scripts/package.py)
+/release/
