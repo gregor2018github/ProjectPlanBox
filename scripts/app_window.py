@@ -2,8 +2,9 @@
 
 A web page cannot close its own tab once it has navigated, and never the
 browser. So the launcher starts Chrome or Edge in app mode (one window, no
-tabs or address bar) with a profile of its own, keeps the process, and closes
-it when the server stops. Without either browser, or when ``BROWSER`` is set
+tabs or address bar) with a profile of its own and keeps the process. The
+window and the server live and die together: stopping the server closes the
+window, and closing the window stops the server. Without either browser, or when ``BROWSER`` is set
 (tests use ``BROWSER=echo``), it falls back to the default browser.
 """
 
@@ -11,10 +12,13 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import webbrowser
 from pathlib import Path
 
 CLOSE_TIMEOUT_S = 5.0
+HANDOFF_S = 3.0
+"""A browser that exits sooner only passed the URL to an instance already running."""
 
 _WINDOWS_CANDIDATES = (
     ("ProgramFiles", r"Google\Chrome\Application\chrome.exe"),
@@ -103,6 +107,24 @@ def open_app(url: str, profile_dir: Path) -> subprocess.Popen[bytes] | None:
     except OSError:
         webbrowser.open(url)
         return None
+
+
+def wait_until_closed(process: subprocess.Popen[bytes]) -> bool:
+    """Blocks until the app window's browser process exits.
+
+    Call it right after :func:`open_app`. When the profile is already open in
+    another browser process (say, a window left over from an earlier run),
+    the new process hands the URL over and exits at once; that is not a close.
+
+    Args:
+        process: What :func:`open_app` returned.
+
+    Returns:
+        True when the user closed the window, False after a quick hand-over.
+    """
+    started = time.monotonic()
+    process.wait()
+    return time.monotonic() - started >= HANDOFF_S
 
 
 def close_app(process: subprocess.Popen[bytes]) -> None:

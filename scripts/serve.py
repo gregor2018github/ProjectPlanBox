@@ -5,7 +5,8 @@ Usage:
     py scripts\serve.py --open       also open it in its own app window (what main.py does)
     py scripts\serve.py --no-build   skip the freshness check
 
-The app's "Shut down" button stops this process and closes the app window.
+The app's "Shut down" button stops this process and closes the app window;
+closing the app window stops this process.
 """
 
 import argparse
@@ -17,6 +18,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
@@ -31,7 +33,7 @@ from _common import (
     npm,
     run,
 )
-from app_window import close_app, open_app
+from app_window import close_app, open_app, wait_until_closed
 
 BUILD_INPUTS = ("src", "public", "index.html", "package-lock.json", "vite.config.ts")
 STARTUP_TIMEOUT_S = 30.0
@@ -98,7 +100,8 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
 
     Args:
         open_browser: Open the app in its own window once the server answers
-            (see app_window.py); the window closes again when the server stops.
+            (see app_window.py). The window closes when the server stops, and
+            closing the window stops the server.
         build: Rebuild the frontend first if its sources changed.
 
     Returns:
@@ -137,12 +140,14 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
 
     heading(f"PlanBox on {url}")
     print(f"Database: {settings.db_path}")
-    print("Stop it with the power button in the app, or Ctrl+C here.")
+    print("Stop it with the power button in the app, by closing its window, or Ctrl+C here.")
     windows: list[subprocess.Popen[bytes]] = []
     if open_browser:
         profile = settings.data_dir / "browser"
         threading.Thread(
-            target=_open_when_ready, args=(server, url, profile, windows), daemon=True
+            target=_open_when_ready,
+            args=(server, url, profile, windows, request_shutdown),
+            daemon=True,
         ).start()
     server.run()
     for window in windows:
@@ -152,14 +157,23 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
 
 
 def _open_when_ready(
-    server: object, url: str, profile: Path, windows: list[subprocess.Popen[bytes]]
+    server: object,
+    url: str,
+    profile: Path,
+    windows: list[subprocess.Popen[bytes]],
+    request_shutdown: Callable[[], None],
 ) -> None:
+    """Opens the app window once the server answers, and stops the server when it closes."""
     deadline = time.monotonic() + STARTUP_TIMEOUT_S
     while time.monotonic() < deadline:
         if getattr(server, "started", False):
             window = open_app(url, profile)
             if window is not None:
                 windows.append(window)
+                closed = wait_until_closed(window)
+                if closed and not getattr(server, "should_exit", False):
+                    print("The PlanBox window was closed.")
+                    request_shutdown()
             return
         time.sleep(0.05)
     print(f"PlanBox did not start within {STARTUP_TIMEOUT_S:.0f} s; open {url} yourself.")

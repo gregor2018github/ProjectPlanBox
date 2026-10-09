@@ -613,6 +613,10 @@ its own profile in `<data_dir>/browser`. That makes it a separate browser
 process the launcher owns. When the server stops (power button or Ctrl+C),
 the launcher closes it gracefully (`taskkill` without `/F`, so there is no
 "restore pages" prompt) and kills it only if it is still open after 5 s.
+The other way round, a thread waits on the window's process and stops the
+server when it exits (the user closed the window). An exit within 3 s of
+launch is ignored: that is the browser handing the URL to an instance of the
+same profile that is already running (a window left over from earlier).
 Without Chrome/Edge, or with `BROWSER` set (tests use `BROWSER=echo`), it
 opens the default browser instead, and the stopped screen stays as the
 fallback. Browser-local state such as the theme lives in that profile.

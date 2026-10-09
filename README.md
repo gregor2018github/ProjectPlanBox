@@ -119,7 +119,8 @@ changed; a runtime-only PC serves the prebuilt one.
 
 To stop PlanBox, click the **power button** at the bottom of the sidebar (or
 run "Shut down PlanBox" from the Ctrl+K palette). You can also press Ctrl+C
-in the console window. Either way the PlanBox window closes too.
+in the console window. Either way the PlanBox window closes too. Closing the
+PlanBox window stops PlanBox as well.
 
 ## First-time setup
 

@@ -219,3 +219,13 @@ def test_close_app_ends_a_process_that_ignores_the_polite_request(
 
     assert process.poll() is not None
     app_window.close_app(process)  # already gone: nothing to do
+
+
+def test_a_quick_exit_is_a_handover_not_a_close(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A browser that only passed the URL on must not stop PlanBox; a real close does."""
+    quick = subprocess.Popen([sys.executable, "-c", "pass"])
+    assert app_window.wait_until_closed(quick) is False
+
+    monkeypatch.setattr(app_window, "HANDOFF_S", 0.0)
+    closed = subprocess.Popen([sys.executable, "-c", "pass"])
+    assert app_window.wait_until_closed(closed) is True
