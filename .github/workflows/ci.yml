@@ -1,0 +1,114 @@
+# Guards against the home PC (Python 3.14, Node 24) and the work PC
+# (Python 3.12, no Node) drifting apart. Runs on every push.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Python ${{ matrix.python }}, Windows)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.12.10 is the last 3.12 with a python.org Windows installer, i.e. the work PC.
+        python: ["3.12.10", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install (dev, pinned by the lock file)
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --disable-pip-version-check --quiet --upgrade pip
+          .venv\Scripts\python -m pip install --disable-pip-version-check --quiet -c requirements.lock.txt -e . --group dev
+      - name: Ruff
+        run: |
+          .venv\Scripts\ruff format --check backend scripts main.py
+          .venv\Scripts\ruff check backend scripts main.py
+      - name: Pyright (targets Python 3.12)
+        run: .venv\Scripts\pyright
+      - name: Lock file matches pyproject.toml
+        run: .venv\Scripts\python scripts\lock.py --check
+      - name: Tests
+        run: .venv\Scripts\python -m pytest
+
+  runtime-install:
+    name: Runtime-only install (Python 3.12.10, stock pip)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12.10"
+      - name: Install exactly what the work PC installs
+        run: |
+          python -m venv runtime
+          runtime\Scripts\python -m pip install --disable-pip-version-check --quiet -r requirements.lock.txt
+      - name: The app builds with runtime packages only
+        run: |
+          runtime\Scripts\python -c "import sys, tempfile, pathlib; sys.path.insert(0, 'backend'); from planbox.config import Settings; from planbox.main import create_app; app = create_app(Settings(mode='test', data_dir=pathlib.Path(tempfile.mkdtemp()))); print(len(app.openapi()['paths']), 'routes')"
+
+  frontend:
+    name: Frontend (Node 24) and API types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check --quiet --upgrade pip
+          .venv/bin/python -m pip install --disable-pip-version-check --quiet -c requirements.lock.txt -e . --group dev
+          npm ci --prefix frontend --no-fund --no-audit
+      - name: Prettier
+        run: npm run --prefix frontend format:check
+      - name: ESLint
+        run: npm run --prefix frontend lint
+      - name: TypeScript
+        run: npm run --prefix frontend typecheck
+      - name: Vitest
+        run: npm run --prefix frontend test
+      - name: Generated API types are up to date
+        run: .venv/bin/python scripts/gen_api.py --check
+
+  e2e:
+    name: Browser smoke tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check --quiet -c requirements.lock.txt -e . --group dev
+          npm ci --prefix frontend --no-fund --no-audit
+          cd frontend && npx playwright install --with-deps chromium
+      - name: Playwright
+        working-directory: frontend
+        run: npx playwright test

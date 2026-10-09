@@ -1,0 +1,43 @@
+# Push a tag like v0.2.0 to publish PlanBox-0.2.0.zip as a GitHub release.
+# The tag must match the version in pyproject.toml and planbox/__init__.py.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build and publish the release zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12.10"
+      - name: Tag matches the app version
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match version ${version} in pyproject.toml." >&2
+            exit 1
+          fi
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend --no-fund --no-audit
+      - name: Package
+        run: python scripts/package.py --out release
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release/PlanBox-*.zip \
+            --title "PlanBox ${GITHUB_REF_NAME#v}" \
+            --notes "Unpack over your existing PlanBox folder (your data in private_data/ is kept), then run: py main.py. Needs Python 3.12 or newer; Node.js is not needed."
