@@ -109,15 +109,17 @@ With Node.js on PATH, `main.py` runs the developer setup the first time
 py main.py
 ```
 
-This starts PlanBox and opens it in your browser at <http://127.0.0.1:8765>.
-On the first run, and whenever `requirements.lock.txt` changed, it runs the
-setup by itself. If PlanBox is already running, it just opens the browser.
+This starts PlanBox and opens it at <http://127.0.0.1:8765> in a window of its
+own (Chrome or Edge in app mode, with a separate browser profile; without
+either, your default browser). On the first run, and whenever
+`requirements.lock.txt` changed, it runs the setup by itself. If PlanBox is
+already running, it just opens another window.
 On a developer PC the frontend is rebuilt automatically when its sources
 changed; a runtime-only PC serves the prebuilt one.
 
 To stop PlanBox, click the **power button** at the bottom of the sidebar (or
 run "Shut down PlanBox" from the Ctrl+K palette). You can also press Ctrl+C
-in the console window.
+in the console window. Either way the PlanBox window closes too.
 
 ## First-time setup
 
@@ -151,7 +153,7 @@ own, so you do not need to activate it first.
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
 | `py scripts\lock.py` | Regenerates `requirements.lock.txt` (every runtime package, exact versions, resolved with Python 3.12) after you change `[project].dependencies`. `check.py` fails while it is out of date. |
 | `py scripts\package.py` | Builds `release\PlanBox-<version>.zip` for runtime-only PCs. Pushing a tag such as `v0.2.0` does the same in CI and attaches the zip to a GitHub release (the tag must match the version in `pyproject.toml` and `backend/planbox/__init__.py`). |
-| `py scripts\serve.py` | What `main.py` runs, without opening the browser (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
+| `py scripts\serve.py` | What `main.py` runs, without opening the app window (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
 
 ## Data
 
@@ -163,6 +165,7 @@ private_data/
 ├── planbox.db          # your real data (serve.py), plus -wal/-shm files
 ├── settings.toml       # optional user settings (see below)
 ├── backups/            # automatic pre-migration backups; the newest 10 are kept
+├── browser/            # the PlanBox window's own browser profile (theme etc.)
 └── dev/planbox.db      # throwaway dev database (dev.py)
 ```
 

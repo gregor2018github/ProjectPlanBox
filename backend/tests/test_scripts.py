@@ -1,5 +1,6 @@
-"""The install scripts: lock-file check, install marker, mode detection, runtime frontend."""
+"""The launcher scripts: lock check, install marker and mode, runtime frontend, app window."""
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -10,6 +11,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import _common  # noqa: E402
+import app_window  # noqa: E402
 import lock  # noqa: E402
 import package  # noqa: E402
 import serve  # noqa: E402
@@ -147,3 +149,73 @@ def test_package_verify_rejects_leaks_and_gaps() -> None:
         package.verify(["PlanBox/private_data/planbox.db"])
     with pytest.raises(SystemExit, match="missing"):
         package.verify(["PlanBox/main.py"])
+
+
+def test_app_browser_prefers_chrome_then_edge(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On Windows the standard install folders are searched, Chrome first."""
+    monkeypatch.setattr(app_window.sys, "platform", "win32")
+
+    def not_on_path(_: str) -> None:
+        return None
+
+    monkeypatch.setattr(app_window.shutil, "which", not_on_path)
+    edge = tmp_path / "x86" / "Microsoft" / "Edge" / "Application" / "msedge.exe"
+    edge.parent.mkdir(parents=True)
+    edge.write_text("", encoding="utf-8")
+    env = {"ProgramFiles(x86)": str(tmp_path / "x86"), "LOCALAPPDATA": str(tmp_path / "local")}
+    assert app_window.find_app_browser(env) == edge
+
+    chrome = tmp_path / "local" / "Google" / "Chrome" / "Application" / "chrome.exe"
+    chrome.parent.mkdir(parents=True)
+    chrome.write_text("", encoding="utf-8")
+    assert app_window.find_app_browser(env) == chrome
+    # os.environ upper-cases names on Windows.
+    assert app_window.find_app_browser({k.upper(): v for k, v in env.items()}) == chrome
+
+    assert app_window.find_app_browser({}) is None
+
+
+def test_app_window_runs_as_its_own_browser(tmp_path: Path) -> None:
+    """App mode plus a private profile: a separate process that can be closed alone."""
+    command = app_window.app_window_command(
+        Path("chrome.exe"), "http://127.0.0.1:8765", tmp_path / "browser"
+    )
+
+    assert "--app=http://127.0.0.1:8765" in command
+    assert f"--user-data-dir={tmp_path / 'browser'}" in command
+
+
+def test_browser_env_falls_back_to_the_default_browser(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """BROWSER=echo (tests) never starts a real browser window."""
+    opened: list[str] = []
+    monkeypatch.setenv("BROWSER", "echo")
+    monkeypatch.setattr(app_window.webbrowser, "open", opened.append)
+
+    def no_browser(_: object = None) -> Path:
+        raise AssertionError("must not look for an app browser")
+
+    monkeypatch.setattr(app_window, "find_app_browser", no_browser)
+
+    assert app_window.open_app("http://127.0.0.1:1", tmp_path / "browser") is None
+    assert opened == ["http://127.0.0.1:1"]
+
+
+def test_close_app_ends_a_process_that_ignores_the_polite_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A window that does not close by itself is killed after the timeout."""
+    monkeypatch.setattr(app_window, "CLOSE_TIMEOUT_S", 0.5)
+    process = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(60)"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    app_window.close_app(process)
+
+    assert process.poll() is not None
+    app_window.close_app(process)  # already gone: nothing to do

@@ -26,7 +26,7 @@ from _common import FRONTEND, ROOT, heading, npm, run
 
 TOP = "PlanBox"
 ROOT_FILES = ("main.py", "pyproject.toml", "requirements.lock.txt", "README.md", "LICENSE")
-RUNTIME_SCRIPTS = ("_common.py", "setup.py", "serve.py", "migrate.py")
+RUNTIME_SCRIPTS = ("_common.py", "app_window.py", "setup.py", "serve.py", "migrate.py")
 FORBIDDEN_PARTS = frozenset(
     {"private_data", ".venv", "node_modules", "tests", "__pycache__", ".git", "src", "e2e"}
 )

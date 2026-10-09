@@ -603,6 +603,20 @@ task, so the 202 response reaches the browser before the server stops.
 the power button; the dev server is stopped by `dev.py`. After a successful
 shutdown the frontend replaces the shell with a "PlanBox has stopped" screen.
 
+### App window
+
+A page cannot close its own tab once it has navigated (browsers allow
+`window.close()` only for script-opened windows or a single history entry),
+and never the browser. So `serve.py --open` (`scripts/app_window.py`) starts
+Chrome, else Edge, in app mode (`--app=<url>`, one window without tabs) with
+its own profile in `<data_dir>/browser`. That makes it a separate browser
+process the launcher owns. When the server stops (power button or Ctrl+C),
+the launcher closes it gracefully (`taskkill` without `/F`, so there is no
+"restore pages" prompt) and kills it only if it is still open after 5 s.
+Without Chrome/Edge, or with `BROWSER` set (tests use `BROWSER=echo`), it
+opens the default browser instead, and the stopped screen stays as the
+fallback. Browser-local state such as the theme lives in that profile.
+
 ## 10. Module recipe (learned from todos)
 
 To add a module `notes`, do the following. Nothing outside these places

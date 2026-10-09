@@ -78,6 +78,8 @@ later phases depend on is in place and tested.
 setup, rebuild if stale, open the browser, detect a running instance), a
 shutdown button and palette command (`POST /api/shutdown`, launcher-only),
 and the loopback `Host` check that the shutdown endpoint made necessary.
+Later (owner request): the launcher opens PlanBox in its own Chrome/Edge app
+window and closes it on shutdown (`scripts/app_window.py`, ARCHITECTURE §9).
 
 **Done when:** `setup.py` on a fresh clone and then `dev.py` gives a themed,
 responsive, keyboard-navigable empty shell showing a live health indicator;

@@ -2,21 +2,21 @@ r"""Daily use: builds the frontend if needed and serves app + API from one proce
 
 Usage:
     py scripts\serve.py              http://127.0.0.1:8765 (real data in private_data/)
-    py scripts\serve.py --open       also open it in the browser (what main.py does)
+    py scripts\serve.py --open       also open it in its own app window (what main.py does)
     py scripts\serve.py --no-build   skip the freshness check
 
-The app's "Shut down" button stops this process.
+The app's "Shut down" button stops this process and closes the app window.
 """
 
 import argparse
 import json
 import socket
+import subprocess
 import sys
 import threading
 import time
 import urllib.error
 import urllib.request
-import webbrowser
 from pathlib import Path
 from typing import Literal
 
@@ -31,6 +31,7 @@ from _common import (
     npm,
     run,
 )
+from app_window import close_app, open_app
 
 BUILD_INPUTS = ("src", "public", "index.html", "package-lock.json", "vite.config.ts")
 STARTUP_TIMEOUT_S = 30.0
@@ -96,7 +97,8 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
     """Runs PlanBox until it is shut down (from the app or with Ctrl+C).
 
     Args:
-        open_browser: Open the app in the default browser once the server answers.
+        open_browser: Open the app in its own window once the server answers
+            (see app_window.py); the window closes again when the server stops.
         build: Rebuild the frontend first if its sources changed.
 
     Returns:
@@ -114,7 +116,7 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
     if state == "planbox":
         print(f"PlanBox is already running at {url}.")
         if open_browser:
-            webbrowser.open(url)
+            open_app(url, settings.data_dir / "browser")
         return 0
     if state == "other":
         print(f"Port {settings.port} is used by another program. Set `port` in")
@@ -136,18 +138,28 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
     heading(f"PlanBox on {url}")
     print(f"Database: {settings.db_path}")
     print("Stop it with the power button in the app, or Ctrl+C here.")
+    windows: list[subprocess.Popen[bytes]] = []
     if open_browser:
-        threading.Thread(target=_open_when_ready, args=(server, url), daemon=True).start()
+        profile = settings.data_dir / "browser"
+        threading.Thread(
+            target=_open_when_ready, args=(server, url, profile, windows), daemon=True
+        ).start()
     server.run()
+    for window in windows:
+        close_app(window)
     print("PlanBox stopped.")
     return 0
 
 
-def _open_when_ready(server: object, url: str) -> None:
+def _open_when_ready(
+    server: object, url: str, profile: Path, windows: list[subprocess.Popen[bytes]]
+) -> None:
     deadline = time.monotonic() + STARTUP_TIMEOUT_S
     while time.monotonic() < deadline:
         if getattr(server, "started", False):
-            webbrowser.open(url)
+            window = open_app(url, profile)
+            if window is not None:
+                windows.append(window)
             return
         time.sleep(0.05)
     print(f"PlanBox did not start within {STARTUP_TIMEOUT_S:.0f} s; open {url} yourself.")

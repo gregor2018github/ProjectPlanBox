@@ -6,8 +6,10 @@ Usage:
 On the first start, and after an update that changed the Python packages,
 this runs the setup (scripts/setup.py) by itself. With Node.js it is a
 developer install; without Node.js (a release zip) it installs only what is
-needed to run. If PlanBox is already running, it just opens the browser.
-Stop PlanBox with the power button in the app's sidebar, or Ctrl+C here.
+needed to run. PlanBox opens in its own Chrome/Edge app window (see scripts/app_window.py).
+If PlanBox is already running, it just opens another window. Stop PlanBox
+with the power button in the app's sidebar, or Ctrl+C here; the window
+closes with it.
 """
 
 import subprocess
