@@ -214,6 +214,34 @@ milestone 1a–1f, not just at the end of the phase.
 mutation is optimistic with a tested rollback, and `check.py --full` is
 green.
 
+## Side task: Python 3.12 minimum and a runtime-only install (2026-10-10)
+
+An owner-approved task outside the phase order. No module work was done.
+
+**Why 3.12 became the minimum.** The owner wants to run PlanBox on a work PC
+that has only Python 3.12 and pip, and where neither Node.js nor another
+Python can be installed. The code used only four 3.14 conveniences:
+- `uuid.uuid7()`, replaced by our own thread-safe, strictly increasing
+  UUIDv7 in `core/ids.py`
+- an unparenthesised multi-exception `except`
+- two self-referencing annotations
+- methods named `list` shadowing the builtin inside class bodies
+
+A compatibility layer would have meant two code paths to test forever, so
+3.12 became the floor. The Ruff and pyright targets are 3.12, so the
+quality gate rejects 3.14-only code from now on. `from __future__ import
+annotations` was deliberately *not* added everywhere: pyright on 3.12
+already catches every such case, and the import would make FastAPI and
+Pydantic resolve string annotations at runtime.
+
+**What was added:**
+- `requirements.lock.txt` (`scripts/lock.py`): every runtime package at an
+  exact version, resolved on 3.12, used by both install modes and CI.
+- A runtime-only install path (no Node.js) through `main.py` and
+  `setup.py`.
+- `scripts/package.py` and the release zip.
+- CI on Python 3.12.10 and 3.14 with Node 24, plus releases from `v*` tags.
+
 ## Later phases (sketch)
 
 - **Phase 2: Knowledge collections.** Collections of notes, links and
@@ -244,7 +272,7 @@ pinned exactly.
 
 | Runtime | Pick | Note |
 |---|---|---|
-| Python | **3.14.8** (installed 2026-10-08) | `uuid.uuid7()` is in the stdlib (one less dependency), annotations are evaluated lazily, and it is supported until 2030. Bundles SQLite 3.50.4 with FTS5. |
+| Python | **3.12 minimum**; 3.14.8 on the home PC, 3.12.10 on the work PC | 3.12 became the minimum on 2026-10-10 (see the side task above). 3.12.10 is the last 3.12 with a python.org Windows installer and bundles SQLite 3.49.1 (STRICT tables and FTS5 work). |
 | Node.js | **24 LTS** (you have 24.15; latest 24.21) | Vite 8 needs ≥ 20.19. Node 26 becomes LTS on 2026-10-28, and we can move later. |
 | SQLite | 3.49.1 (bundled with CPython) | FTS5 confirmed available |
 
@@ -327,7 +355,7 @@ is simpler).
 
 ## Decisions (owner, 2026-10-08)
 
-1. **Python 3.14.8.** Installed per-user from the signed python.org
+1. **Python 3.14.8** (the minimum is now 3.12, see the side task). Installed per-user from the signed python.org
    installer (winget only had 3.14.7). `py -3.14` works. Its bundled SQLite
    is 3.50.4, with FTS5.
 2. **Areas, sections and subtasks are in phase 1.** Data model in

@@ -22,8 +22,15 @@ in `pyproject.toml`.
   for return values.
 - Google-style docstrings on every public module, class and function. Tests
   need one line saying what they verify.
-- Use `from __future__ import annotations` only where it is needed. Python
-  3.14 already evaluates annotations lazily.
+- **Python 3.12 is the minimum** (the work PC). Ruff and pyright target 3.12,
+  so the gate rejects newer syntax and APIs (e.g. `except A, B:`,
+  `uuid.uuid7()`). Annotations are evaluated eagerly on 3.12:
+  - quote a reference to the class being defined (`-> "EntityRef"`)
+  - don't name methods after builtins you use in annotations (`list_live()`,
+    not `list()`)
+  - don't add `from __future__ import annotations`, because FastAPI and
+    Pydantic would then resolve every annotation from a string at runtime
+- The PEP 695 syntax (`type X = …`, `def f[T](…)`) is fine: it is 3.12.
 
 ```python
 def complete(self, todo_id: str) -> Todo:

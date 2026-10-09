@@ -17,6 +17,13 @@ treat their database as precious.
 - The Python virtual env is **`.venv`** at the repo root. Call
   `.venv\Scripts\python.exe` directly or use the `scripts\*.py` entry points.
   Do not rely on an activated shell.
+- **Python 3.12 is the minimum** (the owner's work PC runs 3.12 without
+  Node.js; the home PC runs 3.14 with Node 24). Never use 3.13+/3.14-only
+  syntax or APIs; Ruff/pyright target 3.12 and CI tests both versions.
+- Runtime packages are pinned in `requirements.lock.txt`. After changing
+  `[project].dependencies`, run `py scripts\lock.py` and commit the lock.
+- Release zips for runtime-only PCs: `py scripts\package.py`, or push a
+  `v*` tag (CI publishes it). Only when the owner asks.
 - Owner's daily start: `py main.py` (opens the browser; the sidebar's power
   button stops it). Dev: `py scripts\dev.py`. Tests: `py scripts\test.py`.
   Full gate: `py scripts\check.py` (`--full` adds Playwright).

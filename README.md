@@ -33,7 +33,7 @@ will come later.
 
 ## What it is
 
-- **Backend:** Python 3.14, FastAPI and SQLite (the stdlib `sqlite3` module,
+- **Backend:** Python 3.12 or newer, FastAPI and SQLite (the stdlib `sqlite3` module,
   WAL mode, numbered SQL migrations). It binds to `127.0.0.1` only.
 - **Frontend:** React, Vite and TypeScript (strict), styled with Tailwind CSS
   and design tokens, Base UI primitives, Motion and TanStack Query. It
@@ -52,11 +52,56 @@ Further reading:
 | [docs/TODO.md](docs/TODO.md) | Agreed but unscheduled items |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for agent sessions |
 
-## Requirements
+## Two ways to install
 
-- Windows 11
-- Python 3.14.8 (`py -3.14` must work)
-- Node.js 24 LTS (or newer) and npm
+| | Developer PC | Runtime-only PC |
+|---|---|---|
+| For | Working on PlanBox (the home PC) | Just using it (e.g. the work PC) |
+| Needs | Windows 11, Python 3.12+ (3.14 at home), Node.js 24 LTS | Windows 11, Python 3.12+, pip. **No Node.js.** |
+| Gets the code from | a git clone | a release zip `PlanBox-<version>.zip` |
+| Frontend | built from source, rebuilt when it changes | prebuilt `frontend/dist` inside the zip |
+| Python packages | runtime + dev tools (pinned by `requirements.lock.txt`) | runtime only, from `requirements.lock.txt` |
+
+Both run the same app, the same API and the same database format. CI tests
+the backend on Python 3.12.10 and 3.14 on every push, so the two machines
+cannot drift apart unnoticed.
+
+### Runtime-only PC (no Node.js)
+
+1. Download `PlanBox-<version>.zip` from the
+   [releases page](https://github.com/gregor2018github/ProjectPlanBox/releases).
+2. Extract it. You get a `PlanBox` folder; put it wherever you like.
+3. In that folder run `py main.py`.
+
+The first start installs the Python packages into `PlanBox\.venv`, which
+takes about a minute. Your data then lives in `PlanBox\private_data\`.
+
+**Updating safely:**
+
+1. Stop PlanBox with the power button.
+2. Extract the new zip over the existing `PlanBox` folder and choose
+   *Replace the files in the destination*.
+3. Run `py main.py`.
+
+The zip never contains `private_data/` or `.venv/`, so your data and
+settings stay as they are. `main.py` reinstalls packages only if the new
+version pins different ones. New database migrations run on start, after an
+automatic backup to `private_data\backups\`.
+
+Do not delete the `PlanBox` folder to "clean up" an update: `private_data`
+is inside it. If you want a fully clean copy, extract the new zip somewhere
+else and move `private_data` into it.
+
+### Developer PC
+
+```powershell
+git clone https://github.com/gregor2018github/ProjectPlanBox.git
+cd ProjectPlanBox
+py main.py
+```
+
+With Node.js on PATH, `main.py` runs the developer setup the first time
+(described below) and then starts PlanBox.
 
 ## Start PlanBox
 
@@ -65,9 +110,10 @@ py main.py
 ```
 
 This starts PlanBox and opens it in your browser at <http://127.0.0.1:8765>.
-On the very first run it does the one-time setup (described below)
-automatically. If PlanBox is already running, it just opens the browser.
-The frontend is rebuilt automatically when its sources changed.
+On the first run, and whenever `requirements.lock.txt` changed, it runs the
+setup by itself. If PlanBox is already running, it just opens the browser.
+On a developer PC the frontend is rebuilt automatically when its sources
+changed; a runtime-only PC serves the prebuilt one.
 
 To stop PlanBox, click the **power button** at the bottom of the sidebar (or
 run "Shut down PlanBox" from the Ctrl+K palette). You can also press Ctrl+C
@@ -76,12 +122,19 @@ in the console window.
 ## First-time setup
 
 ```powershell
-py -3.14 scripts\setup.py
+py scripts\setup.py
 ```
 
-This creates the virtual environment in `.venv\`, installs the Python
-dependencies (including the dev group), runs `npm ci` in `frontend\` and
-generates the API types. You can run it again safely.
+It picks the mode by itself:
+- **With Node.js:** creates `.venv\`, installs the runtime packages plus the
+  dev group (pinned by `requirements.lock.txt`; it upgrades pip first,
+  because `--group` needs pip 25.1+), runs `npm ci` and generates the API
+  types.
+- **Without Node.js:** installs only the locked runtime packages. This works
+  with the pip that ships with Python 3.12. It needs a prebuilt
+  `frontend\dist` and stops with an explanation if there is none.
+
+`--runtime` forces the runtime-only install. You can run setup again safely.
 
 ## Commands
 
@@ -96,6 +149,8 @@ own, so you do not need to activate it first.
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
 | `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
+| `py scripts\lock.py` | Regenerates `requirements.lock.txt` (every runtime package, exact versions, resolved with Python 3.12) after you change `[project].dependencies`. `check.py` fails while it is out of date. |
+| `py scripts\package.py` | Builds `release\PlanBox-<version>.zip` for runtime-only PCs. Pushing a tag such as `v0.2.0` does the same in CI and attaches the zip to a GitHub release (the tag must match the version in `pyproject.toml` and `backend/planbox/__init__.py`). |
 | `py scripts\serve.py` | What `main.py` runs, without opening the browser (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
 
 ## Data

@@ -1,7 +1,7 @@
 r"""Runs PlanBox for the Playwright smoke suite on a throwaway data folder.
 
 Usage (Playwright starts this itself; see frontend/playwright.config.ts):
-    py -3.14 scripts\e2e_server.py --port 8790
+    py scripts\e2e_server.py --port 8790
 """
 
 import argparse

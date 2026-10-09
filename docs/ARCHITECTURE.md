@@ -545,12 +545,38 @@ Host share it, and none of them is an ancestor of the others.
 | Mode | Processes | Origin |
 |---|---|---|
 | Dev | uvicorn `--reload` on 127.0.0.1:8000 and Vite on 127.0.0.1:5173 (`/api` proxied) | 5173 |
+| Daily use, runtime-only PC (release zip) | Same as daily use, serving the prebuilt `frontend/dist` from the zip; no Node.js | 8765 |
 | Daily use (`main.py` → `scripts/serve.py`) | One in-process uvicorn on 127.0.0.1:8765 serving `/api` and the built `frontend/dist` (SPA fallback). It can be stopped from the app. | 8765 |
 | Later (PWA) | The same single process, bound to the private-network interface behind auth. A deliberate change, not a flag. | n/a |
 
 The server is single-origin in production, so the future PWA (service
 worker, manifest) needs no CORS. The dev server sends no CORS headers either,
 because Vite proxies.
+
+### Install modes
+
+`scripts/_common.py` decides between two install modes. Both run the same
+code against the same database.
+
+- **dev:** npm is on PATH and `frontend/package.json` exists (a git
+  checkout). `.venv` gets an editable install with the dev group, constrained
+  by `requirements.lock.txt`. `serve.py` rebuilds `frontend/dist` when its
+  sources are newer.
+- **runtime:** no npm, or no frontend sources (a release zip). `.venv` gets
+  only `pip install -r requirements.lock.txt`, with no build step and no
+  editable install (the scripts put `backend/` on `sys.path`). `serve.py`
+  serves `frontend/dist` as it is. It refuses to start without one, and
+  warns when a dev checkout's `dist` lacks `BUILD_INFO.json` (it may be
+  stale).
+
+`.venv/planbox-install.json` records the mode and the lock file's hash.
+`main.py` reruns setup only when they no longer match.
+
+The release zip (`scripts/package.py`) is built from an allowlist: root
+files, `backend/planbox`, the runtime scripts and a source-map-free
+`frontend/dist` carrying `BUILD_INFO.json`. A verify step rejects
+`private_data`, `.venv`, `node_modules`, tests and source maps, so
+extracting a newer zip over an install keeps the data.
 
 ### Local-server protections
 
@@ -602,7 +628,21 @@ changes.
    - `index.ts` exports the manifest. Add one line to `src/modules/index.ts`.
    - UI flow tests with a fake API, plus one or two Playwright smoke tests.
 
-## 11. Testing architecture
+## 11. Continuous integration
+
+`.github/workflows/ci.yml` runs on every push:
+- **Backend** on Windows with Python 3.12.10 and 3.14: Ruff, pyright, the
+  lock check, pytest.
+- **Runtime-only install** on 3.12.10 with stock pip: installs the lock and
+  builds the app.
+- **Frontend** on Node 24: Prettier, ESLint, tsc, Vitest, plus the API type
+  drift check.
+- **Playwright** smoke suite.
+
+`release.yml` runs on `v*` tags: it checks the tag against the app version,
+runs `package.py` and attaches the zip to a GitHub release.
+
+## 12. Testing architecture
 
 | Layer | Tool | Database |
 |---|---|---|
