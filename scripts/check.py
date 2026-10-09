@@ -38,6 +38,7 @@ def main() -> int:
         ("ruff lint", [ruff, "check", *PY_PATHS], ROOT),
         ("pyright", [venv_tool("pyright")], ROOT),
         ("API types", [str(VENV_PYTHON), str(ROOT / "scripts" / "gen_api.py"), "--check"], ROOT),
+        ("lock file", [str(VENV_PYTHON), str(ROOT / "scripts" / "lock.py"), "--check"], ROOT),
         ("prettier", [npm(), "run", "format:check", "--silent"], FRONTEND),
         ("eslint", [npm(), "run", "lint", "--silent"], FRONTEND),
         ("tsc", [npm(), "run", "typecheck", "--silent"], FRONTEND),

@@ -20,7 +20,17 @@ import webbrowser
 from pathlib import Path
 from typing import Literal
 
-from _common import FRONTEND, ensure_venv, heading, npm, run
+from _common import (
+    FRONTEND,
+    NO_FRONTEND_MESSAGE,
+    ensure_venv,
+    has_built_frontend,
+    heading,
+    install_mode,
+    is_prebuilt_release,
+    npm,
+    run,
+)
 
 BUILD_INPUTS = ("src", "public", "index.html", "package-lock.json", "vite.config.ts")
 STARTUP_TIMEOUT_S = 30.0
@@ -60,6 +70,28 @@ def probe(host: str, port: int) -> Literal["free", "planbox", "other"]:
     return "planbox" if is_planbox else "other"
 
 
+def prepare_frontend(*, build: bool) -> bool:
+    """Makes sure there is a frontend to serve; rebuilds it on a dev PC when stale.
+
+    Without Node.js (runtime install) the prebuilt frontend/dist is used as is.
+
+    Returns:
+        False when there is nothing to serve.
+    """
+    if install_mode() == "runtime":
+        if not has_built_frontend():
+            print(NO_FRONTEND_MESSAGE)
+            return False
+        if not is_prebuilt_release():
+            print("Note: Node.js is not available, so frontend/dist is served as it is;")
+            print("it may be older than the source code.")
+        return True
+    if build and build_is_stale():
+        heading("Building the frontend")
+        run([npm(), "run", "build", "--silent"], cwd=FRONTEND)
+    return True
+
+
 def serve(*, open_browser: bool, build: bool = True) -> int:
     """Runs PlanBox until it is shut down (from the app or with Ctrl+C).
 
@@ -89,9 +121,8 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
         print("private_data/settings.toml (or PLANBOX_PORT) to a free port.")
         return 1
 
-    if build and build_is_stale():
-        heading("Building the frontend")
-        run([npm(), "run", "build", "--silent"], cwd=FRONTEND)
+    if not prepare_frontend(build=build):
+        return 1
 
     server: uvicorn.Server | None = None
 

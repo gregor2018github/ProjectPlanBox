@@ -76,6 +76,7 @@ extraPaths = ["backend", "scripts"]
 # they are Unknown. Relax only the Unknown-propagation rules, only in tests,
 # until the httpx2 decision is made (see docs/TODO.md).
 root = "backend/tests"
+extraPaths = ["backend", "scripts"]
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
 reportUnknownArgumentType = "none"
