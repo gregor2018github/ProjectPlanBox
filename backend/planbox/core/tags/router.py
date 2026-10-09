@@ -16,7 +16,7 @@ def _out(tag: Tag) -> TagOut:
 @router.get("")
 def list_tags(service: TagServiceDep) -> list[TagOut]:
     """All live tags, alphabetically."""
-    return [_out(t) for t in service.list()]
+    return [_out(t) for t in service.list_live()]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

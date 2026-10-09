@@ -52,7 +52,7 @@ class Repositories:
     todos: TodoRepository
 
     @classmethod
-    def on(cls, conn: sqlite3.Connection) -> Repositories:
+    def on(cls, conn: sqlite3.Connection) -> "Repositories":
         """Builds all repositories on ``conn``."""
         return cls(
             AreaRepository(conn),
@@ -171,7 +171,7 @@ class AreaService:
         self._repos = repos
         self._clock = clock
 
-    def list(self) -> list[Area]:
+    def list_live(self) -> list[Area]:
         """Live areas in order."""
         return self._repos.areas.list_live()
 
@@ -252,7 +252,7 @@ class ListService:
         self._repos = repos
         self._clock = clock
 
-    def list(self) -> list[TodoList]:
+    def list_live(self) -> list[TodoList]:
         """Live lists."""
         return self._repos.lists.list_live()
 
@@ -353,7 +353,7 @@ class SectionService:
         self._repos = repos
         self._clock = clock
 
-    def list(self) -> list[Section]:
+    def list_live(self) -> list[Section]:
         """Live sections."""
         return self._repos.sections.list_live()
 

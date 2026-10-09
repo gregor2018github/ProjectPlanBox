@@ -54,7 +54,7 @@ def probe(host: str, port: int) -> Literal["free", "planbox", "other"]:
     try:
         with urllib.request.urlopen(f"http://{host}:{port}/api/health", timeout=2) as response:
             body = json.load(response)
-    except urllib.error.URLError, TimeoutError, ValueError:
+    except (urllib.error.URLError, TimeoutError, ValueError):
         return "other"
     is_planbox = isinstance(body, dict) and "schema_versions" in body
     return "planbox" if is_planbox else "other"

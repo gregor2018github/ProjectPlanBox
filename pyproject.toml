@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "planbox"
 version = "0.1.0"
 description = "Personal, local-first planner."
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.143.0",
     "pydantic==2.14.0",
@@ -31,7 +31,7 @@ include = ["planbox*"]
 # ---------------------------------------------------------------- ruff
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 src = ["backend", "scripts", "."]
 
 [tool.ruff.lint]
@@ -63,7 +63,7 @@ convention = "google"
 # ------------------------------------------------------------- pyright
 [tool.pyright]
 include = ["backend", "scripts", "main.py"]
-pythonVersion = "3.14"
+pythonVersion = "3.12"
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"

@@ -24,7 +24,7 @@ class EntityRef:
         return f"{self.entity_type}:{self.entity_id}"
 
     @classmethod
-    def parse(cls, text: str) -> EntityRef:
+    def parse(cls, text: str) -> "EntityRef":
         """Parses ``<module>.<kind>:<id>``.
 
         Raises:

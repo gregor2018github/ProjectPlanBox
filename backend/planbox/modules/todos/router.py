@@ -119,7 +119,7 @@ def _created(response: Response, created: bool) -> None:
 @router.get("/areas")
 def list_areas(service: Areas) -> list[AreaOut]:
     """All live areas in order."""
-    return [_area(a) for a in service.list()]
+    return [_area(a) for a in service.list_live()]
 
 
 @router.post("/areas", status_code=status.HTTP_201_CREATED)
@@ -160,7 +160,7 @@ def restore_area(area_id: str, service: Areas) -> DeletedOut:
 @router.get("/lists")
 def list_lists(service: Lists) -> list[ListOut]:
     """All live lists."""
-    return [_list(item) for item in service.list()]
+    return [_list(item) for item in service.list_live()]
 
 
 @router.post("/lists", status_code=status.HTTP_201_CREATED)
@@ -201,7 +201,7 @@ def restore_list(list_id: str, service: Lists) -> DeletedOut:
 @router.get("/sections")
 def list_sections(service: Sections) -> list[SectionOut]:
     """All live sections."""
-    return [_section(s) for s in service.list()]
+    return [_section(s) for s in service.list_live()]
 
 
 @router.post("/sections", status_code=status.HTTP_201_CREATED)

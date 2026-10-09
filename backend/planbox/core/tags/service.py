@@ -43,7 +43,7 @@ class TagService:
         self._repo = repository
         self._clock = clock
 
-    def list(self) -> list[Tag]:
+    def list_live(self) -> list[Tag]:
         """All live tags, alphabetically."""
         return self._repo.list_live()
 

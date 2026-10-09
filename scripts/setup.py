@@ -10,14 +10,14 @@ import venv
 
 from _common import FRONTEND, ROOT, VENV, VENV_PYTHON, heading, npm, run
 
-REQUIRED = (3, 14)
+MINIMUM = (3, 12)
 
 
 def main() -> int:
     """Entry point."""
-    if sys.version_info[:2] != REQUIRED:
+    if sys.version_info[:2] < MINIMUM:
         found = f"{sys.version_info.major}.{sys.version_info.minor}"
-        sys.exit(f"PlanBox needs Python 3.14 (found {found}). Run: py -3.14 scripts\\setup.py")
+        sys.exit(f"PlanBox needs Python 3.12 or newer (found {found}).")
 
     heading("Python environment (.venv)")
     if not VENV_PYTHON.is_file():
