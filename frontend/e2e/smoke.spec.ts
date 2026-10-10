@@ -73,6 +73,53 @@ test("drag and drop reorders, and the order survives a reload", async ({ page })
   await expect(inbox.getByRole("button", { name: new RegExp(`Complete “${a}”`) })).toHaveCount(0);
 });
 
+/** Drags `source` onto the middle of `target` with the mouse. */
+async function dragOnto(page: Page, source: Locator, target: Locator): Promise<void> {
+  const from = await source.boundingBox();
+  const to = await target.boundingBox();
+  if (!from || !to) throw new Error("drag source or target not visible");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 10, { steps: 5 });
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 15 });
+  await page.mouse.up();
+}
+
+test("a sidebar list drags into an area and back out; a click still opens it", async ({
+  page,
+  request,
+}) => {
+  const id = tag();
+  const areaResponse = await request.post("/api/todos/areas", { data: { name: `Area ${id}` } });
+  const area = (await areaResponse.json()) as { id: string };
+  const listResponse = await request.post("/api/todos/lists", {
+    data: { name: `List ${id}`, area_id: null },
+  });
+  const list = (await listResponse.json()) as { id: string };
+  const areaOf = async () => {
+    const lists = (await (await request.get("/api/todos/lists")).json()) as {
+      id: string;
+      area_id: string | null;
+    }[];
+    return lists.find((l) => l.id === list.id)?.area_id;
+  };
+  await page.goto("/todos/inbox");
+  // The startup splash covers the page for its first moments.
+  await expect(page.getByTestId("startup-splash")).toHaveCount(0);
+  const listLink = page.getByRole("link", { name: new RegExp(`^List ${id}`) });
+
+  await dragOnto(page, listLink, page.getByRole("link", { name: `Area ${id}` }));
+  await expect.poll(areaOf).toBe(area.id);
+  // A new drag cannot start until the drop animation has finished.
+  await page.waitForTimeout(400);
+
+  await dragOnto(page, listLink, page.getByText("Lists", { exact: true }));
+  await expect.poll(areaOf).toBeNull();
+
+  await listLink.click();
+  await expect(page).toHaveURL(new RegExp(`/todos/lists/${list.id}$`));
+});
+
 test("indent makes a subtask; completing the parent completes both", async ({ page, request }) => {
   const id = tag();
   const [parent, child] = [`Parent ${id}`, `Child ${id}`];

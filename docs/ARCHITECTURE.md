@@ -611,6 +611,11 @@ a move with pure, tested rules (`modules/todos/dropRules.ts`):
 Groups (`todos:<list>:<section>:<parent>`) keep subtasks inside their
 parent. Lists are grouped per area and sections per list.
 
+`DndRoot` also reconfigures dnd-kit's pointer sensor. By default it never
+starts a drag on a link, and sidebar rows (lists, collections) are links.
+A link inside the dragged element may start a drag, but with a mouse only
+after 5 px of movement, so a slow click still navigates.
+
 ### Todo UI state
 
 Selection, expanded parents, todos "lingering" for 600 ms after completion
