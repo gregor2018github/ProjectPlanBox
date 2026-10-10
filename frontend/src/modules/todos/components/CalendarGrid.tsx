@@ -142,15 +142,18 @@ export function CalendarGrid({ selected, today, onSelect }: CalendarGridProps) {
               tabIndex={day === focused ? 0 : -1}
               aria-selected={isSelected}
               aria-label={formatDayLong(day)}
+              aria-current={isToday ? "date" : undefined}
               onClick={() => {
                 onSelect(day);
               }}
               className={cx(
                 "flex size-8 items-center justify-center rounded-md text-sm tabular-nums transition-colors duration-(--duration-fast) ease-out coarse:size-10",
                 isSelected ? "bg-accent text-on-accent" : "hover:bg-hover",
-                !isSelected && isToday && "font-semibold text-accent",
-                !isSelected && !inMonth && "text-text-subtle",
-                isoWeekday(day) > 5 && !isSelected && inMonth && "text-text-muted",
+                isToday && "font-semibold ring-inset",
+                isToday &&
+                  (isSelected ? "ring-2 ring-on-accent" : "text-accent ring-1 ring-accent"),
+                !isSelected && !isToday && !inMonth && "text-text-subtle",
+                isoWeekday(day) > 5 && !isSelected && !isToday && inMonth && "text-text-muted",
               )}
             >
               {Number(day.slice(8))}
