@@ -100,6 +100,18 @@ describe("patch, delete and merge", () => {
     });
   });
 
+  it("anchors a new repeat on the due date and stops it when the date goes", () => {
+    const t = makeTodo({ due_date: "2026-10-12" });
+    const repeating = applyPatch([t], t.id, { rrule: "FREQ=WEEKLY" }, NOW);
+    expect(repeating[0]).toMatchObject({ rrule: "FREQ=WEEKLY", recurrence_anchor: "2026-10-12" });
+
+    const moved = applyPatch(repeating, t.id, { due_date: "2026-10-13" }, NOW);
+    expect(moved[0]).toMatchObject({ rrule: "FREQ=WEEKLY", recurrence_anchor: "2026-10-12" });
+
+    const undated = applyPatch(repeating, t.id, { due_date: null }, NOW);
+    expect(undated[0]).toMatchObject({ due_date: null, rrule: null, recurrence_anchor: null });
+  });
+
   it("deletes a todo with its subtasks", () => {
     const parent = makeTodo();
     const child = makeTodo({ parent_id: parent.id });

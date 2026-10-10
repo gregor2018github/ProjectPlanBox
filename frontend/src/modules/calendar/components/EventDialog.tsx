@@ -8,11 +8,11 @@ import { Input } from "../../../ui/Input";
 import { Switch } from "../../../ui/Switch";
 import { TextArea } from "../../../ui/TextArea";
 import { changedText, draftFromItem, draftTiming, withStart, type EventDraft } from "../draft";
-import { repeatOf, ruleOf, type Repeat } from "../recurrence";
+import { repeatOf, ruleOf, type Repeat } from "../../../core/recurrence/recurrence";
 import { occurrenceTiming, sameTiming } from "../timing";
 import type { EditorState } from "../uiStore";
 import type { CalendarActions, EventChange } from "../useCalendarActions";
-import { RecurrenceFields } from "./RecurrenceFields";
+import { RecurrenceFields } from "../../../core/recurrence/RecurrenceFields";
 
 /** Props for {@link EventDialog}. */
 export interface EventDialogProps {

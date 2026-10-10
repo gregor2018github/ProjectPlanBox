@@ -1,11 +1,12 @@
 /**
- * Repeat rules (RFC 5545 RRULE text) as the event dialog edits them. The
- * server validates, normalises and expands rules; this side only reads and
- * writes the subset the dialog offers and describes any rule in words.
+ * Repeat rules (RFC 5545 RRULE text) as the event dialog and the todo repeat
+ * picker edit them. The server validates, normalises and expands rules; this
+ * side only reads and writes the subset the editor offers and describes any
+ * rule in words.
  */
 import { format, getDaysInMonth, parseISO } from "date-fns";
 
-import { addDays, isoWeekday, zonedParts, type IsoDate } from "../../core/time";
+import { addDays, isoWeekday, zonedParts, type IsoDate } from "../time";
 
 /** How often a series repeats. */
 export type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";

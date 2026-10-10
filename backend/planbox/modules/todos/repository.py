@@ -12,10 +12,21 @@ _LIST = "id, area_id, name, position, created_at, updated_at, deleted_at"
 _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
     "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, "
-    "completed_at, created_at, updated_at, deleted_at"
+    "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id"
 )
 _TODO_EDITABLE = frozenset(
-    {"title", "notes", "priority", "due_date", "list_id", "section_id", "parent_id", "position"}
+    {
+        "title",
+        "notes",
+        "priority",
+        "due_date",
+        "list_id",
+        "section_id",
+        "parent_id",
+        "position",
+        "rrule",
+        "recurrence_anchor",
+    }
 )
 
 
@@ -276,6 +287,14 @@ class TodoRepository:
         ).fetchall()
         return [Todo(**dict(r)) for r in rows]
 
+    def live_successors(self, todo_id: str) -> list[Todo]:
+        """Live todos created by completing a repeating todo (normally at most one)."""
+        rows = self._conn.execute(
+            f"SELECT {_TODO} FROM todos WHERE deleted_at IS NULL AND recurs_from_id = ?",  # noqa: S608
+            (todo_id,),
+        ).fetchall()
+        return [Todo(**dict(r)) for r in rows]
+
     def live_ids_in(self, column: str, values: Sequence[str]) -> list[str]:
         """Ids of live todos whose ``column`` (list_id/section_id/parent_id) is in ``values``."""
         return _ids_where(self._conn, "todos", _todo_scope(column), values, None)
@@ -289,7 +308,8 @@ class TodoRepository:
         self._conn.execute(
             f"INSERT INTO todos ({_TODO}) VALUES ("  # noqa: S608
             ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, "
-            ":position, :completed_at, :created_at, :updated_at, :deleted_at)",
+            ":position, :completed_at, :created_at, :updated_at, :deleted_at, "
+            ":rrule, :recurrence_anchor, :recurs_from_id)",
             _asdict(todo),
         )
 

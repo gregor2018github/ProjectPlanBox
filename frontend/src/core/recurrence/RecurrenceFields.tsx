@@ -1,9 +1,9 @@
 import { format, parseISO } from "date-fns";
 import { Repeat as RepeatIcon } from "lucide-react";
 
-import type { IsoDate } from "../../../core/time";
-import { Input } from "../../../ui/Input";
-import { Select } from "../../../ui/Select";
+import type { IsoDate } from "../time";
+import { Input } from "../../ui/Input";
+import { Select } from "../../ui/Select";
 import {
   defaultSpec,
   describeRule,
@@ -13,7 +13,7 @@ import {
   type Frequency,
   type RecurrenceSpec,
   type Repeat,
-} from "../recurrence";
+} from "./recurrence";
 import { WeekdayToggles } from "./WeekdayToggles";
 
 /** Props for {@link RecurrenceFields}. */

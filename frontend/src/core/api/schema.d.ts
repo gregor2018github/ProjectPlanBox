@@ -611,7 +611,7 @@ export interface paths {
         put?: never;
         /**
          * Complete Item
-         * @description Completes a todo and its open subtasks.
+         * @description Completes a todo and its open subtasks; a repeating todo also gets its next one.
          */
         post: operations["todos_complete_item"];
         delete?: never;
@@ -1531,6 +1531,8 @@ export interface components {
              * @default 0
              */
             priority?: number;
+            /** Rrule */
+            rrule?: string | null;
             /** Section Id */
             section_id?: string | null;
             /** Tag Ids */
@@ -1557,6 +1559,9 @@ export interface components {
         /**
          * TodoOut
          * @description A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
+         *
+         *     A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
+         *     series starts on ``recurrence_anchor``.
          */
         TodoOut: {
             /** Completed At */
@@ -1577,6 +1582,10 @@ export interface components {
             position: string;
             /** Priority */
             priority: number;
+            /** Recurrence Anchor */
+            recurrence_anchor: string | null;
+            /** Rrule */
+            rrule: string | null;
             /** Section Id */
             section_id: string | null;
             /** Tag Ids */
@@ -1589,6 +1598,9 @@ export interface components {
         /**
          * TodoPatch
          * @description Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.
+         *
+         *     ``rrule`` starts (or changes) a repeat anchored on the due date (today if
+         *     none); ``rrule: null`` stops it, and so does clearing the due date.
          */
         TodoPatch: {
             /** Due Date */
@@ -1597,6 +1609,8 @@ export interface components {
             notes?: string | null;
             /** Priority */
             priority?: number | null;
+            /** Rrule */
+            rrule?: string | null;
             /** Tag Ids */
             tag_ids?: string[] | null;
             /** Title */

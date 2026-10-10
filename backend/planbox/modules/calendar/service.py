@@ -21,13 +21,13 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from planbox.core import recurrence
 from planbox.core.clock import Clock, to_iso, utc_now_iso
 from planbox.core.db import transaction
 from planbox.core.errors import NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
-from planbox.modules.calendar import recurrence
+from planbox.core.recurrence import Anchor, RecurrenceError, Span
 from planbox.modules.calendar.models import CalendarRange, Event, EventException, Occurrence
-from planbox.modules.calendar.recurrence import Anchor, RecurrenceError, Span
 from planbox.modules.calendar.repository import EventRepository, ExceptionRepository
 
 ENTITY_TYPE = "calendar.event"

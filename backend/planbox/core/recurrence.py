@@ -1,9 +1,10 @@
 """Recurrence rules (RFC 5545 RRULE): validation, normalisation and expansion.
 
-Rules are stored without ``DTSTART``; the event's own start is the series
-anchor. Timed events expand in the configured zone, so a weekly 09:00
-meeting stays at 09:00 local time across DST changes. All-day events
-expand on floating dates.
+Shared by calendar events and repeating todos. Rules are stored without
+``DTSTART``; the owner's own start (an event's start, a todo's anchor date)
+is the series anchor. Timed events expand in the configured zone, so a
+weekly 09:00 meeting stays at 09:00 local time across DST changes. All-day
+events and todos expand on floating dates.
 
 Only the parts the UI can produce (and a few harmless extras) are accepted,
 which keeps every stored rule something the frontend can describe.
@@ -236,6 +237,17 @@ def occurrence_on(rule: str, anchor: Anchor, day: date, zone: ZoneInfo) -> Span 
         if span.occurrence_date == day:
             return span
     return None
+
+
+def date_after(rule: str, start: date, day: date) -> date | None:
+    """The first date of a floating-date series (anchored on ``start``) after ``day``.
+
+    Returns:
+        That date, or None when the series has ended by then.
+    """
+    anchor = all_day_anchor(start, start)
+    found = _build(rule, anchor).after(datetime.combine(day, time()), inc=False)
+    return None if found is None else found.date()
 
 
 def count_before(rule: str, anchor: Anchor, day: date) -> int:

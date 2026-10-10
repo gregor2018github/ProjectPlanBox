@@ -15,6 +15,7 @@ import { useTodoData } from "../useTodoData";
 import { DueDatePicker } from "./DueDatePicker";
 import { InlineTitle } from "../../../ui/InlineTitle";
 import { PlacementPicker } from "./PlacementPicker";
+import { RepeatPicker } from "./RepeatPicker";
 import { SubtaskList } from "./SubtaskList";
 
 /** Props for {@link TodoDetail}. */
@@ -124,6 +125,15 @@ export function TodoDetail({ id }: TodoDetailProps) {
             actions={actions}
             onChange={(date) => {
               actions.setDue(todo, date);
+            }}
+          />
+        )}
+        {data.today !== null && todo.parent_id === null && (
+          <RepeatPicker
+            todo={todo}
+            today={data.today}
+            onChange={(rrule) => {
+              actions.setRepeat(todo, rrule);
             }}
           />
         )}

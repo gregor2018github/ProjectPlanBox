@@ -10,7 +10,7 @@ import {
   ruleOf,
   shiftRule,
 } from "./recurrence";
-import { TZ } from "./testData";
+const TZ = "Europe/Amsterdam";
 
 // Thursday 8 October 2026 is the second Thursday of the month.
 const START = "2026-10-08";

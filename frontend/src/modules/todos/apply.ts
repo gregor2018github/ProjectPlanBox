@@ -54,22 +54,36 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     created_at: now,
     updated_at: now,
     tag_ids: vars.tag_ids ?? [],
+    rrule: null,
+    recurrence_anchor: null,
   };
 }
 
 /** Fields a patch may change. */
 export type TodoPatch = Partial<
-  Pick<Todo, "title" | "notes" | "priority" | "due_date" | "tag_ids">
+  Pick<Todo, "title" | "notes" | "priority" | "due_date" | "tag_ids" | "rrule">
 >;
 
-/** Applies a field patch to one todo. */
+/**
+ * Applies a field patch to one todo. Like the server, clearing the date or
+ * the rule stops the repeat; a new rule is anchored on the due date (the
+ * server fills in today when there is none).
+ */
 export function applyPatch(
   todos: readonly Todo[],
   id: string,
   patch: TodoPatch,
   now: string,
 ): Todo[] {
-  return todos.map((t) => (t.id === id ? { ...t, ...patch, updated_at: now } : t));
+  return todos.map((t) => {
+    if (t.id !== id) return t;
+    const next = { ...t, ...patch, updated_at: now };
+    if (patch.due_date === null || patch.rrule === null) {
+      return { ...next, rrule: null, recurrence_anchor: null };
+    }
+    if (patch.rrule !== undefined) return { ...next, recurrence_anchor: next.due_date };
+    return next;
+  });
 }
 
 /** Completes a todo and its open subtasks with one shared timestamp. */

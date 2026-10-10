@@ -82,6 +82,39 @@ describe("todos", () => {
     });
   });
 
+  it("repeats a todo: completing adds the next one, Ctrl+Z takes it back", async () => {
+    const user = userEvent.setup();
+    const todo = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa05",
+      title: "Water plants",
+      due_date: "2026-10-08",
+    });
+    const api = open("/todos/inbox", createFakeTodoApi({ todos: [todo] }));
+
+    await user.click(await screen.findByText("Water plants"));
+    await user.click(await screen.findByRole("button", { name: "Repeat" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Repeat" }), "WEEKLY");
+    await user.click(screen.getByRole("button", { name: "Done" }));
+
+    await screen.findByRole("button", { name: "Every week on Thu" });
+    const patch = api.state.requests.find((r) => r.method === "PATCH");
+    expect(patch?.body).toEqual({ rrule: "FREQ=WEEKLY" });
+    expect(screen.getByLabelText("Repeats")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Complete “Water plants”" }));
+    await waitFor(() => {
+      expect(rowTitles("Inbox")).toEqual(["Water plants"]);
+      expect(rowTitles("Completed today")).toEqual(["Water plants"]);
+    });
+    expect((await screen.findAllByText("Repeats. Next one: Tomorrow")).length).toBeGreaterThan(0);
+
+    await user.keyboard("{Control>}z{/Control}");
+    await waitFor(() => {
+      expect(screen.queryByRole("list", { name: "Completed today" })).toBeNull();
+      expect(rowTitles("Inbox")).toEqual(["Water plants"]);
+    });
+  });
+
   it("opens details with one click on the row, but not from its checkbox", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa04", title: "Call mum" });

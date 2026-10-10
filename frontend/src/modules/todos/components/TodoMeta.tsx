@@ -1,4 +1,4 @@
-import { ChevronRight, CornerDownRight, FileText, Flag, ListChecks } from "lucide-react";
+import { ChevronRight, CornerDownRight, FileText, Flag, ListChecks, Repeat } from "lucide-react";
 
 import { formatRelativeDay, type IsoDate } from "../../../core/time";
 import { cx } from "../../../ui/cx";
@@ -64,6 +64,7 @@ export function TodoMeta({
           {formatRelativeDay(todo.due_date, today)}
         </span>
       )}
+      {todo.rrule !== null && <Repeat size={14} strokeWidth={1.75} aria-label="Repeats" />}
       {todo.priority > 0 && (
         <span
           className={cx(

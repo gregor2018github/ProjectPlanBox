@@ -1669,6 +1669,18 @@
             "title": "Priority",
             "type": "integer"
           },
+          "rrule": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
           "section_id": {
             "anyOf": [
               {
@@ -1766,7 +1778,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``.",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -1835,6 +1847,29 @@
             "title": "Priority",
             "type": "integer"
           },
+          "recurrence_anchor": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence Anchor"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
           "section_id": {
             "anyOf": [
               {
@@ -1875,13 +1910,15 @@
           "completed_at",
           "created_at",
           "updated_at",
-          "tag_ids"
+          "tag_ids",
+          "rrule",
+          "recurrence_anchor"
         ],
         "title": "TodoOut",
         "type": "object"
       },
       "TodoPatch": {
-        "description": "Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.",
+        "description": "Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.\n\n``rrule`` starts (or changes) a repeat anchored on the due date (today if\nnone); ``rrule: null`` stops it, and so does clearing the due date.",
         "properties": {
           "due_date": {
             "anyOf": [
@@ -1918,6 +1955,18 @@
               }
             ],
             "title": "Priority"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
           },
           "tag_ids": {
             "anyOf": [
@@ -3821,7 +3870,7 @@
     },
     "/api/todos/items/{todo_id}/complete": {
       "post": {
-        "description": "Completes a todo and its open subtasks.",
+        "description": "Completes a todo and its open subtasks; a repeating todo also gets its next one.",
         "operationId": "todos_complete_item",
         "parameters": [
           {

@@ -14,6 +14,8 @@ will come later.
 > repeat, and dated todos show up and can be dragged onto days. Knowledge
 > collections (phase 2) are built: notes, links and snippets grouped into
 > collections, and links between any two items (a todo and a note, say).
+> Todos can repeat (phase 6, brought forward): every N days, weeks, months
+> or years, or on chosen weekdays, and completing one adds the next.
 > Search comes next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it

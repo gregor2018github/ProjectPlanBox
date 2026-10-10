@@ -23,6 +23,7 @@ ProjectPlanBox/
 │   │   │   ├── clock.py      # Clock protocol, SystemClock, utc_now_iso()
 │   │   │   ├── ordering.py   # fractional position keys
 │   │   │   ├── placement.py  # place()/free_position(): a key among ordered siblings
+│   │   │   ├── recurrence.py # RRULE validation and expansion (calendar events, repeating todos)
 │   │   │   ├── errors.py     # domain errors -> RFC 9457 problem+json
 │   │   │   ├── entities.py   # EntityRef, EntityType registry
 │   │   │   ├── module.py     # the Module manifest type
@@ -37,7 +38,7 @@ ProjectPlanBox/
 │   │       ├── calendar/     # events and recurring series
 │   │       └── todos/
 │   │           ├── __init__.py      # `module = Module(...)`
-│   │           ├── migrations/0001_create_todos.sql
+│   │           ├── migrations/      # 0001_create_todos.sql, 0002_add_recurrence.sql
 │   │           ├── models.py        # frozen dataclasses (domain rows)
 │   │           ├── schemas.py       # Pydantic request/response models
 │   │           ├── repository.py    # SQL only
@@ -54,7 +55,8 @@ ProjectPlanBox/
 │       ├── app/              # App (providers), router, AppShell, Sidebar, DetailPanel, pages
 │       ├── core/             # api/ (client, generated schema, queries), commands/ (registry,
 │       │                     # palette), shortcuts/ (registry, overview), links/ (LinkedItems,
-│       │                     # linkable sources), tags/, calendar/ (feeds), theme/, time, ids, module
+│       │                     # linkable sources), tags/, calendar/ (feeds), recurrence/ (rule
+│       │                     # text + the shared repeat editor), theme/, time, ids, module
 │       ├── ui/               # design system: Base UI wrappers (Dialog, Sheet, Tooltip, Toaster,
 │       │                     # SegmentedControl), Button, IconButton, Kbd, motion presets, and
 │       │                     # small shared composites (NameDialog, PageHeader, InlineTitle, …)
@@ -223,7 +225,7 @@ bookkeeping and is never synced.
 | Uniqueness | Partial unique indexes `WHERE deleted_at IS NULL`, so a deleted name can be reused |
 | Calendar dates | **Floating** local dates as `TEXT 'YYYY-MM-DD'`, not timestamps (see below) |
 | Ordering | `position TEXT`: fractional index keys (base-62 strings). Moving an item updates one row. The keys are sync-friendly. |
-| Recurrence | `rrule TEXT` (iCalendar RRULE, without `DTSTART`) plus an anchor date. Added by migration when the feature is built. |
+| Recurrence | `rrule TEXT` (iCalendar RRULE, without `DTSTART`) plus an anchor (an event's start; a todo's `recurrence_anchor`). Validated and expanded only by `core/recurrence.py`. |
 | Foreign keys | Real FKs inside a module. Never across modules. Cross-module references are `EntityRef` pairs. |
 
 ### Dates vs. timestamps: a deliberate refinement of the brief
@@ -248,7 +250,7 @@ and the "today" logic would be fragile around DST. So:
 ```
 backend/planbox/core/migrations/0001_create_tags.sql
 backend/planbox/modules/todos/migrations/0001_create_todos.sql
-backend/planbox/modules/todos/migrations/0002_add_rrule.sql   (later)
+backend/planbox/modules/todos/migrations/0002_add_recurrence.sql
 ```
 
 - Each owner (core and each module) has its own sequence, `NNNN_snake_name.sql`.
@@ -427,11 +429,27 @@ that can be enforced in SQL are also CHECK constraints.
   → their sections → their todos → subtasks. Restoring a container restores
   exactly the rows deleted with it. The undo toast says what went with it
   ("Deleted area *Work* with 4 lists and 37 todos").
-- **Recurrence (later):** migration `000N_add_recurrence.sql` adds
-  `rrule TEXT` and `recurrence_anchor TEXT` (a floating date). Completing a
-  recurring todo marks this occurrence done and inserts the next one, with
-  the RRULE evaluated by `python-dateutil` on the server. This is why
-  completion is its own endpoint (below), not a field patch.
+- **Recurrence (phase 6, brought forward):** migration
+  `0002_add_recurrence.sql` adds `rrule TEXT`, `recurrence_anchor TEXT` (a
+  floating date) and `recurs_from_id` (the occurrence whose completion
+  created this row). A CHECK keeps a rule only on top-level todos with a due
+  date and an anchor.
+  - Setting a rule anchors the series on the due date (today if there is
+    none, which also becomes the due date). Moving the due date later moves
+    only this occurrence. Clearing the due date or sending `rrule: null`
+    stops the repeat. Subtasks cannot repeat, and a repeating todo cannot
+    become a subtask.
+  - Completing a repeating todo marks it done and inserts the next
+    occurrence as a new row: the first date of the series after **both** its
+    due date and today, so missed dates are skipped and an early completion
+    does not bring it back on the same date. The copy keeps title, notes,
+    priority, tags, placement (right after the original) and the rule, and
+    gets fresh open copies of every subtask, their due dates shifted by the
+    same number of days. COUNT/UNTIL can end the series (no copy then).
+  - Reopening deletes an open next occurrence (with its subtasks), which
+    makes undo exact. If that next one is already done, the reopened todo
+    becomes a one-off instead of starting a second series.
+  - This is why completion is its own endpoint (below), not a field patch.
 - Due dates are date-only for now (decided). Times of day arrive with the
   calendar.
 
@@ -442,8 +460,8 @@ that can be enforced in SQL are also CHECK constraints.
 | GET | `/api/todos/items?completed_since=<utc>` | All open todos (including subtasks) plus those completed since the given instant (the frontend passes the start of today) |
 | GET | `/api/todos/items/completed?before=<utc>&limit=50` | The logbook, cursor-paginated |
 | POST | `/api/todos/items` | Optional client `id`, plus `list_id`, `section_id`, `parent_id`. Repeating a POST with the same id and body returns the existing row (idempotent). |
-| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
-| POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks |
+| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
+| POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks. For a repeating todo, `complete` also returns the inserted next occurrence; `reopen` deletes it again (the client refetches). |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
 | DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |
 | GET/POST/PATCH/DELETE | `/api/todos/areas[/{id}]`, `…/move`, `…/restore` | Areas |
@@ -636,6 +654,9 @@ Host share it, and none of them is an ancestor of the others.
 - The frontend caches per calendar month (`['calendar','month','YYYY-MM']`).
   Mutations patch every cached month optimistically, then refetch, since
   only the server expands recurrence exactly.
+- The rule engine (`backend/planbox/core/recurrence.py`) and the repeat
+  editor (`frontend/src/core/recurrence/`) moved to core when todos started
+  repeating, so both modules use them without importing each other.
 
 ## 9. Runtime topology
 

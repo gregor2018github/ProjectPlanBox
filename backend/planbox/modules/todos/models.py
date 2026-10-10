@@ -43,7 +43,11 @@ class Section:
 
 @dataclass(frozen=True, slots=True)
 class Todo:
-    """A todo or (with ``parent_id``) a subtask."""
+    """A todo or (with ``parent_id``) a subtask.
+
+    A repeating todo has an ``rrule`` anchored on ``recurrence_anchor``;
+    ``recurs_from_id`` names the occurrence whose completion created it.
+    """
 
     id: str
     list_id: str | None
@@ -58,6 +62,9 @@ class Todo:
     created_at: str
     updated_at: str
     deleted_at: str | None
+    rrule: str | None = None
+    recurrence_anchor: str | None = None
+    recurs_from_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -122,7 +122,11 @@ export function useUpdateTodo() {
   });
 }
 
-/** Completes or reopens a todo (with the server's cascade rules). */
+/**
+ * Completes or reopens a todo (with the server's cascade rules). Completing a
+ * repeating todo returns its next occurrence too; reopening one deletes that
+ * occurrence on the server, so the list is refetched.
+ */
 export function useSetCompleted() {
   const client = useApiClient();
   const queryClient = useQueryClient();
@@ -138,9 +142,12 @@ export function useSetCompleted() {
     },
     apply: (todos, { id, completed }) =>
       completed ? applyComplete(todos, id, now()) : applyReopen(todos, id, now()),
-    onSuccess: (todos) => {
+    onSuccess: (todos, { completed }) => {
       merge(todos);
       void queryClient.invalidateQueries({ queryKey: todoKeys.logbook });
+      if (!completed && todos.some((t) => t.rrule !== null)) {
+        void queryClient.invalidateQueries({ queryKey: todoKeys.items });
+      }
     },
     errorTitle: "Could not update the todo",
   });

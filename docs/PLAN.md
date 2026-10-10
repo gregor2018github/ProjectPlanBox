@@ -290,6 +290,36 @@ manifest (`rail`), so later modules (habits) can add their own.
   feed. Dropping a todo row on a calendar day uses a core date drop target,
   which the todos module turns into a due date change.
 
+## Phase 6 (brought forward): Recurring todos. Built 2026-10-10
+
+The owner asked for repeating todos: every N days, weeks, months or years,
+or on a chosen set of weekdays, with the next one created on completion.
+
+**Backend:**
+- `core/recurrence.py`: the calendar's rule code moved to core (plus
+  `date_after`), so todos reuse it without a module import.
+- Migration `todos/0002_add_recurrence.sql`: `rrule`, `recurrence_anchor`,
+  `recurs_from_id`. Rules, completion and reopen behaviour are in
+  ARCHITECTURE §7 (Recurrence).
+- `rrule` on `TodoCreate`/`TodoPatch`/`TodoOut`, plus `recurrence_anchor` on
+  `TodoOut`. No new dependencies.
+
+**Frontend:**
+- The repeat editor (`RecurrenceFields`, `WeekdayToggles`, rule text
+  helpers) moved from the calendar to `core/recurrence/`.
+- A **Repeat** button in the todo detail panel (top-level todos only)
+  opens the editor and saves when it closes. Repeating rows show a repeat
+  icon. Completing one shows a toast with the next date. Undo (Ctrl+Z)
+  reopens it and the next one disappears.
+
+**Decisions:**
+- The next date follows the schedule (skipping missed dates), not "N days
+  after I finished it". The latter is in TODO.md.
+- "A free set of days" is read as chosen weekdays (weekly with day toggles).
+  Several days of the month (e.g. the 1st and 15th) would need a new editor
+  control. The engine already accepts them; it is in TODO.md.
+- Each occurrence is its own row, so the Logbook keeps every completion.
+
 ## Phase 2: Knowledge collections and core links. Built 2026-10-10
 
 **Scope:** collections of notes, links and snippets, and the first build of
@@ -350,8 +380,7 @@ inside a collection, nested collections, and links on calendar events.
 - **Phase 4: Calendar.** Brought forward; see above.
 - **Phase 5: Habits.** Habits with schedules (RRULE) and daily check-ins
   stored as floating dates, plus streaks.
-- **Phase 6: Recurring todos.** `rrule` on todos, with next-occurrence on
-  completion, reusing phase 4's recurrence code.
+- **Phase 6: Recurring todos.** Brought forward; see above.
 - **Phase 7: Mobile PWA.** Manifest and service worker, binding to the
   private network interface, authentication, and a touch polish pass.
 - **Phase 8: Data safety and sync.** Scheduled backups, export/import, and

@@ -3,20 +3,27 @@
 Rules (ARCHITECTURE §7) live here: placement invariants, one-level subtasks,
 completion cascading to subtasks, and deletes cascading down the hierarchy
 with one shared ``deleted_at`` so a single restore undoes them exactly.
+
+Repeating todos: completing one inserts its next occurrence as a new todo
+(with fresh copies of its subtasks); reopening it takes that one away again.
 """
 
+import dataclasses
 import re
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
+from zoneinfo import ZoneInfo
 
+from planbox.core import recurrence
 from planbox.core.clock import Clock, utc_now_iso
 from planbox.core.db import transaction
 from planbox.core.entities import EntityRef
 from planbox.core.errors import Conflict, NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
 from planbox.core.placement import free_position, place
+from planbox.core.recurrence import RecurrenceError
 from planbox.core.tags.service import TagService
 from planbox.modules.todos.models import (
     Area,
@@ -418,6 +425,7 @@ class NewTodo:
     tag_ids: Sequence[str] = ()
     before_id: str | None = None
     after_id: str | None = None
+    rrule: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -432,12 +440,18 @@ class TodoService:
     """Todos and subtasks."""
 
     def __init__(
-        self, conn: sqlite3.Connection, repos: Repositories, tags: TagService, clock: Clock
+        self,
+        conn: sqlite3.Connection,
+        repos: Repositories,
+        tags: TagService,
+        clock: Clock,
+        zone: ZoneInfo,
     ) -> None:
         self._conn = conn
         self._repos = repos
         self._tags = tags
         self._clock = clock
+        self._zone = zone
 
     # ---- reads
 
@@ -469,6 +483,12 @@ class TodoService:
                 return self._record(existing), False
             self._check_placement(new.placement, moving=None)
             p = new.placement
+            due_date, rule, anchor = new.due_date, None, None
+            if new.rrule is not None:
+                if p.parent_id is not None:
+                    raise ValidationFailed("Subtasks cannot repeat; let their parent repeat.")
+                anchor = due_date = due_date or self._today()
+                rule = self._normalize_rule(new.rrule, anchor)
             now = utc_now_iso(self._clock)
             siblings = self._repos.todos.positions(p.list_id, p.section_id, p.parent_id)
             todo = Todo(
@@ -479,12 +499,14 @@ class TodoService:
                 title=title,
                 notes=notes,
                 priority=priority,
-                due_date=None if new.due_date is None else new.due_date.isoformat(),
+                due_date=None if due_date is None else due_date.isoformat(),
                 position=place(siblings, new.before_id, new.after_id),
                 completed_at=None,
                 created_at=now,
                 updated_at=now,
                 deleted_at=None,
+                rrule=rule,
+                recurrence_anchor=None if anchor is None else anchor.isoformat(),
             )
             self._repos.todos.insert(todo)
             if new.tag_ids:
@@ -492,9 +514,12 @@ class TodoService:
             return self._record(todo), True
 
     def update(self, todo_id: str, changes: Mapping[str, object]) -> TodoRecord:
-        """Changes title, notes, priority, due date and/or tags.
+        """Changes title, notes, priority, due date, repeat rule and/or tags.
 
-        Only keys present in ``changes`` are touched; ``None`` clears a due date.
+        Only keys present in ``changes`` are touched; ``None`` clears a due
+        date or repeat rule. A new rule is anchored on the due date (today if
+        there is none). Moving the due date of a repeating todo moves only
+        this occurrence; clearing it stops the repeat.
         """
         fields: dict[str, object] = {}
         for key, value in changes.items():
@@ -507,12 +532,15 @@ class TodoService:
                     fields["priority"] = clean_priority(value)
                 case "due_date" if value is None or isinstance(value, date):
                     fields["due_date"] = None if value is None else value.isoformat()
+                case "rrule" if value is None or isinstance(value, str):
+                    pass
                 case "tag_ids":
                     pass
                 case _:
                     raise ValidationFailed(f"Cannot change {key!r} like that.")
         with transaction(self._conn):
             todo = _live(self._repos.todos.get(todo_id), "todo")
+            fields |= self._repeat_fields(todo, changes)
             if fields:
                 self._repos.todos.update(todo_id, fields, utc_now_iso(self._clock))
             tag_ids = changes.get("tag_ids")
@@ -526,17 +554,22 @@ class TodoService:
             return self._record(_live(self._repos.todos.get(todo_id), "todo"))
 
     def complete(self, todo_id: str) -> list[TodoRecord]:
-        """Completes a todo and its open subtasks with one shared timestamp."""
+        """Completes a todo and its open subtasks with one shared timestamp.
+
+        A repeating todo also gets its next occurrence: the first date of its
+        series after both its due date and today (missed dates are skipped).
+        The returned records then include the new todo and its subtasks.
+        """
         with transaction(self._conn):
             todo = _live(self._repos.todos.get(todo_id), "todo")
             if todo.completed_at is not None:
                 return [self._record(todo)]
-            open_children = [
-                c.id for c in self._repos.todos.live_children(todo_id) if c.completed_at is None
-            ]
+            children = self._repos.todos.live_children(todo_id)
+            open_children = [c.id for c in children if c.completed_at is None]
             now = utc_now_iso(self._clock)
             changed = [todo_id, *open_children]
             self._repos.todos.set_completed(changed, now, now)
+            changed += self._insert_next(todo, children, now)
             return self._records(self._repos.todos.get_many(changed))
 
     def reopen(self, todo_id: str) -> list[TodoRecord]:
@@ -549,7 +582,9 @@ class TodoService:
             todo = _live(self._repos.todos.get(todo_id), "todo")
             if todo.completed_at is None:
                 return [self._record(todo)]
+            now = utc_now_iso(self._clock)
             changed = [todo_id]
+            self._withdraw_next(todo, now)
             if todo.parent_id is None:
                 changed += [
                     c.id
@@ -560,7 +595,8 @@ class TodoService:
                 parent = self._repos.todos.get(todo.parent_id)
                 if parent is not None and parent.completed_at is not None:
                     changed.append(parent.id)
-            self._repos.todos.set_completed(changed, None, utc_now_iso(self._clock))
+                    self._withdraw_next(parent, now)
+            self._repos.todos.set_completed(changed, None, now)
             return self._records(self._repos.todos.get_many(changed))
 
     def move(
@@ -573,6 +609,8 @@ class TodoService:
         """Reorders, re-homes, indents or outdents a todo; subtasks follow their parent."""
         with transaction(self._conn):
             todo = _live(self._repos.todos.get(todo_id), "todo")
+            if todo.rrule is not None and placement.parent_id is not None:
+                raise ValidationFailed("A repeating todo cannot become a subtask.")
             self._check_placement(placement, moving=todo)
             p = placement
             siblings = self._repos.todos.positions(
@@ -667,12 +705,111 @@ class TodoService:
             if parent is None or parent.deleted_at is not None:
                 raise Conflict("This subtask's parent is deleted. Restore the parent first.")
 
+    def _today(self) -> date:
+        return self._clock.now().astimezone(self._zone).date()
+
+    def _normalize_rule(self, rule: str, anchor: date) -> str:
+        try:
+            return recurrence.normalize(rule, recurrence.all_day_anchor(anchor, anchor), self._zone)
+        except RecurrenceError as exc:
+            raise ValidationFailed(str(exc)) from exc
+
+    def _repeat_fields(self, todo: Todo, changes: Mapping[str, object]) -> dict[str, object]:
+        """The rrule/anchor columns an update implies.
+
+        A new rule is anchored on the (new) due date, or today, which then
+        becomes the due date. Clearing the due date stops the repeat.
+        """
+        if "due_date" in changes and changes["due_date"] is None:
+            return {"rrule": None, "recurrence_anchor": None}
+        if "rrule" not in changes:
+            return {}
+        rule = changes["rrule"]
+        if rule is None:
+            return {"rrule": None, "recurrence_anchor": None}
+        if todo.parent_id is not None:
+            raise ValidationFailed("Subtasks cannot repeat; let their parent repeat.")
+        due = changes.get("due_date")
+        if isinstance(due, date):
+            anchor = due
+        elif todo.due_date is not None:
+            anchor = date.fromisoformat(todo.due_date)
+        else:
+            anchor = self._today()
+        return {
+            "rrule": self._normalize_rule(str(rule), anchor),
+            "recurrence_anchor": anchor.isoformat(),
+            "due_date": anchor.isoformat(),
+        }
+
+    def _insert_next(self, todo: Todo, children: Sequence[Todo], now: str) -> list[str]:
+        """Inserts the next occurrence of a repeating todo; returns the new ids."""
+        if todo.rrule is None or todo.due_date is None or todo.recurrence_anchor is None:
+            return []
+        due = date.fromisoformat(todo.due_date)
+        next_due = recurrence.date_after(
+            todo.rrule, date.fromisoformat(todo.recurrence_anchor), max(due, self._today())
+        )
+        if next_due is None:
+            return []
+        siblings = self._repos.todos.positions(todo.list_id, todo.section_id, None)
+        successor = dataclasses.replace(
+            todo,
+            id=new_id(),
+            due_date=next_due.isoformat(),
+            position=place(siblings, None, todo.id),
+            completed_at=None,
+            created_at=now,
+            updated_at=now,
+            recurs_from_id=todo.id,
+        )
+        self._repos.todos.insert(successor)
+        self._copy_tags(todo.id, successor.id)
+        shift = next_due - due
+        ids = [successor.id]
+        for child in children:
+            copy = dataclasses.replace(
+                child,
+                id=new_id(),
+                parent_id=successor.id,
+                due_date=_shifted(child.due_date, shift),
+                completed_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+            self._repos.todos.insert(copy)
+            self._copy_tags(child.id, copy.id)
+            ids.append(copy.id)
+        return ids
+
+    def _withdraw_next(self, todo: Todo, now: str) -> None:
+        """Undoes :meth:`_insert_next` when a repeating todo is reopened.
+
+        An open next occurrence is deleted with its subtasks. If it is already
+        done, the series has moved on and this todo stops repeating.
+        """
+        for successor in self._repos.todos.live_successors(todo.id):
+            if successor.completed_at is None:
+                children = self._repos.todos.live_ids_in("parent_id", [successor.id])
+                self._repos.todos.set_deleted([successor.id, *children], now, now)
+            elif todo.rrule is not None:
+                self._repos.todos.update(todo.id, {"rrule": None, "recurrence_anchor": None}, now)
+
+    def _copy_tags(self, from_id: str, to_id: str) -> None:
+        tag_ids = self._tags.tags_for(ENTITY_TYPE, [from_id]).get(from_id, [])
+        if tag_ids:
+            self._tags.set_tags(EntityRef(ENTITY_TYPE, to_id), tag_ids)
+
     def _record(self, todo: Todo) -> TodoRecord:
         return self._records([todo])[0]
 
     def _records(self, todos: Sequence[Todo]) -> list[TodoRecord]:
         tags = self._tags.tags_for(ENTITY_TYPE, [t.id for t in todos])
         return [TodoRecord(t, tags.get(t.id, [])) for t in todos]
+
+
+def _shifted(day: str | None, shift: timedelta) -> str | None:
+    return None if day is None else (date.fromisoformat(day) + shift).isoformat()
 
 
 def _parse_cursor(cursor: str | None) -> tuple[str, str] | None:

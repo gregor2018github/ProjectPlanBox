@@ -8,10 +8,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { newTagVars, useCreateTag } from "../../core/tags/tagQueries";
-import { addDays, isoWeekday } from "../../core/time";
+import { addDays, formatRelativeDay, isoWeekday } from "../../core/time";
 import { useToday } from "../../core/useToday";
 import { useUndo } from "../../core/undo/undoContext";
 import { newId } from "../../core/ids";
+import { useToast } from "../../ui/useToast";
 import { siblingsOf, type CreateTodoVars, type TodoPatch } from "./apply";
 import {
   useCreateTodo,
@@ -46,6 +47,7 @@ export function useTodoActions() {
   const moveTodo = useMoveTodo();
   const deleteTodo = useDeleteTodo();
   const restoreTodo = useRestoreTodo();
+  const { show } = useToast();
 
   return useMemo(() => {
     const cache = () => queryClient.getQueryData<Todo[]>(todoKeys.items) ?? [];
@@ -108,7 +110,19 @@ export function useTodoActions() {
       toggleComplete(t: Todo): void {
         const completing = t.completed_at === null;
         if (completing) todoUi.linger(t.id);
-        setCompleted.mutate({ id: t.id, completed: completing });
+        setCompleted.mutate(
+          { id: t.id, completed: completing },
+          {
+            onSuccess: (changed) => {
+              const next = changed.find((c) => c.id !== t.id && c.parent_id === null);
+              if (!completing || next?.due_date == null || today === null) return;
+              show({
+                title: next.title,
+                description: `Repeats. Next one: ${formatRelativeDay(next.due_date, today)}`,
+              });
+            },
+          },
+        );
         pushUndo({
           label: completing ? `Completed “${t.title}”` : `Reopened “${t.title}”`,
           silent: true,
@@ -139,6 +153,19 @@ export function useTodoActions() {
           nextMonday: addDays(today, 8 - isoWeekday(today)),
           nextWeek: addDays(today, 7),
         };
+      },
+
+      /** Starts, changes or (with null) stops a todo's repeat. */
+      setRepeat(t: Todo, rrule: string | null): void {
+        const before = { rrule: t.rrule, due_date: t.due_date };
+        updateTodo.mutate({ id: t.id, patch: { rrule } });
+        pushUndo({
+          label: rrule === null ? "Stopped repeating" : "Changed the repeat",
+          silent: true,
+          undo: () => {
+            updateTodo.mutate({ id: t.id, patch: before });
+          },
+        });
       },
 
       setPriority(t: Todo, priority: number): void {
@@ -226,6 +253,7 @@ export function useTodoActions() {
     moveTodo,
     deleteTodo,
     restoreTodo,
+    show,
   ]);
 }
 

@@ -97,7 +97,11 @@ class SectionMove(BaseModel):
 
 
 class TodoOut(BaseModel):
-    """A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox."""
+    """A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
+
+    A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
+    series starts on ``recurrence_anchor``.
+    """
 
     id: str
     list_id: str | None
@@ -112,6 +116,8 @@ class TodoOut(BaseModel):
     created_at: str
     updated_at: str
     tag_ids: list[str]
+    rrule: str | None
+    recurrence_anchor: date | None
 
 
 class TodoCreate(BaseModel):
@@ -128,15 +134,21 @@ class TodoCreate(BaseModel):
     tag_ids: list[str] = Field(default_factory=list[str])
     before_id: str | None = None
     after_id: str | None = None
+    rrule: str | None = Field(default=None, max_length=500)
 
 
 class TodoPatch(BaseModel):
-    """Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date."""
+    """Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.
+
+    ``rrule`` starts (or changes) a repeat anchored on the due date (today if
+    none); ``rrule: null`` stops it, and so does clearing the due date.
+    """
 
     title: str | None = None
     notes: str | None = None
     priority: int | None = Field(default=None, ge=0, le=3)
     due_date: date | None = None
+    rrule: str | None = Field(default=None, max_length=500)
     tag_ids: list[str] | None = None
 
 

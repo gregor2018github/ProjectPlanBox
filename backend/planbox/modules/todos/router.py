@@ -1,12 +1,13 @@
 """HTTP routes for the todos module, mounted at ``/api/todos``."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from planbox.core.clock import to_iso
-from planbox.core.db.deps import ClockDep, ConnectionDep
+from planbox.core.db.deps import ClockDep, ConnectionDep, SettingsDep
 from planbox.core.errors import ValidationFailed
 from planbox.core.tags.deps import TagServiceDep
 from planbox.modules.todos.models import Area, Deletion, Placement, Section, TodoList, TodoRecord
@@ -56,8 +57,10 @@ def _sections(conn: ConnectionDep, clock: ClockDep) -> SectionService:
     return SectionService(conn, Repositories.on(conn), clock)
 
 
-def _todos(conn: ConnectionDep, clock: ClockDep, tags: TagServiceDep) -> TodoService:
-    return TodoService(conn, Repositories.on(conn), tags, clock)
+def _todos(
+    conn: ConnectionDep, clock: ClockDep, tags: TagServiceDep, settings: SettingsDep
+) -> TodoService:
+    return TodoService(conn, Repositories.on(conn), tags, clock, ZoneInfo(settings.timezone))
 
 
 Areas = Annotated[AreaService, Depends(_areas)]
@@ -91,13 +94,19 @@ def _todo(record: TodoRecord) -> TodoOut:
         title=t.title,
         notes=t.notes,
         priority=t.priority,
-        due_date=None if t.due_date is None else datetime.fromisoformat(t.due_date).date(),
+        due_date=_date(t.due_date),
         position=t.position,
         completed_at=t.completed_at,
         created_at=t.created_at,
         updated_at=t.updated_at,
         tag_ids=record.tag_ids,
+        rrule=t.rrule,
+        recurrence_anchor=_date(t.recurrence_anchor),
     )
+
+
+def _date(value: str | None) -> date | None:
+    return None if value is None else date.fromisoformat(value)
 
 
 def _todos_out(records: list[TodoRecord]) -> TodosOut:
@@ -279,6 +288,7 @@ def create_item(body: TodoCreate, service: Todos, response: Response) -> TodoOut
             tag_ids=body.tag_ids,
             before_id=body.before_id,
             after_id=body.after_id,
+            rrule=body.rrule,
         )
     )
     _created(response, created)
@@ -294,7 +304,7 @@ def update_item(todo_id: str, body: TodoPatch, service: Todos) -> TodoOut:
 
 @router.post("/items/{todo_id}/complete")
 def complete_item(todo_id: str, service: Todos) -> TodosOut:
-    """Completes a todo and its open subtasks."""
+    """Completes a todo and its open subtasks; a repeating todo also gets its next one."""
     return _todos_out(service.complete(todo_id))
 
 

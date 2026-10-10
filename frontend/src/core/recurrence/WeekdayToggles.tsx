@@ -1,5 +1,5 @@
-import { cx } from "../../../ui/cx";
-import { WEEKDAYS, type Weekday } from "../recurrence";
+import { cx } from "../../ui/cx";
+import { WEEKDAYS, type Weekday } from "./recurrence";
 
 /** Props for {@link WeekdayToggles}. */
 export interface WeekdayTogglesProps {

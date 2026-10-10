@@ -40,6 +40,15 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
       they do not survive losing that folder or the disk. Planned for phase 8;
       bring it forward if daily use starts before then.
 
+## Recurring todos follow-ups (deferred from phase 6)
+
+- [ ] "Repeat after completion" (every 3 days counted from when it was done).
+- [ ] Several days of the month in the editor (e.g. the 1st and 15th).
+- [ ] Quick-add syntax for repeats ("every monday", "every 2 weeks").
+- [ ] Show future occurrences of repeating todos on the calendar (only the
+      next one appears now).
+- [ ] Skip one occurrence without completing it.
+
 ## Calendar follow-ups (deferred from phase 4)
 
 - [ ] Replace the native date/time inputs in the event dialog with our own

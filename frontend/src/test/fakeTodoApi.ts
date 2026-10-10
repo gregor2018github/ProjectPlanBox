@@ -2,16 +2,19 @@
  * An in-memory stand-in for the todos API, good enough for UI tests. It keeps
  * the server's essential behaviour (client ids, positions, completion and
  * delete cascades) but none of its validation. Playwright covers the real one.
+ * Repeating todos come back the next day whatever their rule says (the real
+ * server expands the rule).
  */
 import type { FetchFn } from "../core/api/client";
 import type { Meta } from "../core/api/types";
 import type { Tag } from "../core/tags/tagQueries";
 import { keyBetween } from "../core/ordering";
+import { addDays } from "../core/time";
 import type { Area, Section, Todo, TodoList } from "../modules/todos/types";
 
 /** The fake server's state, inspectable by tests. */
 export interface FakeState {
-  todos: (Todo & { deleted_at?: string | null })[];
+  todos: (Todo & { deleted_at?: string | null; recurs_from_id?: string })[];
   lists: TodoList[];
   sections: Section[];
   areas: Area[];
@@ -56,7 +59,7 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
   };
 
   const live = () => state.todos.filter((t) => !t.deleted_at);
-  const strip = ({ deleted_at, ...todo }: FakeState["todos"][number]): Todo => todo;
+  const strip = ({ deleted_at, recurs_from_id, ...todo }: FakeState["todos"][number]): Todo => todo;
   const endOf = (rows: { position: string }[]) =>
     keyBetween(
       rows
@@ -141,6 +144,8 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         created_at: state.now,
         updated_at: state.now,
         tag_ids: (b.tag_ids as string[] | undefined) ?? [],
+        rrule: null,
+        recurrence_anchor: null,
       };
       state.todos.push(todo);
       return json(todo, 201);
@@ -175,7 +180,22 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
           (t) => (t.id === id || t.parent_id === id) && !t.deleted_at,
         );
         for (const t of tree) t.completed_at = value;
-        return json({ todos: tree.map(strip) });
+        const changed = [...tree];
+        if (action === "complete" && target.rrule !== null && target.due_date !== null) {
+          const next = {
+            ...target,
+            id: `${target.id.slice(0, -4)}next`,
+            due_date: addDays(target.due_date, 1),
+            completed_at: null,
+            recurs_from_id: target.id,
+          };
+          state.todos.push(next);
+          changed.push(next);
+        }
+        if (action === "reopen") {
+          for (const t of live()) if (t.recurs_from_id === id) t.deleted_at = state.now;
+        }
+        return json({ todos: changed.map(strip) });
       }
       if (action === "move") {
         Object.assign(target, {

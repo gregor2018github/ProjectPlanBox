@@ -29,7 +29,7 @@ import {
   useRestoreOccurrence,
   useUpdateEvent,
 } from "./mutations";
-import { shiftRule } from "./recurrence";
+import { shiftRule } from "../../core/recurrence/recurrence";
 import {
   dayShift,
   occurrenceTiming,

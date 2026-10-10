@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from planbox.modules.calendar import recurrence
-from planbox.modules.calendar.recurrence import RecurrenceError
+from planbox.core import recurrence
+from planbox.core.recurrence import RecurrenceError
 
 AMS = ZoneInfo("Europe/Amsterdam")
 

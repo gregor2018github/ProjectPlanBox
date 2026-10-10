@@ -20,6 +20,8 @@ export function makeTodo(overrides: Partial<Todo> = {}): Todo {
     created_at: "2026-10-08T08:00:00.000Z",
     updated_at: "2026-10-08T08:00:00.000Z",
     tag_ids: [],
+    rrule: null,
+    recurrence_anchor: null,
     ...overrides,
   };
 }
