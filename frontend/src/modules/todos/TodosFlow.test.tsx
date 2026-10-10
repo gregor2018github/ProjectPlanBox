@@ -30,6 +30,11 @@ const rowTitles = (label: string) =>
     .queryAllByRole("checkbox")
     .map((box) => box.getAttribute("aria-label")?.replace(/^(Complete|Reopen) “|”$/g, ""));
 
+/** Opens the "Completed today" group, which starts collapsed. */
+async function showCompleted(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: /^Completed today/ }));
+}
+
 describe("todos", () => {
   it("adds todos inline with quick-add syntax, optimistically", async () => {
     const user = userEvent.setup();
@@ -72,6 +77,7 @@ describe("todos", () => {
     open("/todos/inbox", createFakeTodoApi({ todos: [todo] }));
 
     await user.click(await screen.findByRole("checkbox", { name: "Complete “Water plants”" }));
+    await showCompleted(user);
 
     await waitFor(() => {
       expect(rowTitles("Completed today")).toEqual(["Water plants"]);
@@ -102,6 +108,7 @@ describe("todos", () => {
     expect(screen.getByLabelText("Repeats")).toBeInTheDocument();
 
     await user.click(screen.getByRole("checkbox", { name: "Complete “Water plants”" }));
+    await showCompleted(user);
     await waitFor(() => {
       expect(rowTitles("Inbox")).toEqual(["Water plants"]);
       expect(rowTitles("Completed today")).toEqual(["Water plants"]);
@@ -123,6 +130,7 @@ describe("todos", () => {
     await user.click(await screen.findByRole("checkbox", { name: "Complete “Call mum”" }));
     expect(screen.queryByRole("complementary", { name: "Details" })).toBeNull();
 
+    await showCompleted(user);
     await user.click(
       within(await screen.findByRole("list", { name: "Completed today" })).getByText("Call mum"),
     );
@@ -133,6 +141,38 @@ describe("todos", () => {
     await waitFor(() => {
       expect(screen.queryByRole("complementary", { name: "Details" })).toBeNull();
     });
+  });
+
+  it("keeps Completed collapsed by default and remembers opening it per view", async () => {
+    const user = userEvent.setup();
+    const todos = [
+      makeTodo({ title: "Fed cat", completed_at: "2026-10-08T08:00:00.000Z" }),
+      makeTodo({
+        title: "Paid rent",
+        due_date: "2026-10-08",
+        completed_at: "2026-10-08T09:00:00.000Z",
+      }),
+    ];
+    open("/todos/inbox", createFakeTodoApi({ todos }));
+
+    const toggle = await screen.findByRole("button", { name: /^Completed today/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("list", { name: "Completed today" })).toBeNull();
+    await user.click(toggle);
+    expect(rowTitles("Completed today")).toEqual(["Fed cat", "Paid rent"]);
+
+    // Today has its own, still collapsed, group.
+    await user.click(screen.getByRole("link", { name: /Today/ }));
+    await screen.findByRole("heading", { name: "Today", level: 1 });
+    expect(screen.getByRole("button", { name: /^Completed today/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    // Back in the Inbox it is still open.
+    await user.click(screen.getByRole("link", { name: /Inbox/ }));
+    await screen.findByRole("heading", { name: "Inbox", level: 1 });
+    expect(rowTitles("Completed today")).toEqual(["Fed cat", "Paid rent"]);
   });
 
   it("selects with the keyboard, deletes, and undoes from the toast", async () => {

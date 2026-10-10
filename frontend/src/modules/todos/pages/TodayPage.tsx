@@ -93,7 +93,7 @@ export function TodayPage() {
           defaults={{ due_date: today }}
         />
       )}
-      <CompletedGroup todos={view.done} data={data} actions={actions} showPlace />
+      <CompletedGroup view="today" todos={view.done} data={data} actions={actions} showPlace />
     </ViewLayout>
   );
 }

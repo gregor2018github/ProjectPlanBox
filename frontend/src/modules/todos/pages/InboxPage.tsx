@@ -42,7 +42,7 @@ export function InboxPage() {
         includes={inInbox}
       />
       <NewTodoInline placement={INBOX} data={data} actions={actions} />
-      <CompletedGroup todos={view.done} data={data} actions={actions} />
+      <CompletedGroup view="inbox" todos={view.done} data={data} actions={actions} />
     </ViewLayout>
   );
 }

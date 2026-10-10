@@ -750,6 +750,11 @@ Selection, expanded parents, todos "lingering" for 600 ms after completion
 (`modules/todos/uiStore.ts`). The views, the detail panel and the module
 Host share it, and none of them is an ancestor of the others.
 
+Each view's "Completed today" group starts collapsed. Opening it is
+remembered per view (`inbox`, `today`, `list:<id>`) in the same store, so it
+survives navigating away and back. The store is memory only, so a restart
+collapses every group again.
+
 ### Calendar module (phase 4, brought forward)
 
 - Tables `calendar_events` (timed: UTC `start_at`/`end_at`; all-day:

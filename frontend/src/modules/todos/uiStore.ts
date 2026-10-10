@@ -1,8 +1,9 @@
 /**
  * Small UI state shared between the views, the detail panel and the module
  * Host (which are not ancestors of each other): the selected todo, which
- * parents show their subtasks, todos lingering after completion, and a
- * picker the detail panel should open.
+ * parents show their subtasks, todos lingering after completion, which
+ * views show their completed group, and a picker the detail panel should open.
+ * It lives in memory only, so a restart starts from the defaults again.
  */
 import { useSyncExternalStore } from "react";
 
@@ -14,6 +15,8 @@ interface State {
   expanded: ReadonlySet<string>;
   /** Todos completed moments ago that stay in place briefly (motion rule 4). */
   lingering: ReadonlySet<string>;
+  /** Views whose "Completed today" group is open; collapsed by default. */
+  openCompleted: ReadonlySet<string>;
   pendingPicker: PendingPicker;
 }
 
@@ -24,6 +27,7 @@ let state: State = {
   selectedId: null,
   expanded: new Set(),
   lingering: new Set(),
+  openCompleted: new Set(),
   pendingPicker: null,
 };
 const listeners = new Set<() => void>();
@@ -53,6 +57,11 @@ export const todoUi = {
     else next.delete(id);
     set({ expanded: next });
   },
+  toggleCompleted(view: string): void {
+    const next = new Set(state.openCompleted);
+    if (!next.delete(view)) next.add(view);
+    set({ openCompleted: next });
+  },
   linger(id: string): void {
     set({ lingering: new Set(state.lingering).add(id) });
     window.setTimeout(() => {
@@ -65,7 +74,13 @@ export const todoUi = {
     set({ pendingPicker: picker });
   },
   reset(): void {
-    set({ selectedId: null, expanded: new Set(), lingering: new Set(), pendingPicker: null });
+    set({
+      selectedId: null,
+      expanded: new Set(),
+      lingering: new Set(),
+      openCompleted: new Set(),
+      pendingPicker: null,
+    });
   },
 };
 

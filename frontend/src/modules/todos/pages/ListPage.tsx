@@ -145,7 +145,7 @@ export function ListPage() {
           </SortableSection>
         );
       })}
-      <CompletedGroup todos={view.done} data={data} actions={actions} />
+      <CompletedGroup view={`list:${listId}`} todos={view.done} data={data} actions={actions} />
       <NameDialog
         open={dialog === "rename"}
         onOpenChange={(open) => {

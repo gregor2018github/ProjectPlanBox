@@ -40,6 +40,7 @@ test("complete, then undo with Ctrl+Z", async ({ page }) => {
   await addInline(page, title);
 
   await page.getByRole("checkbox", { name: `Complete “${title}”` }).click();
+  await page.getByRole("button", { name: /^Completed today/ }).click();
   await expect(page.getByRole("list", { name: "Completed today" })).toContainText(title);
 
   await page.keyboard.press("Control+z");
