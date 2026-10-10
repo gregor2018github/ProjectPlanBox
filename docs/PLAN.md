@@ -410,13 +410,46 @@ every repository already follows. Details are in ARCHITECTURE §6.3.
 events, a dedicated search page with filters, and match highlighting inside
 the opened item.
 
+## Phase 5: Habits. Built 2026-10-10
+
+**Scope:** habits with schedules (RRULE), daily check-ins stored as
+floating dates, and streaks. No new dependencies.
+
+**Backend** (`modules/habits`, migration `habits/0001_create_habits.sql`):
+`habits` and `habits_checkins`, one list endpoint with days in a range plus
+streaks, and idempotent PUT/DELETE check-ins. Rules are in ARCHITECTURE §7c.
+
+**Frontend** (`modules/habits`):
+- **Habits page** (`/habits`, `G B`): each habit with its schedule, its
+  current streak and the last 7 days as round toggles (today last). Any of
+  them can be ticked, so missed days can be caught up.
+- **Detail panel:** name, schedule (the shared repeat editor), the 7-day
+  strip, current/best streak and times done, a 26-week history grid, notes,
+  links and delete with undo.
+- **Rail pane** (`H`, flame icon): today's habits as checkboxes, then the
+  ones not scheduled today. This is the first use of the rail by a second
+  module.
+- Sidebar entry with the number still due today; palette commands "New
+  habit", "Go to Habits" and "Check off habit: …" for each one due today.
+  Habits are searchable and linkable.
+
+**Decisions:**
+- A streak counts scheduled days. "3 times a week, any days" is not
+  expressible yet (TODO.md); use chosen weekdays instead.
+- `G H` was taken (Home), so the page is `G B`.
+- The history grid is display only (its cells are too small to be touch
+  targets); days are ticked in the 7-day strip.
+
+**Cut to keep it lean** (in TODO.md): reordering habits, archiving
+(pausing) a habit, weekly targets ("3× per week"), counts per day
+("8 glasses"), reminders, and editing the start date in the UI.
+
 ## Later phases (sketch)
 
 - **Phase 2: Knowledge collections.** Built; see above.
 - **Phase 3: Search.** Built; see above.
 - **Phase 4: Calendar.** Brought forward; see above.
-- **Phase 5: Habits.** Habits with schedules (RRULE) and daily check-ins
-  stored as floating dates, plus streaks.
+- **Phase 5: Habits.** Built; see above.
 - **Phase 6: Recurring todos.** Brought forward; see above.
 - **Phase 7: Mobile PWA.** Manifest and service worker, binding to the
   private network interface, authentication, and a touch polish pass.

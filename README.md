@@ -17,12 +17,16 @@ will come later.
 > Todos can repeat (phase 6, brought forward): every N days, weeks, months
 > or years, or on chosen weekdays, and completing one adds the next.
 > Search (phase 3) is built: Ctrl+K finds todos and knowledge entries by
-> any word in their title or text. See [docs/PLAN.md](docs/PLAN.md).
+> any word in their title or text. Habits (phase 5) are built: schedules,
+> daily check-ins and streaks; the flame icon on the right edge (or `H`)
+> opens today's habits, and `G B` opens the Habits page. See
+> [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 
 - **Ctrl+K** opens the command palette: every action and every list, and
-  a search over all todos (completed ones too) and knowledge entries. Words
+  a search over all todos (completed ones too), knowledge entries and
+  habits. Words
   match as prefixes, so `rep out` finds "Report outline".
   **?** shows all keyboard shortcuts.
 - **Q** is quick-add. Type, for example,

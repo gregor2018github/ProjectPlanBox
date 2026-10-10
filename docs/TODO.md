@@ -80,3 +80,14 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
 - [ ] A search page with filters (type, open/done, collection) and more
       than 20 results.
 - [ ] Highlight the matched words inside the opened item.
+
+## Habits follow-ups (deferred from phase 5)
+
+- [ ] Weekly targets ("3 times a week, any days"), which need their own
+      streak rule (weeks that met the target).
+- [ ] Counts per day ("8 glasses of water") instead of done/not done.
+- [ ] Reordering habits (drag and drop, like collections) and archiving
+      (pausing) a habit without deleting it.
+- [ ] Editing the start date in the detail panel (the API accepts it).
+- [ ] Reminders (with the calendar's reminders).
+- [ ] Ticking days in the history grid on desktop (it is display only).

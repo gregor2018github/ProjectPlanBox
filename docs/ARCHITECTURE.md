@@ -36,6 +36,7 @@ ProjectPlanBox/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
 │   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
 │   │       ├── calendar/     # events and recurring series
+│   │       ├── habits/       # habits, check-ins, streaks (streaks.py is pure)
 │   │       └── todos/
 │   │           ├── __init__.py      # `module = Module(...)`
 │   │           ├── migrations/      # 0001_create_todos.sql, 0002_add_recurrence.sql
@@ -67,6 +68,7 @@ ProjectPlanBox/
 │           ├── index.ts      # MODULES: the only list of modules
 │           ├── knowledge/    # same layout as todos
 │           ├── calendar/
+│           ├── habits/       # page, detail panel, rail pane (today's habits)
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
 ├── shared/                   # language-neutral fixtures (e.g. ordering test vectors)
 ├── main.py                   # the launcher: py main.py starts PlanBox and opens the browser
@@ -565,6 +567,61 @@ CREATE TABLE knowledge_entries (
 On the frontend the module mirrors todos: one cache of all entries
 (`['knowledge','entries']`) plus collections; views are selectors over it;
 every mutation is optimistic in one serial scope (`knowledge`).
+
+## 7c. Habits module data model (phase 5)
+
+```sql
+CREATE TABLE habits (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+  notes TEXT NOT NULL DEFAULT '',
+  rrule TEXT NOT NULL,                 -- RRULE without DTSTART (core/recurrence.py)
+  start_date TEXT NOT NULL,            -- floating date; the schedule's anchor
+  position TEXT NOT NULL,              -- creation order (no reordering UI yet)
+  created_at, updated_at, deleted_at
+) STRICT;
+
+CREATE TABLE habits_checkins (
+  id TEXT PRIMARY KEY,
+  habit_id TEXT NOT NULL REFERENCES habits(id),
+  day TEXT NOT NULL,                   -- floating date in the configured zone
+  created_at, updated_at, deleted_at
+) STRICT;  -- unique live (habit_id, day)
+```
+
+- **Schedules** reuse the shared recurrence engine on floating dates
+  (`all_day_anchor(start_date)`), so the shared repeat editor works
+  unchanged. New habits are daily from today. "Does not repeat" in the
+  editor is read as daily, because a habit always has a schedule.
+- **Check-ins** are one live row per habit and day. Unchecking soft-deletes
+  the row, and checking again inserts a new one. Both calls are idempotent.
+  Future days are refused; any past day can be checked (catching up).
+- **Streaks** (`streaks.py`, pure) count *scheduled* days in a row that
+  were checked. Today does not break the current streak until it has
+  passed. A check-in on an unscheduled day is kept and shown, but neither
+  extends nor breaks a streak. "Best" is the longest run ever. Changing the
+  schedule re-reads the whole history under the new rule, which is simple
+  and predictable.
+- Deleting a habit keeps its check-ins, so a restore brings its history
+  back.
+
+| Method | Path | |
+|---|---|---|
+| GET | `/api/habits/habits?start=&end=` | Live habits with `checkins` and `scheduled` days in the range (≤ 400 days), `current_streak`, `best_streak`, `total_checkins` |
+| POST | `/api/habits/habits` | `{id?, name, notes?, rrule?, start_date?}` (idempotent per id) |
+| PATCH | `/api/habits/habits/{id}` | name, notes, rrule, start_date |
+| DELETE | `/api/habits/habits/{id}` · POST `…/restore` | Soft delete, undo |
+| PUT / DELETE | `/api/habits/habits/{id}/checkins/{day}` | Check / uncheck a day |
+
+On the frontend there is one cache: the habits with the last 26 whole weeks
+(`['habits','list',start,end]`). The page (a 7-day strip per habit, today
+last), the detail panel (stats and a 26-week history grid), the rail pane
+(today's habits as checkboxes), the sidebar count and the palette's "Check
+off habit" commands are all derived from it. Mutations are optimistic in
+one serial scope (`habits`). They tick the day at once and extend the
+current streak when today is checked. Every mutation refetches afterwards,
+because only the server expands schedules and counts streaks. Habits take
+part in links (a linkable source) and search (`documents`: name and notes).
 
 ## 8. Frontend data flow
 
