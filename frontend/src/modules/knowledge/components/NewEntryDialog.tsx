@@ -102,15 +102,17 @@ export function NewEntryDialog({
       initialFocus={titleRef}
     >
       <form onSubmit={submit} className="flex flex-col gap-3 px-5 pt-3 pb-5">
-        <SegmentedControl
-          label="Kind"
-          value={kind}
-          onChange={(next) => {
-            setKind(next);
-            titleRef.current?.focus();
-          }}
-          options={KIND_OPTIONS}
-        />
+        <div>
+          <SegmentedControl
+            label="Kind"
+            value={kind}
+            onChange={(next) => {
+              setKind(next);
+              titleRef.current?.focus();
+            }}
+            options={KIND_OPTIONS}
+          />
+        </div>
         {kind === "link" && (
           <Input
             aria-label="Web address"

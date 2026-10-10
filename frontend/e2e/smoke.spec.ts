@@ -113,6 +113,42 @@ test("edits title and notes in the detail panel", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Notes" })).toHaveValue("Remember the attachment");
 });
 
+test("a note links to a todo, and the link shows from both sides after a reload", async ({
+  page,
+}) => {
+  const id = tag();
+  const todo = `Write report ${id}`;
+  const note = `Report outline ${id}`;
+  await page.goto("/todos/inbox");
+  await addInline(page, todo);
+
+  await page.goto("/knowledge");
+  await page.keyboard.press("e");
+  const dialog = page.getByRole("dialog", { name: "New note" });
+  await dialog.getByRole("textbox", { name: "Title" }).fill(note);
+  await dialog.getByRole("textbox", { name: "Text" }).fill("1. Numbers, 2. Story");
+  await dialog.getByRole("button", { name: "Add note" }).click();
+
+  const details = page.getByRole("complementary", { name: "Details" });
+  await expect(details.getByRole("textbox", { name: "Title" })).toHaveValue(note);
+  await details.getByRole("button", { name: "Link…" }).click();
+  await page.getByRole("combobox", { name: "Link to" }).fill(todo);
+  await page.keyboard.press("Enter");
+  await expect(details.getByRole("button", { name: new RegExp(`^${todo}`) })).toBeVisible();
+
+  await page.reload();
+  await page
+    .getByRole("complementary", { name: "Details" })
+    .getByRole("button", { name: new RegExp(`^${todo}`) })
+    .click();
+  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue(todo);
+  await expect(
+    page
+      .getByRole("complementary", { name: "Details" })
+      .getByRole("button", { name: new RegExp(`^${note}`) }),
+  ).toBeVisible();
+});
+
 test("the theme choice persists", async ({ page }) => {
   await page.goto("/todos/inbox");
   await page.getByRole("button", { name: "Dark" }).click();

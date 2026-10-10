@@ -28,7 +28,7 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
 
 ## Todos follow-ups (deferred from phase 1)
 
-- [ ] Markdown rendering for todo notes (plain text for now).
+- [ ] Markdown rendering for todo notes and knowledge notes (plain text for now).
 - [ ] Open Logbook items in the detail panel (needs a single-todo GET).
 - [ ] A trash view (undo covers deletes for now).
 - [ ] Manual order inside Today, if wanted (it is auto-sorted now).
@@ -49,3 +49,15 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
 - [ ] Touch: moving timed events by dragging (touch uses the dialog; a tap opens/creates).
 - [ ] Undoing a "this and following" change does not re-attach exceptions moved to the new series.
 - [ ] Reminders/notifications; Google Calendar import (see connectors above).
+
+## Knowledge follow-ups (deferred from phase 2)
+
+- [ ] Link titles and previews fetched from the web. It would be the first
+      outbound request, so decide that first.
+- [ ] Changing an entry's kind (note ↔ link ↔ snippet).
+- [ ] Manual order inside a collection (it is newest change first now), and
+      nested collections.
+- [ ] Syntax highlighting for snippets (needs a dependency).
+- [ ] Links on calendar events (the event dialog has no Links block yet).
+- [ ] The link picker lists cached items only (open todos and today's
+      completed ones, all entries). Phase 3 search can widen it.

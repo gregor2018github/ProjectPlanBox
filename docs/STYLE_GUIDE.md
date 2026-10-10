@@ -294,6 +294,10 @@ live in `tokens.css`. Do not inline magic numbers.
   is wrapped once in `src/ui/` (e.g. `ui/Dialog.tsx`) with our tokens and
   motion. Modules use the `ui/` wrappers and never Base UI directly. ESLint
   enforces this through the local `planbox/boundaries` rule.
+- **Shared composites** that more than one module needs (`NameDialog`,
+  `PageHeader`, `ViewLayout`, `InlineTitle`, `AutosaveTextArea`) also live
+  in `ui/`. A component moves there when a second module needs it, not
+  before.
 - **Popup transitions** use CSS through Base UI's `data-[starting-style]` /
   `data-[ending-style]` attributes and the duration/easing tokens. Motion
   (the library) is for layout springs and panel width only.

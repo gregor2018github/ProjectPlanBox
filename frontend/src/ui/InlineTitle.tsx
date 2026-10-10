@@ -7,8 +7,8 @@ export interface InlineTitleProps {
   value: string;
   label: string;
   onCommit: (value: string) => void;
-  /** Larger text for the detail panel's main title. */
-  size?: "base" | "lg";
+  /** Larger text for the detail panel's main title, smaller for secondary fields. */
+  size?: "sm" | "base" | "lg";
   placeholder?: string;
   /** Lets the text be cleared (by default an empty edit reverts). */
   allowEmpty?: boolean;
@@ -71,7 +71,7 @@ export function InlineTitle({
       onKeyDown={onKeyDown}
       className={cx(
         "min-w-0 flex-1 rounded-sm bg-transparent text-text outline-none placeholder:text-text-subtle focus-visible:outline-2 focus-visible:outline-offset-2",
-        size === "lg" ? "text-lg font-semibold" : "text-base",
+        size === "lg" ? "text-lg font-semibold" : size === "sm" ? "text-sm" : "text-base",
         className,
       )}
     />

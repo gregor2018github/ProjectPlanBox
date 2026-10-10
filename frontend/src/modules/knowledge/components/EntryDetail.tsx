@@ -66,7 +66,7 @@ export function EntryDetail({ id }: EntryDetailProps) {
           <InlineTitle
             label="Web address"
             value={url ?? ""}
-            className="text-sm text-accent"
+            size="sm"
             onCommit={(next) => {
               const address = normalizeUrl(next);
               if (isWebUrl(address)) actions.update(entry.id, { url: address });
@@ -92,7 +92,7 @@ export function EntryDetail({ id }: EntryDetailProps) {
           placeholder="Language (e.g. python)"
           allowEmpty
           value={entry.language ?? ""}
-          className="text-sm"
+          size="sm"
           onCommit={(language) => {
             actions.update(entry.id, { language: language === "" ? null : language });
           }}

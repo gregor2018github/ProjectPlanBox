@@ -290,11 +290,61 @@ manifest (`rail`), so later modules (habits) can add their own.
   feed. Dropping a todo row on a calendar day uses a core date drop target,
   which the todos module turns into a due date change.
 
+## Phase 2: Knowledge collections and core links. Built 2026-10-10
+
+**Scope:** collections of notes, links and snippets, and the first build of
+core **links** (ARCHITECTURE §6.2) now that there are two modules to link.
+No new dependencies.
+
+**Backend** (`modules/knowledge`, `core/links`):
+- `knowledge_collections` (flat, manually ordered) and `knowledge_entries`.
+  Entries without a collection are **Unsorted**, like the todos Inbox.
+  Deleting a collection deletes its entries with one shared `deleted_at`, so
+  one undo restores exactly them.
+- **One entries table with a `kind`** (`note`, `link`, `snippet`), not three
+  tables. The kinds share title, text, collection, tags and ordering, and
+  differ by one column each (`url` for links, `language` for snippets),
+  guarded by CHECK constraints. Three tables would triple the repository,
+  API and cache code, and make "everything in this collection, newest
+  first" a union. This is still a specific table, not the generic
+  block/item model the brief rules out. A kind is fixed at creation.
+- Links need an `http(s)` URL (enforced on both sides), so a stored link can
+  never run script.
+- `core_links` + `/api/links`: refs are validated and summarised through the
+  entity registry; a pair is linked once in either direction; unlinking is
+  undoable. Links to deleted items stay and show as deleted, so restoring
+  the item brings them back.
+- `place()`/`free_position()` moved from the todos service to
+  `core/placement.py`.
+
+**Frontend** (`modules/knowledge`, `core/links`):
+- Views: All entries, Unsorted and one per collection, newest change first,
+  with a kind filter and a word filter (title, text, address, language,
+  tags). Sidebar collections can be dragged to reorder; entries can be
+  dropped on a collection (or Unsorted).
+- `E` opens "new entry" (into the collection on screen); `G K` goes to
+  Knowledge; palette commands for each kind, each collection and each entry.
+  A link without a title is named after its site, and `https://` is added
+  to bare addresses.
+- Detail panel per entry: title, address (with Open) or language, text
+  (autosaves), collection, tags, copy code, links, delete with undo.
+- **Links UI:** a core `LinkedItems` block in the todo and entry detail
+  panels. The picker lists everything module Hosts publish through a
+  **linkable source registry** (`core/links/linkables.ts`, the same pattern
+  as calendar feeds), so core never imports a module. Phase 3 can swap the
+  client-side list for server search without touching modules' displays,
+  which already come from the server's summaries.
+- Shared pieces moved out of todos: `NameDialog`, `PageHeader`,
+  `ViewLayout`, `InlineTitle` to `ui/`, `TagPicker` to `core/tags/`; new
+  `ui/AutosaveTextArea`.
+
+**Cut to keep it lean** (in TODO.md): Markdown rendering of notes, fetching
+link titles/previews from the web, changing an entry's kind, manual order
+inside a collection, nested collections, and links on calendar events.
+
 ## Later phases (sketch)
 
-- **Phase 2: Knowledge collections.** Collections of notes, links and
-  snippets, and the first build of core **links** (todo ↔ note) since there
-  are now two modules.
+- **Phase 2: Knowledge collections.** Built; see above.
 - **Phase 3: Search.** Core FTS5 index fed by todos and knowledge, plus
   palette integration.
 - **Phase 4: Calendar.** Brought forward; see above.

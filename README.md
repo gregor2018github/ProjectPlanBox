@@ -12,7 +12,9 @@ will come later.
 > is built too: the calendar icon on the right edge (or `C`) opens a pane
 > with a mini month and agenda; `G C` opens month/week/day views. Events can
 > repeat, and dated todos show up and can be dragged onto days. Knowledge
-> collections come next. See [docs/PLAN.md](docs/PLAN.md).
+> collections (phase 2) are built: notes, links and snippets grouped into
+> collections, and links between any two items (a todo and a note, say).
+> Search comes next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 
@@ -33,6 +35,12 @@ will come later.
 - **Ctrl+Z** undoes the last delete, completion or move.
 - Drag todos to reorder them, or drop them on a list in the sidebar. Drag
   lists between areas, and drag sections by their grip.
+- **E** adds a note, link or snippet (to the collection on screen, else to
+  Unsorted); **G K** opens Knowledge. Filter a view by kind or by words and
+  tags. Drag entries onto a collection in the sidebar, and drag collections
+  to reorder them. In a list of entries, **↑/↓** move and **Delete** deletes.
+- Every todo and entry has a **Links** block in its detail panel: "Link…"
+  connects it to any other todo or entry, and the link shows on both sides.
 
 ## What it is
 

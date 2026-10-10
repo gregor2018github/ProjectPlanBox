@@ -22,16 +22,19 @@ ProjectPlanBox/
 │   │   │   ├── ids.py        # new_id() -> UUIDv7 text
 │   │   │   ├── clock.py      # Clock protocol, SystemClock, utc_now_iso()
 │   │   │   ├── ordering.py   # fractional position keys
+│   │   │   ├── placement.py  # place()/free_position(): a key among ordered siblings
 │   │   │   ├── errors.py     # domain errors -> RFC 9457 problem+json
 │   │   │   ├── entities.py   # EntityRef, EntityType registry
 │   │   │   ├── module.py     # the Module manifest type
 │   │   │   ├── meta/         # GET /api/health, GET /api/meta (router/service/repository)
 │   │   │   ├── lifecycle/    # POST /api/shutdown (only when started by the launcher)
 │   │   │   ├── tags/         # repository / service / router / schemas
-│   │   │   ├── links/        # (built later)
+│   │   │   ├── links/        # links between any two entities (phase 2)
 │   │   │   └── search/       # (built later)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
+│   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
+│   │       ├── calendar/     # events and recurring series
 │   │       └── todos/
 │   │           ├── __init__.py      # `module = Module(...)`
 │   │           ├── migrations/0001_create_todos.sql
@@ -50,13 +53,17 @@ ProjectPlanBox/
 │       ├── main.tsx
 │       ├── app/              # App (providers), router, AppShell, Sidebar, DetailPanel, pages
 │       ├── core/             # api/ (client, generated schema, queries), commands/ (registry,
-│       │                     # palette), shortcuts/ (registry, overview), theme/, time, ids, module
+│       │                     # palette), shortcuts/ (registry, overview), links/ (LinkedItems,
+│       │                     # linkable sources), tags/, calendar/ (feeds), theme/, time, ids, module
 │       ├── ui/               # design system: Base UI wrappers (Dialog, Sheet, Tooltip, Toaster,
-│       │                     # SegmentedControl), Button, IconButton, Kbd, motion presets
+│       │                     # SegmentedControl), Button, IconButton, Kbd, motion presets, and
+│       │                     # small shared composites (NameDialog, PageHeader, InlineTitle, …)
 │       ├── styles/           # tokens.css (+ contrast test), index.css
 │       ├── test/             # Vitest setup, renderApp() with a fake API
 │       └── modules/
 │           ├── index.ts      # MODULES: the only list of modules
+│           ├── knowledge/    # same layout as todos
+│           ├── calendar/
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
 ├── shared/                   # language-neutral fixtures (e.g. ordering test vectors)
 ├── main.py                   # the launcher: py main.py starts PlanBox and opens the browser
@@ -138,12 +145,18 @@ feed (`useCalendarFeed`) of entries addressed by entity ref, with
 `{ kind: "date", date }`; a module's draggable reads it with
 `droppedDate(info)` (todos turn it into a due date).
 
+**Linkable sources** (`core/links/`). The same pattern feeds the link
+picker: a module's Host publishes its entities (`useLinkableSource`) with
+an icon, a noun and a hint per item; the core `LinkedItems` block (rendered
+by each module's detail panel) offers all of them. Titles of existing
+links come from the server's summaries, so a link still displays when its
+target is not in any cache.
+
 Modules contribute through **components rather than data**. A
 `SidebarSection` can show live counts from the query cache, and a `Host` can
 call `useCommands()` and `useShortcut()` like any other component, so the
-shell needs no plugin API for each concern. Quick-add and entity display for
-links and search will be added to the manifest when phase 1 and phase 2 need
-them.
+shell needs no plugin API for each concern. Entity display for links did
+not need a manifest field either: it travels with the linkable source.
 
 ## 3. Backend layers
 
@@ -305,7 +318,7 @@ CREATE INDEX core_taggings_entity ON core_taggings (entity_type, entity_id) WHER
   of cross-module tags. The service validates refs on write, and orphans are
   harmless and swept by a maintenance command.
 
-### 6.2 Links (designed now, built with the second module)
+### 6.2 Links (built in phase 2)
 
 ```sql
 CREATE TABLE core_links (
@@ -319,8 +332,14 @@ CREATE TABLE core_links (
 
 - Links are directed (a todo references a note) and displayed in both
   directions ("referenced by").
-- `GET /api/links?entity=todos.todo:<id>` returns both directions, already
-  summarised through the registry. Deleted targets show as "deleted item".
+- `GET /api/links?entity=todos.todo:<id>` returns both directions, oldest
+  first, each as `{id, source, target, created_at}` with both ends
+  summarised through the registry (`{ref, title, deleted}`). Deleted
+  targets stay and show as deleted; restoring the target revives the link.
+- `POST /api/links {id?, source, target}` validates both refs (registered
+  type, live entity, not the same) and refuses a pair that is already
+  linked in either direction (409). `DELETE /api/links/{id}` and
+  `POST …/restore` give undo.
 - Within one module, relationships use real FK columns, not `core_links`.
 
 ### 6.3 Search (designed now, built after the second module)
@@ -333,8 +352,8 @@ CREATE TABLE core_links (
 - Each `EntityType` can provide `reindex(conn)` for `scripts/reindex.py`.
 - `GET /api/search?q=` returns `EntityRef`, title and snippet. The command
   palette shows these next to commands.
-- Until then (phase 1), the palette searches todos client-side from the
-  query cache.
+- Until then, the palette searches todos and knowledge entries by title,
+  client-side from the query caches (each Host registers them as commands).
 
 ## 7. Todos module data model (phase 1)
 
@@ -432,6 +451,53 @@ that can be enforced in SQL are also CHECK constraints.
 | GET/POST/PATCH/DELETE | `/api/todos/sections[/{id}]`, `…/move` (`{list_id, before_id?, after_id?}`), `…/restore` | Sections |
 | GET/POST/PATCH/DELETE | `/api/tags[/{id}]` | Core |
 | GET | `/api/health`, `/api/meta` | Liveness and schema versions; timezone, week start, app version |
+
+## 7b. Knowledge module data model (phase 2)
+
+```sql
+CREATE TABLE knowledge_collections (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+  position TEXT NOT NULL,                       -- sidebar order
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+) STRICT;
+
+CREATE TABLE knowledge_entries (
+  id TEXT PRIMARY KEY,
+  collection_id TEXT REFERENCES knowledge_collections(id),  -- NULL = Unsorted
+  kind TEXT NOT NULL CHECK (kind IN ('note', 'link', 'snippet')),
+  title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 500),
+  body TEXT NOT NULL DEFAULT '',                -- note text, link description, snippet code
+  url TEXT CHECK ((kind = 'link') = (url IS NOT NULL)),
+  language TEXT CHECK (language IS NULL OR (kind = 'snippet' AND length(language) <= 40)),
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
+) STRICT;
+```
+
+- One table for the three kinds, because they share everything except one
+  column each (PLAN.md, phase 2, argues the choice). The kind is fixed at
+  creation. Entity type: `knowledge.entry`.
+- Links need an `http(s)` URL. The frontend adds `https://` to bare
+  addresses and only ever renders http(s) as a link target.
+- Entries are listed newest change first (`updated_at`); changing tags
+  counts as a change. Collections are ordered by `position`.
+- Deleting a collection soft-deletes its entries with the same stamp;
+  restoring it restores exactly those. An entry whose collection is deleted
+  cannot be restored on its own (409).
+
+| Method | Path | Notes |
+|---|---|---|
+| GET/POST | `/api/knowledge/collections` | List in order; create at the end (client `id`, idempotent) |
+| PATCH | `/api/knowledge/collections/{id}` | Rename |
+| POST | `…/collections/{id}/move` · `/restore` | `{before_id?, after_id?}`; undo a delete |
+| DELETE | `/api/knowledge/collections/{id}` | With its entries; returns counts |
+| GET/POST | `/api/knowledge/entries` | All live entries with `tag_ids`; create (client `id`, idempotent) |
+| PATCH | `/api/knowledge/entries/{id}` | title, body, url, language, collection_id, tag_ids; absent = unchanged |
+| DELETE | `/api/knowledge/entries/{id}` · POST `…/restore` | Soft delete, undo |
+
+On the frontend the module mirrors todos: one cache of all entries
+(`['knowledge','entries']`) plus collections; views are selectors over it;
+every mutation is optimistic in one serial scope (`knowledge`).
 
 ## 8. Frontend data flow
 
@@ -670,6 +736,8 @@ changes.
      `selectors.ts` (pure, tested), actions with undo, pages, and a `Host`
      for commands and shortcuts.
    - `index.ts` exports the manifest. Add one line to `src/modules/index.ts`.
+   - To take part in links: publish a linkable source from the Host
+     (`useLinkableSource`) and render `<LinkedItems>` in the detail panel.
    - UI flow tests with a fake API, plus one or two Playwright smoke tests.
 
 ## 11. Continuous integration
