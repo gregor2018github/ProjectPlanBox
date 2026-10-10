@@ -344,7 +344,9 @@ live in `tokens.css`. Do not inline magic numbers.
 - **Breakpoints (Tailwind defaults):** `md` 768, `lg` 1024, `xl` 1280. The
   layout must work at 360 px wide.
 - **Focus:** always visible (`:focus-visible`, 2 px accent ring, 2 px
-  offset). Dialogs trap focus and return it on close (Base UI does this).
+  offset). Dialogs trap focus and return it on close (Base UI does this),
+  and have a close button in the top-right corner like the side panels
+  (only the input-only palette and quick-add rely on Esc alone).
 - **Feedback:** no spinners for local operations. Errors appear as a toast
   with the server's message and, where possible, "Retry". Destructive
   actions are undoable rather than confirmed. Confirmation is reserved for

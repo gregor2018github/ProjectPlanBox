@@ -90,7 +90,7 @@ export function EventDialog({ editor, actions, onClose }: EventDialogProps) {
               update({ title: event.target.value });
             }}
             variant="plain"
-            className="text-lg font-medium"
+            className="pr-10 text-lg font-medium"
           />
 
           <div className="flex flex-col gap-2">

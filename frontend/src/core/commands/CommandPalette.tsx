@@ -112,6 +112,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       onOpenChange={handleOpenChange}
       title="Command palette"
       hideTitle
+      closeButton={false}
       placement="top"
       size="md"
       initialFocus={inputRef}
