@@ -202,6 +202,9 @@ class HabitService:
     def check(self, habit_id: str, day: date) -> Checkin:
         """Marks a habit done on a day; checking a checked day changes nothing.
 
+        A day before the habit's start date moves the start back to it, so
+        catching up on the days before a habit was added counts for streaks.
+
         Raises:
             NotFound: If there is no live habit with this id.
             ValidationFailed: If the day is in the future.
@@ -209,11 +212,13 @@ class HabitService:
         if day > self._today():
             raise ValidationFailed("You cannot check off a day that has not come yet.")
         with transaction(self._conn):
-            _live(self._repos.habits.get(habit_id))
+            habit = _live(self._repos.habits.get(habit_id))
+            now = utc_now_iso(self._clock)
+            if day < date.fromisoformat(habit.start_date):
+                self._move_start(habit, day, now)
             existing = self._repos.checkins.live_on(habit_id, day.isoformat())
             if existing is not None:
                 return existing
-            now = utc_now_iso(self._clock)
             checkin = Checkin(
                 id=new_id(),
                 habit_id=habit_id,
@@ -242,6 +247,14 @@ class HabitService:
 
     def _today(self) -> date:
         return self._clock.now().astimezone(self._zone).date()
+
+    def _move_start(self, habit: Habit, start: date, now: str) -> None:
+        """Re-anchors the schedule on an earlier start (kept as is if the rule no longer fits)."""
+        try:
+            rule = self._normalize(habit.rrule, start)
+        except ValidationFailed:
+            return
+        self._repos.habits.update(habit.id, {"start_date": start.isoformat(), "rrule": rule}, now)
 
     def _normalize(self, rule: str, start: date) -> str:
         try:

@@ -114,6 +114,18 @@ def test_streaks_follow_the_schedule(client: TestClient) -> None:
     assert (view["current_streak"], view["best_streak"]) == (6, 6)
 
 
+def test_catching_up_before_the_start_date_counts(client: TestClient) -> None:
+    """A habit added today, ticked for the three days before: the start moves back."""
+    h = habit(client)
+    for n in (3, 2, 1):
+        ok(check(client, h["id"], days_before(n)))
+
+    view = overview(client)[0]
+    assert view["start_date"] == days_before(3)
+    assert view["scheduled"][:3] == [days_before(3), days_before(2), days_before(1)]
+    assert (view["current_streak"], view["best_streak"]) == (3, 3)
+
+
 def test_unscheduled_check_ins_neither_count_nor_break(client: TestClient) -> None:
     """On a Mon/Wed/Fri habit, a Tuesday check-in is shown but not counted."""
     h = habit(client, rrule="FREQ=WEEKLY;BYDAY=MO,WE,FR", start_date="2026-09-28")

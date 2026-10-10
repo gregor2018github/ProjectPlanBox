@@ -596,6 +596,9 @@ CREATE TABLE habits_checkins (
 - **Check-ins** are one live row per habit and day. Unchecking soft-deletes
   the row, and checking again inserts a new one. Both calls are idempotent.
   Future days are refused; any past day can be checked (catching up).
+  Checking a day before the start date moves the start back to that day,
+  so catching up on the days before a habit was added counts. (With an
+  interval such as "every 2 days" this re-anchors which days are due.)
 - **Streaks** (`streaks.py`, pure) count *scheduled* days in a row that
   were checked. Today does not break the current streak until it has
   passed. A check-in on an unscheduled day is kept and shown, but neither
