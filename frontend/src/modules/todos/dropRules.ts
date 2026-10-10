@@ -81,3 +81,16 @@ export function resolveContainerDrop(id: string, info: DropInfo): ContainerDropM
   const index = Math.min(Math.max(info.index ?? ids.length, 0), ids.length);
   return { parentId, before_id: ids[index] ?? null, after_id: ids[index - 1] ?? null };
 }
+
+/**
+ * The ids of a flat sortable group after dropping `todoId` inside it (views
+ * that store the whole order, like Today), or null when nothing changes.
+ */
+export function reorderedIds(todoId: string, info: DropInfo): string[] | null {
+  if (info.canceled || info.target?.data.kind !== "todo-row") return null;
+  if (info.group !== info.initialGroup || info.index === info.initialIndex) return null;
+  const data = info.target.data;
+  const ids = (Array.isArray(data.ids) ? (data.ids as string[]) : []).filter((id) => id !== todoId);
+  const index = Math.min(Math.max(info.index ?? ids.length, 0), ids.length);
+  return [...ids.slice(0, index), todoId, ...ids.slice(index)];
+}

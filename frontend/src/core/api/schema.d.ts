@@ -880,6 +880,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/today-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Today Order
+         * @description Stores the manual order of one group in Today; returns the todos that changed.
+         */
+        post: operations["todos_set_today_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1555,6 +1575,14 @@ export interface components {
             name: string;
         };
         /**
+         * TodayOrder
+         * @description The todos of one group in Today, top to bottom.
+         */
+        TodayOrder: {
+            /** Ids */
+            ids: string[];
+        };
+        /**
          * TodoCreate
          * @description Create a todo or subtask (at the end of its container unless neighbours are given).
          */
@@ -1611,7 +1639,9 @@ export interface components {
          * @description A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
          *
          *     A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
-         *     series starts on ``recurrence_anchor``.
+         *     series starts on ``recurrence_anchor``. ``today_position`` is its place in
+         *     Today's manual order (null until Today is reordered, and after the due
+         *     date changes).
          */
         TodoOut: {
             /** Completed At */
@@ -1642,6 +1672,8 @@ export interface components {
             tag_ids: string[];
             /** Title */
             title: string;
+            /** Today Position */
+            today_position: string | null;
             /** Updated At */
             updated_at: string;
         };
@@ -3567,6 +3599,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_set_today_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodayOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodosOut"];
                 };
             };
             /** @description Problem details */

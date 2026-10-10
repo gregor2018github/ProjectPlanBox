@@ -55,6 +55,20 @@ describe("todayView", () => {
     expect(view.today.map((t) => t.id)).toEqual([high.id, low.id, subtask.id]);
     expect(view.done).toEqual([done]);
   });
+
+  it("puts hand-ordered todos first, in their order, then the rest auto-sorted", () => {
+    const first = makeTodo({ due_date: TODAY, today_position: "a0" });
+    const second = makeTodo({ due_date: TODAY, priority: 0, today_position: "a1" });
+    const high = makeTodo({ due_date: TODAY, priority: 3 });
+    const low = makeTodo({ due_date: TODAY, priority: 1 });
+    const olderLate = makeTodo({ due_date: "2026-10-01" });
+    const lateFirst = makeTodo({ due_date: "2026-10-07", today_position: "a0" });
+
+    const view = todayView([low, second, high, first, olderLate, lateFirst], TODAY);
+
+    expect(view.today.map((t) => t.id)).toEqual([first.id, second.id, high.id, low.id]);
+    expect(view.overdue.map((t) => t.id)).toEqual([lateFirst.id, olderLate.id]);
+  });
 });
 
 describe("upcomingView", () => {

@@ -20,6 +20,7 @@ import {
   useMoveTodo,
   useRestoreTodo,
   useSetCompleted,
+  useSetTodayOrder,
   useUpdateTodo,
 } from "./mutations";
 import { todoKeys } from "./queries";
@@ -45,6 +46,7 @@ export function useTodoActions() {
   const updateTodo = useUpdateTodo();
   const setCompleted = useSetCompleted();
   const moveTodo = useMoveTodo();
+  const setTodayOrder = useSetTodayOrder();
   const deleteTodo = useDeleteTodo();
   const restoreTodo = useRestoreTodo();
   const { show } = useToast();
@@ -189,6 +191,21 @@ export function useTodoActions() {
 
       move,
 
+      /**
+       * Stores a new order for one group in Today; `before` is the order it
+       * replaces (what undo goes back to).
+       */
+      reorderToday(ids: string[], before: readonly string[]): void {
+        setTodayOrder.mutate({ ids });
+        pushUndo({
+          label: "Reordered Today",
+          silent: true,
+          undo: () => {
+            setTodayOrder.mutate({ ids: [...before] });
+          },
+        });
+      },
+
       /** Places a todo at the end of another container (top level). */
       moveTo(t: Todo, target: Omit<Placement, "parent_id">): void {
         move(t, { ...target, parent_id: null }, null, null);
@@ -251,6 +268,7 @@ export function useTodoActions() {
     updateTodo,
     setCompleted,
     moveTodo,
+    setTodayOrder,
     deleteTodo,
     restoreTodo,
     show,

@@ -100,7 +100,9 @@ class TodoOut(BaseModel):
     """A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
 
     A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
-    series starts on ``recurrence_anchor``.
+    series starts on ``recurrence_anchor``. ``today_position`` is its place in
+    Today's manual order (null until Today is reordered, and after the due
+    date changes).
     """
 
     id: str
@@ -118,6 +120,7 @@ class TodoOut(BaseModel):
     tag_ids: list[str]
     rrule: str | None
     recurrence_anchor: date | None
+    today_position: str | None
 
 
 class TodoCreate(BaseModel):
@@ -160,6 +163,12 @@ class TodoMove(BaseModel):
     parent_id: str | None
     before_id: str | None = None
     after_id: str | None = None
+
+
+class TodayOrder(BaseModel):
+    """The todos of one group in Today, top to bottom."""
+
+    ids: list[str] = Field(max_length=2000)
 
 
 class TodosOut(BaseModel):

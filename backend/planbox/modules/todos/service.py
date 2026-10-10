@@ -22,6 +22,7 @@ from planbox.core.db import transaction
 from planbox.core.entities import EntityRef
 from planbox.core.errors import Conflict, NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
+from planbox.core.ordering import key_between
 from planbox.core.placement import free_position, place
 from planbox.core.recurrence import RecurrenceError
 from planbox.core.tags.service import TagService
@@ -527,7 +528,8 @@ class TodoService:
         Only keys present in ``changes`` are touched; ``None`` clears a due
         date or repeat rule. A new rule is anchored on the due date (today if
         there is none). Moving the due date of a repeating todo moves only
-        this occurrence; clearing it stops the repeat.
+        this occurrence; clearing it stops the repeat. A new due date drops
+        the todo's place in Today's manual order (it arrives at the end).
         """
         fields: dict[str, object] = {}
         for key, value in changes.items():
@@ -549,6 +551,8 @@ class TodoService:
         with transaction(self._conn):
             todo = _live(self._repos.todos.get(todo_id), "todo")
             fields |= self._repeat_fields(todo, changes)
+            if "due_date" in fields and fields["due_date"] != todo.due_date:
+                fields["today_position"] = None
             if fields:
                 self._repos.todos.update(todo_id, fields, utc_now_iso(self._clock))
             tag_ids = changes.get("tag_ids")
@@ -640,6 +644,31 @@ class TodoService:
             if children:
                 self._repos.todos.set_placement_of_children(todo_id, p.list_id, p.section_id, now)
             return self._records(self._repos.todos.get_many([todo_id, *(c.id for c in children)]))
+
+    def set_today_order(self, todo_ids: Sequence[str]) -> list[TodoRecord]:
+        """Stores the order of one group in Today (e.g. "Due today"), top to bottom.
+
+        Every listed todo gets a key in that order; rows whose key is already
+        right are left alone, so the returned records are only the changed ones.
+
+        Raises:
+            ValidationFailed: If an id is listed twice.
+            NotFound: If an id is not a live todo.
+        """
+        if len(set(todo_ids)) != len(todo_ids):
+            raise ValidationFailed("Each todo can appear only once in the order.")
+        with transaction(self._conn):
+            todos = {t.id: t for t in self._repos.todos.get_many(todo_ids)}
+            now = utc_now_iso(self._clock)
+            changed: list[str] = []
+            key: str | None = None
+            for todo_id in todo_ids:
+                todo = _live(todos.get(todo_id), "todo")
+                key = key_between(key, None)
+                if todo.today_position != key:
+                    self._repos.todos.update(todo_id, {"today_position": key}, now)
+                    changed.append(todo_id)
+            return self._records(self._repos.todos.get_many(changed))
 
     def delete(self, todo_id: str) -> Deletion:
         """Deletes a todo with its subtasks."""
@@ -770,6 +799,7 @@ class TodoService:
             created_at=now,
             updated_at=now,
             recurs_from_id=todo.id,
+            today_position=None,
         )
         self._repos.todos.insert(successor)
         self._copy_tags(todo.id, successor.id)
@@ -784,6 +814,7 @@ class TodoService:
                 completed_at=None,
                 created_at=now,
                 updated_at=now,
+                today_position=None,
             )
             self._repos.todos.insert(copy)
             self._copy_tags(child.id, copy.id)

@@ -31,7 +31,7 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
 - [ ] Markdown rendering for todo notes and knowledge notes (plain text for now).
 - [ ] Open Logbook items in the detail panel (needs a single-todo GET).
 - [ ] A trash view (undo covers deletes for now).
-- [ ] Manual order inside Today, if wanted (it is auto-sorted now).
+- [x] Manual order inside Today (2026-10-10, `today_position`; Upcoming stays auto-sorted).
 - [ ] Split the frontend bundle per module once a second module exists.
 
 ## Data safety

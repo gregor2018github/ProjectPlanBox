@@ -167,7 +167,8 @@ milestone 1a–1f, not just at the end of the phase.
   - lists within and across areas in the sidebar
   - dropping a todo onto a sidebar list or the Inbox moves it there
 
-  Dragging is disabled in Today/Upcoming, which are auto-sorted.
+  Dragging is disabled in Today/Upcoming, which are auto-sorted. (Today
+  became sortable on 2026-10-10, see decision 3.)
 - Keyboard: Alt+↑ / Alt+↓ moves the selection. Alt+→ makes it a subtask of
   the todo above (indent) and Alt+← promotes it (outdent).
 
@@ -526,6 +527,12 @@ is simpler).
    (overdue first, then priority, then list position). It is the simpler
    model, and manual order there can be added later without touching
    existing tables (a per-view position table).
+   **Update 2026-10-10 (owner request):** Today is now sortable by drag
+   and drop and Alt+↑/↓, within its Overdue and Due today groups. It uses a
+   nullable `todos.today_position` column (migration `0003`) instead of a
+   separate table: one cached array keeps working, and the key is cleared
+   whenever the due date changes. Todos not placed by hand yet stay
+   auto-sorted below the placed ones. Upcoming is still auto-sorted.
 4. **Due dates are date-only.** Times arrive with the calendar.
 5. **English** UI and quick-add keywords. Dates display as `Wed 8 Oct` and
    `8 Oct 2026`, with 24-hour time.

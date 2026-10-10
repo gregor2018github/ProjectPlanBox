@@ -490,6 +490,14 @@ that can be enforced in SQL are also CHECK constraints.
     makes undo exact. If that next one is already done, the reopened todo
     becomes a one-off instead of starting a second series.
   - This is why completion is its own endpoint (below), not a field patch.
+- **Today's manual order:** migration `0003_add_today_position.sql` adds a
+  nullable `today_position` (a fractional key). Today mixes todos from
+  every list, so `position` cannot order it. Reordering a Today group
+  (Overdue or Due today) sends that group's ids in order, and the server
+  writes the key sequence `a0`, `a1`, … only where a row's key differs.
+  Todos with a key come first in key order, and the rest follow
+  auto-sorted. Changing the due date clears the key, and so does creating
+  a repeat's next occurrence, so a todo arriving in Today lands at the end.
 - Due dates are date-only for now (decided). Times of day arrive with the
   calendar.
 
@@ -503,6 +511,7 @@ that can be enforced in SQL are also CHECK constraints.
 | PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
 | POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks. For a repeating todo, `complete` also returns the inserted next occurrence; `reopen` deletes it again (the client refetches). |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
+| POST | `/api/todos/today-order` | `{ids}`: one Today group, top to bottom. Returns the todos whose `today_position` changed. |
 | DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |
 | GET/POST/PATCH/DELETE | `/api/todos/areas[/{id}]`, `…/move`, `…/restore` | Areas |
 | GET/POST/PATCH/DELETE | `/api/todos/lists[/{id}]`, `…/move` (`{area_id, before_id?, after_id?}`), `…/restore` | Lists |

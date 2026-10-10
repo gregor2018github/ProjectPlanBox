@@ -153,9 +153,26 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         tag_ids: (b.tag_ids as string[] | undefined) ?? [],
         rrule: null,
         recurrence_anchor: null,
+        today_position: null,
       };
       state.todos.push(todo);
       return json(todo, 201);
+    }
+
+    if (path === "/api/todos/today-order" && method === "POST") {
+      const ids = (b.ids as string[] | undefined) ?? [];
+      let key: string | null = null;
+      const changed: Todo[] = [];
+      for (const todoId of ids) {
+        key = keyBetween(key, null);
+        const row = state.todos.find((t) => t.id === todoId && !t.deleted_at);
+        if (!row) return problem(404, "No todo with this id.");
+        if (row.today_position !== key) {
+          Object.assign(row, { today_position: key, updated_at: state.now });
+          changed.push(strip(row));
+        }
+      }
+      return json({ todos: changed });
     }
 
     const id = segments[3];
@@ -166,7 +183,9 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         return target.deleted_at ? problem(404, "No todo with this id.") : json(strip(target));
       }
       if (method === "PATCH") {
+        const redated = "due_date" in b && b.due_date !== target.due_date;
         Object.assign(target, b, { updated_at: state.now });
+        if (redated) target.today_position = null;
         return json(strip(target));
       }
       if (method === "DELETE") {
@@ -197,6 +216,7 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
             id: `${target.id.slice(0, -4)}next`,
             due_date: addDays(target.due_date, 1),
             completed_at: null,
+            today_position: null,
             recurs_from_id: target.id,
           };
           state.todos.push(next);

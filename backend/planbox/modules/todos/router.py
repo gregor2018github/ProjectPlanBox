@@ -24,6 +24,7 @@ from planbox.modules.todos.schemas import (
     SectionCreate,
     SectionMove,
     SectionOut,
+    TodayOrder,
     TodoCreate,
     TodoMove,
     TodoOut,
@@ -102,6 +103,7 @@ def _todo(record: TodoRecord) -> TodoOut:
         tag_ids=record.tag_ids,
         rrule=t.rrule,
         recurrence_anchor=_date(t.recurrence_anchor),
+        today_position=t.today_position,
     )
 
 
@@ -325,6 +327,12 @@ def move_item(todo_id: str, body: TodoMove, service: Todos) -> TodosOut:
     """Reorders, re-homes, indents or outdents a todo."""
     placement = Placement(body.list_id, body.section_id, body.parent_id)
     return _todos_out(service.move(todo_id, placement, body.before_id, body.after_id))
+
+
+@router.post("/today-order")
+def set_today_order(body: TodayOrder, service: Todos) -> TodosOut:
+    """Stores the manual order of one group in Today; returns the todos that changed."""
+    return _todos_out(service.set_today_order(body.ids))
 
 
 @router.delete("/items/{todo_id}")

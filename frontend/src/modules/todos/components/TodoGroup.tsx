@@ -27,6 +27,11 @@ export interface TodoGroupProps {
    */
   container?: Placement;
   /**
+   * Makes a view without a container (Today) sortable within this group:
+   * a drop reports every id in the new order, and the order it replaces.
+   */
+  reorder?: { group: string; onReorder: (ids: string[], before: readonly string[]) => void };
+  /**
    * Whether a todo belongs here regardless of completion; lets a just
    * completed todo linger in place for a moment (motion rule 4).
    */
@@ -46,6 +51,7 @@ export function TodoGroup({
   actions,
   label,
   container,
+  reorder,
   includes,
   sort = byPosition,
   showPlace,
@@ -66,7 +72,14 @@ export function TodoGroup({
   }, [todos, includes, lingering, data.todos, sort]);
 
   const ids = rows.map((t) => t.id);
-  const group = container ? groupKey(container) : null;
+  const group = container ? groupKey(container) : (reorder?.group ?? null);
+  // Own drag type: rows can't leave the group (e.g. Overdue into Due today).
+  const type = reorder ? reorder.group : "todo";
+  const onReorder = reorder
+    ? (next: string[]) => {
+        reorder.onReorder(next, ids);
+      }
+    : undefined;
   const { ref: dropRef, isDropTarget } = useDropTarget({
     id: `empty:${group ?? label}`,
     accept: "todo",
@@ -95,9 +108,10 @@ export function TodoGroup({
               todo={todo}
               index={index}
               group={group}
-              type="todo"
+              type={type}
               data={{ kind: "todo-row", placement: container ?? todo, ids }}
               actions={actions}
+              onReorder={onReorder}
             >
               <TodoRow
                 todo={todo}

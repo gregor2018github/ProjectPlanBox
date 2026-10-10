@@ -171,6 +171,34 @@ describe("todos", () => {
     expect(todayLink).toHaveTextContent("2");
   });
 
+  it("reorders Today with Alt+↓ and keeps the order on the server; Ctrl+Z restores it", async () => {
+    const user = userEvent.setup();
+    const todos = [
+      makeTodo({ title: "Urgent", due_date: "2026-10-08", priority: 3 }),
+      makeTodo({ title: "Small", due_date: "2026-10-08", priority: 1 }),
+      makeTodo({ title: "Errand", due_date: "2026-10-08", list_id: "L" }),
+    ];
+    const api = open("/todos/today", createFakeTodoApi({ todos }));
+    await waitFor(() => {
+      expect(rowTitles("Due today")).toEqual(["Urgent", "Small", "Errand"]);
+    });
+
+    await user.keyboard("{ArrowDown}{Alt>}{ArrowDown}{/Alt}");
+
+    await waitFor(() => {
+      expect(rowTitles("Due today")).toEqual(["Small", "Urgent", "Errand"]);
+    });
+    const order = (title: string) => api.state.todos.find((t) => t.title === title)?.today_position;
+    await waitFor(() => {
+      expect(order("Small")! < order("Urgent")!).toBe(true);
+    });
+
+    await user.keyboard("{Control>}z{/Control}");
+    await waitFor(() => {
+      expect(rowTitles("Due today")).toEqual(["Urgent", "Small", "Errand"]);
+    });
+  });
+
   it("quick-adds into a list named with #", async () => {
     const user = userEvent.setup();
     const project = {

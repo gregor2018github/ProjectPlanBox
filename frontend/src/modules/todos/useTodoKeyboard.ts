@@ -8,13 +8,17 @@ const GROUP = "Todos";
 /**
  * Keyboard control of a todos view. `visible` is the on-screen order
  * (including expanded subtasks); `reorder` enables Alt+↑/↓ where the order
- * is manual.
+ * is manual, moving among list siblings unless the view passes its own `shift`.
  */
 export function useTodoKeyboard(
   visible: readonly Todo[],
   actions: TodoActions,
-  { reorder }: { reorder: boolean },
+  { reorder, shift }: { reorder: boolean; shift?: (todo: Todo, direction: -1 | 1) => void },
 ): void {
+  const move = (t: Todo, direction: -1 | 1) => {
+    if (shift) shift(t, direction);
+    else actions.shift(t, direction);
+  };
   const selectedId = useTodoUi((s) => s.selectedId);
   const selected = visible.find((t) => t.id === selectedId) ?? null;
 
@@ -110,7 +114,7 @@ export function useTodoKeyboard(
           description: "Move up",
           group: GROUP,
           run: withSelected((t) => {
-            actions.shift(t, -1);
+            move(t, -1);
           }),
         }
       : null,
@@ -123,7 +127,7 @@ export function useTodoKeyboard(
           description: "Move down",
           group: GROUP,
           run: withSelected((t) => {
-            actions.shift(t, 1);
+            move(t, 1);
           }),
         }
       : null,

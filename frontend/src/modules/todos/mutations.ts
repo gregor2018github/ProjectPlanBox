@@ -16,6 +16,7 @@ import {
   applyMove,
   applyPatch,
   applyReopen,
+  applyTodayOrder,
   buildTodo,
   mergeTodos,
   type CreateTodoVars,
@@ -181,6 +182,22 @@ export function useMoveTodo() {
       merge(todos);
     },
     errorTitle: "Could not move the todo",
+  });
+}
+
+/** Stores the manual order of one group in Today (the ids top to bottom). */
+export function useSetTodayOrder() {
+  const client = useApiClient();
+  const merge = useMergeTodos();
+  return useOptimisticMutation<Todo[], { ids: string[] }, Todo[]>({
+    cacheKey: todoKeys.items,
+    mutationFn: async ({ ids }) =>
+      (await unwrap(client.POST("/api/todos/today-order", { body: { ids } }))).todos,
+    apply: (todos, { ids }) => applyTodayOrder(todos, ids, now()),
+    onSuccess: (todos) => {
+      merge(todos);
+    },
+    errorTitle: "Could not reorder Today",
   });
 }
 

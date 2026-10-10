@@ -5,7 +5,7 @@ import { droppedDate } from "../../../core/calendar/dateDrop";
 import { cx } from "../../../ui/cx";
 import { useSortableItem } from "../../../ui/dnd";
 import { durations, easings, springs } from "../../../ui/motion";
-import { resolveTodoDrop, type TodoDropData } from "../dropRules";
+import { reorderedIds, resolveTodoDrop, type TodoDropData } from "../dropRules";
 import type { Todo } from "../types";
 import type { TodoActions } from "../useTodoActions";
 
@@ -19,6 +19,8 @@ export interface SortableTodoItemProps {
   type: string;
   data: TodoDropData;
   actions: TodoActions;
+  /** Views that store their whole order (Today) get the group's ids after a drop instead of a move. */
+  onReorder?: (ids: string[]) => void;
   children: ReactNode;
 }
 
@@ -34,6 +36,7 @@ export function SortableTodoItem({
   type,
   data,
   actions,
+  onReorder,
   children,
 }: SortableTodoItemProps) {
   const { ref, isDragging } = useSortableItem({
@@ -49,6 +52,11 @@ export function SortableTodoItem({
       const date = droppedDate(info);
       if (date !== null) {
         if (todo.due_date !== date) actions.setDue(todo, date);
+        return;
+      }
+      if (onReorder) {
+        const ids = reorderedIds(todo.id, info);
+        if (ids) onReorder(ids);
         return;
       }
       const move = resolveTodoDrop(todo.id, info);

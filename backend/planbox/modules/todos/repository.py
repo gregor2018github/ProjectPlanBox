@@ -12,7 +12,8 @@ _LIST = "id, area_id, name, position, created_at, updated_at, deleted_at"
 _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
     "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, "
-    "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id"
+    "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id, "
+    "today_position"
 )
 _TODO_EDITABLE = frozenset(
     {
@@ -26,6 +27,7 @@ _TODO_EDITABLE = frozenset(
         "position",
         "rrule",
         "recurrence_anchor",
+        "today_position",
     }
 )
 
@@ -309,7 +311,7 @@ class TodoRepository:
             f"INSERT INTO todos ({_TODO}) VALUES ("  # noqa: S608
             ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, "
             ":position, :completed_at, :created_at, :updated_at, :deleted_at, "
-            ":rrule, :recurrence_anchor, :recurs_from_id)",
+            ":rrule, :recurrence_anchor, :recurs_from_id, :today_position)",
             _asdict(todo),
         )
 

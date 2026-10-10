@@ -73,6 +73,29 @@ test("drag and drop reorders, and the order survives a reload", async ({ page })
   await expect(inbox.getByRole("button", { name: new RegExp(`Complete “${a}”`) })).toHaveCount(0);
 });
 
+test("Today reorders by drag and drop, and the order survives a reload", async ({ page }) => {
+  const id = tag();
+  const [a, b, c] = [`Alpha ${id}`, `Bravo ${id}`, `Charlie ${id}`];
+  await page.goto("/todos/today");
+  for (const title of [a, b, c]) await addInline(page, title);
+  const today = page.getByRole("list", { name: "Due today" });
+  const ours = async () => (await titles(today)).filter((t) => t.endsWith(id));
+  await expect.poll(ours).toEqual([a, b, c]);
+
+  const from = await today.getByText(c, { exact: true }).boundingBox();
+  const to = await today.getByText(a, { exact: true }).boundingBox();
+  if (!from || !to) throw new Error("rows not visible");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, from.y - 10, { steps: 5 });
+  await page.mouse.move(to.x + to.width / 2, to.y + 2, { steps: 15 });
+  await page.mouse.up();
+
+  await expect.poll(ours).toEqual([c, a, b]);
+  await page.reload();
+  await expect.poll(ours).toEqual([c, a, b]);
+});
+
 /** Drags `source` onto the middle of `target` with the mouse. */
 async function dragOnto(page: Page, source: Locator, target: Locator): Promise<void> {
   const from = await source.boundingBox();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { DropInfo } from "../../ui/dnd";
-import { groupKey, resolveContainerDrop, resolveTodoDrop } from "./dropRules";
+import { groupKey, reorderedIds, resolveContainerDrop, resolveTodoDrop } from "./dropRules";
 import { INBOX } from "./types";
 
 const LIST = { list_id: "L", section_id: null, parent_id: null };
@@ -73,5 +73,22 @@ describe("resolveContainerDrop", () => {
       before_id: null,
       after_id: null,
     });
+  });
+});
+
+describe("reorderedIds", () => {
+  const target = { id: "c", data: { kind: "todo-row", placement: INBOX, ids: ["a", "b", "c"] } };
+
+  it("returns the whole group in its new order", () => {
+    expect(reorderedIds("a", drop({ target, index: 2 }))).toEqual(["b", "c", "a"]);
+    expect(reorderedIds("c", drop({ target, index: 0, initialIndex: 2 }))).toEqual(["c", "a", "b"]);
+  });
+
+  it("ignores cancelled drags, drops in place and drops outside the group", () => {
+    expect(reorderedIds("a", drop({ target, index: 2, canceled: true }))).toBeNull();
+    expect(reorderedIds("a", drop({ target }))).toBeNull();
+    expect(reorderedIds("a", drop({ target, index: 1, group: "other" }))).toBeNull();
+    const dest = { id: "dest", data: { kind: "todo-destination", placement: INBOX } };
+    expect(reorderedIds("a", drop({ target: dest, index: 1 }))).toBeNull();
   });
 });

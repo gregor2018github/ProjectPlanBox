@@ -75,17 +75,36 @@ export interface TodayViewData {
   done: Todo[];
 }
 
+/** Overdue fallback order: oldest due date first, then priority. */
+function byDueThenPriority(a: Todo, b: Todo): number {
+  return (a.due_date ?? "").localeCompare(b.due_date ?? "") || byPriorityThenPosition(a, b);
+}
+
+/**
+ * Today's order inside one group: todos placed by hand (`today_position`)
+ * first, in that order; the rest below, auto-sorted by `fallback`.
+ */
+export function byTodayOrder(fallback: (a: Todo, b: Todo) => number) {
+  return (a: Todo, b: Todo): number => {
+    const ka = a.today_position;
+    const kb = b.today_position;
+    if (ka !== null && kb !== null && ka !== kb) return ka < kb ? -1 : 1;
+    if ((ka === null) !== (kb === null)) return ka === null ? 1 : -1;
+    return fallback(a, b);
+  };
+}
+
+/** Order of the "Overdue" group in Today. */
+export const overdueOrder = byTodayOrder(byDueThenPriority);
+/** Order of the "Due today" group in Today. */
+export const dueTodayOrder = byTodayOrder(byPriorityThenPosition);
+
 /** Builds Today (subtasks with a due date appear on their own). */
 export function todayView(todos: readonly Todo[], today: IsoDate): TodayViewData {
   const dated = todos.filter((t) => t.due_date !== null && t.due_date <= today);
   return {
-    overdue: dated
-      .filter((t) => isOpen(t) && (t.due_date ?? "") < today)
-      .sort(
-        (a, b) =>
-          (a.due_date ?? "").localeCompare(b.due_date ?? "") || byPriorityThenPosition(a, b),
-      ),
-    today: dated.filter((t) => isOpen(t) && t.due_date === today).sort(byPriorityThenPosition),
+    overdue: dated.filter((t) => isOpen(t) && (t.due_date ?? "") < today).sort(overdueOrder),
+    today: dated.filter((t) => isOpen(t) && t.due_date === today).sort(dueTodayOrder),
     done: dated.filter((t) => !isOpen(t)).sort(byPriorityThenPosition),
   };
 }

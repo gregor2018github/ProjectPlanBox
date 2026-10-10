@@ -47,6 +47,7 @@ class Todo:
 
     A repeating todo has an ``rrule`` anchored on ``recurrence_anchor``;
     ``recurs_from_id`` names the occurrence whose completion created it.
+    ``today_position`` orders it inside Today once Today was reordered.
     """
 
     id: str
@@ -65,6 +66,7 @@ class Todo:
     rrule: str | None = None
     recurrence_anchor: str | None = None
     recurs_from_id: str | None = None
+    today_position: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

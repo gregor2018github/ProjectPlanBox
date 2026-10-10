@@ -1620,6 +1620,24 @@
         "title": "TagPatch",
         "type": "object"
       },
+      "TodayOrder": {
+        "description": "The todos of one group in Today, top to bottom.",
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "TodayOrder",
+        "type": "object"
+      },
       "TodoCreate": {
         "description": "Create a todo or subtask (at the end of its container unless neighbours are given).",
         "properties": {
@@ -1811,7 +1829,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``.",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes).",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -1925,6 +1943,17 @@
             "title": "Title",
             "type": "string"
           },
+          "today_position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Today Position"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -1945,7 +1974,8 @@
           "updated_at",
           "tag_ids",
           "rrule",
-          "recurrence_anchor"
+          "recurrence_anchor",
+          "today_position"
         ],
         "title": "TodoOut",
         "type": "object"
@@ -4714,6 +4744,48 @@
           }
         },
         "summary": "Restore Section",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/today-order": {
+      "post": {
+        "description": "Stores the manual order of one group in Today; returns the todos that changed.",
+        "operationId": "todos_set_today_order",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodayOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodosOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Set Today Order",
         "tags": [
           "todos"
         ]

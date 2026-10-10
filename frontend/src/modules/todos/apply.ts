@@ -3,7 +3,7 @@
  * same rules the server enforces (ARCHITECTURE §7), so the UI is right before
  * the response arrives; the response then replaces the touched rows.
  */
-import { byPosition, placeAmong } from "../../core/ordering";
+import { byPosition, keyBetween, placeAmong } from "../../core/ordering";
 import type { Placement, Todo } from "./types";
 
 /** Live siblings in a container, sorted, optionally excluding one todo. */
@@ -56,6 +56,7 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     tag_ids: vars.tag_ids ?? [],
     rrule: null,
     recurrence_anchor: null,
+    today_position: null,
   };
 }
 
@@ -67,7 +68,8 @@ export type TodoPatch = Partial<
 /**
  * Applies a field patch to one todo. Like the server, clearing the date or
  * the rule stops the repeat; a new rule is anchored on the due date (the
- * server fills in today when there is none).
+ * server fills in today when there is none). A new due date drops the todo's
+ * place in Today's manual order.
  */
 export function applyPatch(
   todos: readonly Todo[],
@@ -77,7 +79,8 @@ export function applyPatch(
 ): Todo[] {
   return todos.map((t) => {
     if (t.id !== id) return t;
-    const next = { ...t, ...patch, updated_at: now };
+    const redated = patch.due_date !== undefined && patch.due_date !== t.due_date;
+    const next = { ...t, ...patch, updated_at: now, ...(redated && { today_position: null }) };
     if (patch.due_date === null || patch.rrule === null) {
       return { ...next, rrule: null, recurrence_anchor: null };
     }
@@ -129,6 +132,29 @@ export function applyMove(
       return { ...t, list_id: target.list_id, section_id: target.section_id, updated_at: now };
     }
     return t;
+  });
+}
+
+/**
+ * Gives the todos of one Today group keys in the given order, like the
+ * server: the same key sequence, written only where it differs.
+ */
+export function applyTodayOrder(
+  todos: readonly Todo[],
+  ids: readonly string[],
+  now: string,
+): Todo[] {
+  const keys = new Map<string, string>();
+  let key: string | null = null;
+  for (const id of ids) {
+    key = keyBetween(key, null);
+    keys.set(id, key);
+  }
+  return todos.map((t) => {
+    const wanted = keys.get(t.id);
+    return wanted === undefined || wanted === t.today_position
+      ? t
+      : { ...t, today_position: wanted, updated_at: now };
   });
 }
 

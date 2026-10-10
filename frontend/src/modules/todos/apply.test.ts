@@ -6,6 +6,7 @@ import {
   applyMove,
   applyPatch,
   applyReopen,
+  applyTodayOrder,
   buildTodo,
   mergeTodos,
   siblingsOf,
@@ -112,6 +113,13 @@ describe("patch, delete and merge", () => {
     expect(undated[0]).toMatchObject({ due_date: null, rrule: null, recurrence_anchor: null });
   });
 
+  it("drops the Today key only when the due date changes", () => {
+    const t = makeTodo({ due_date: "2026-10-08", today_position: "a0" });
+    expect(applyPatch([t], t.id, { title: "x" }, NOW)[0]?.today_position).toBe("a0");
+    expect(applyPatch([t], t.id, { due_date: "2026-10-08" }, NOW)[0]?.today_position).toBe("a0");
+    expect(applyPatch([t], t.id, { due_date: "2026-10-09" }, NOW)[0]?.today_position).toBeNull();
+  });
+
   it("deletes a todo with its subtasks", () => {
     const parent = makeTodo();
     const child = makeTodo({ parent_id: parent.id });
@@ -124,5 +132,21 @@ describe("patch, delete and merge", () => {
     const fresh = makeTodo();
     const merged = mergeTodos([t], [{ ...t, title: "new" }, fresh]);
     expect(merged.map((x) => x.title)).toEqual(["new", fresh.title]);
+  });
+});
+
+describe("applyTodayOrder", () => {
+  it("writes the key sequence in order, only where it differs", () => {
+    const a = makeTodo({ today_position: "a0" });
+    const b = makeTodo();
+    const c = makeTodo({ today_position: "a2" });
+    const other = makeTodo();
+
+    const result = applyTodayOrder([a, b, c, other], [a.id, b.id, c.id], NOW);
+
+    expect(result.map((t) => t.today_position)).toEqual(["a0", "a1", "a2", null]);
+    expect(result[0]).toBe(a);
+    expect(result[2]).toBe(c);
+    expect(result[1]?.updated_at).toBe(NOW);
   });
 });
