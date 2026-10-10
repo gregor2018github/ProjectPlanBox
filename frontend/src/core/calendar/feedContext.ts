@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 
-import type { CalendarFeed, CalendarFeedRegistry } from "./feed";
+import type { IsoDate } from "../time";
+import type { CalendarFeed, CalendarFeedRegistry, CalendarRange } from "./feed";
 
 /** The app-wide calendar feed registry. */
 export const CalendarFeedsContext = createContext<CalendarFeedRegistry | null>(null);
@@ -24,4 +25,19 @@ export function useCalendarFeed(feed: CalendarFeed | null): void {
 export function useCalendarFeeds(): CalendarFeed[] {
   const registry = useRegistry();
   return useSyncExternalStore(registry.subscribe, registry.list);
+}
+
+/** Announces that the caller shows the dates `start`..`end` (inclusive) while mounted. */
+export function useCalendarRange(start: IsoDate, end: IsoDate): void {
+  const registry = useRegistry();
+  useEffect(
+    () => (start === "" ? undefined : registry.watch({ start, end })),
+    [registry, start, end],
+  );
+}
+
+/** Returns the ranges the calendar shows now and re-renders when they change. */
+export function useCalendarRanges(): CalendarRange[] {
+  const registry = useRegistry();
+  return useSyncExternalStore(registry.subscribe, registry.listRanges);
 }

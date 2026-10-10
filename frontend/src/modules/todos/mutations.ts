@@ -65,6 +65,7 @@ function useOptimisticMutation<TCache, TVars, TData>(
     },
     onSuccess: (data, vars) => {
       config.onSuccess?.(data, vars);
+      void queryClient.invalidateQueries({ queryKey: todoKeys.forecasts });
     },
   });
 }
@@ -151,6 +152,25 @@ export function useSetCompleted() {
       }
     },
     errorTitle: "Could not update the todo",
+  });
+}
+
+/**
+ * Moves an open repeating todo to its next date without completing it. Only
+ * the server knows that date, so nothing changes until it answers.
+ */
+export function useSkipTodo() {
+  const client = useApiClient();
+  const merge = useMergeTodos();
+  return useOptimisticMutation<Todo[], { id: string }, Todo>({
+    cacheKey: todoKeys.items,
+    mutationFn: ({ id }) =>
+      unwrap(client.POST("/api/todos/items/{todo_id}/skip", { params: { path: { todo_id: id } } })),
+    apply: (todos) => [...todos],
+    onSuccess: (todo) => {
+      merge([todo]);
+    },
+    errorTitle: "Could not skip it",
   });
 }
 

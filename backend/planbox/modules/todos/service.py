@@ -6,6 +6,8 @@ with one shared ``deleted_at`` so a single restore undoes them exactly.
 
 Repeating todos: completing one inserts its next occurrence as a new todo
 (with fresh copies of its subtasks); reopening it takes that one away again.
+The next date follows the schedule, or (``repeat_from="completion"``) is
+counted from the day it was done. Skipping moves an open one to its next date.
 """
 
 import dataclasses
@@ -29,6 +31,7 @@ from planbox.core.tags.service import TagService
 from planbox.modules.todos.models import (
     Area,
     Deletion,
+    ForecastDate,
     Placement,
     Section,
     Todo,
@@ -47,6 +50,8 @@ MAX_NAME = 200
 MAX_TITLE = 500
 MAX_NOTES = 20_000
 _WHITESPACE = re.compile(r"\s+")
+REPEAT_FROM = ("due", "completion")
+MAX_FORECAST_DAYS = 400
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +109,13 @@ def clean_priority(priority: int) -> int:
     if not 0 <= priority <= 3:  # noqa: PLR2004 - the documented range
         raise ValidationFailed("Priority is 0 (none) to 3 (high).")
     return priority
+
+
+def clean_repeat_from(value: object) -> str:
+    """Checks where a repeat counts from: ``"due"`` or ``"completion"``."""
+    if value not in REPEAT_FROM:
+        raise ValidationFailed('repeat_from must be "due" or "completion".')
+    return str(value)
 
 
 def check_client_id(entity_id: str | None) -> None:
@@ -427,6 +439,7 @@ class NewTodo:
     before_id: str | None = None
     after_id: str | None = None
     rrule: str | None = None
+    repeat_from: str = "due"
 
 
 @dataclass(frozen=True, slots=True)
@@ -492,12 +505,13 @@ class TodoService:
                 return self._record(existing), False
             self._check_placement(new.placement, moving=None)
             p = new.placement
-            due_date, rule, anchor = new.due_date, None, None
+            due_date, rule, anchor, repeat_from = new.due_date, None, None, "due"
             if new.rrule is not None:
                 if p.parent_id is not None:
                     raise ValidationFailed("Subtasks cannot repeat; let their parent repeat.")
-                anchor = due_date = due_date or self._today()
-                rule = self._normalize_rule(new.rrule, anchor)
+                repeat_from = clean_repeat_from(new.repeat_from)
+                rule, anchor = self._start_series(new.rrule, due_date, repeat_from)
+                due_date = anchor
             now = utc_now_iso(self._clock)
             siblings = self._repos.todos.positions(p.list_id, p.section_id, p.parent_id)
             todo = Todo(
@@ -516,6 +530,7 @@ class TodoService:
                 deleted_at=None,
                 rrule=rule,
                 recurrence_anchor=None if anchor is None else anchor.isoformat(),
+                repeat_from=repeat_from,
             )
             self._repos.todos.insert(todo)
             if new.tag_ids:
@@ -526,8 +541,8 @@ class TodoService:
         """Changes title, notes, priority, due date, repeat rule and/or tags.
 
         Only keys present in ``changes`` are touched; ``None`` clears a due
-        date or repeat rule. A new rule is anchored on the due date (today if
-        there is none). Moving the due date of a repeating todo moves only
+        date or repeat rule. A new rule is anchored on the due date (its first
+        date from today if there is none). Moving the due date of a repeating todo moves only
         this occurrence; clearing it stops the repeat. A new due date drops
         the todo's place in Today's manual order (it arrives at the end).
         """
@@ -542,7 +557,7 @@ class TodoService:
                     fields["priority"] = clean_priority(value)
                 case "due_date" if value is None or isinstance(value, date):
                     fields["due_date"] = None if value is None else value.isoformat()
-                case "rrule" if value is None or isinstance(value, str):
+                case "rrule" | "repeat_from" if value is None or isinstance(value, str):
                     pass
                 case "tag_ids":
                     pass
@@ -569,8 +584,9 @@ class TodoService:
         """Completes a todo and its open subtasks with one shared timestamp.
 
         A repeating todo also gets its next occurrence: the first date of its
-        series after both its due date and today (missed dates are skipped).
-        The returned records then include the new todo and its subtasks.
+        series after both its due date and today (missed dates are skipped),
+        or one interval after today when it repeats from completion. The
+        returned records then include the new todo and its subtasks.
         """
         with transaction(self._conn):
             todo = _live(self._repos.todos.get(todo_id), "todo")
@@ -610,6 +626,72 @@ class TodoService:
                     self._withdraw_next(parent, now)
             self._repos.todos.set_completed(changed, None, now)
             return self._records(self._repos.todos.get_many(changed))
+
+    def skip(self, todo_id: str) -> TodoRecord:
+        """Moves an open repeating todo to its next date without completing it.
+
+        On a schedule that is the first date after its due date that is not in
+        the past; repeating from completion, it is one interval after the due
+        date (more while that is in the past). A skipped date does not use up
+        an "ends after N times" count when repeating from completion.
+
+        Raises:
+            ValidationFailed: If the todo does not repeat.
+            Conflict: If it is done, or the repeat has no later date.
+        """
+        with transaction(self._conn):
+            todo = _live(self._repos.todos.get(todo_id), "todo")
+            if todo.rrule is None or todo.due_date is None or todo.recurrence_anchor is None:
+                raise ValidationFailed("Only a repeating todo can skip a date.")
+            if todo.completed_at is not None:
+                raise Conflict("This todo is done. Reopen it to skip it instead.")
+            due, today = date.fromisoformat(todo.due_date), self._today()
+            if todo.repeat_from == "completion":
+                following = recurrence.step(todo.rrule, due)
+                while following < today:
+                    following = recurrence.step(todo.rrule, following)
+                until = recurrence.floating_until(todo.rrule)
+                next_due = None if until is not None and following > until else following
+            else:
+                anchor = date.fromisoformat(todo.recurrence_anchor)
+                next_due = recurrence.date_after(
+                    todo.rrule, anchor, max(due, today - timedelta(days=1))
+                )
+            if next_due is None:
+                raise Conflict("This is the last date of the repeat. Complete or delete it.")
+            self._repos.todos.update(
+                todo_id,
+                {"due_date": next_due.isoformat(), "today_position": None},
+                utc_now_iso(self._clock),
+            )
+            return self._record(_live(self._repos.todos.get(todo_id), "todo"))
+
+    def forecast(self, first: date, last: date) -> list[ForecastDate]:
+        """The later dates of open repeating todos within ``[first, last]``.
+
+        These are the dates their next occurrences would get if each one is
+        done on its due date (or today, when overdue). The open todo's own
+        due date is not included.
+
+        Raises:
+            ValidationFailed: If the range is reversed or longer than 400 days.
+        """
+        if last < first or (last - first).days > MAX_FORECAST_DAYS:
+            raise ValidationFailed(f"The range must be 0 to {MAX_FORECAST_DAYS} days long.")
+        today = self._today()
+        limit = MAX_FORECAST_DAYS + 1
+        found: list[ForecastDate] = []
+        for todo in self._repos.todos.open_repeating():
+            if todo.rrule is None or todo.due_date is None or todo.recurrence_anchor is None:
+                continue
+            base = max(date.fromisoformat(todo.due_date), today)
+            if todo.repeat_from == "completion":
+                dates = recurrence.stepped_dates(todo.rrule, base, first, last, limit=limit)
+            else:
+                anchor = date.fromisoformat(todo.recurrence_anchor)
+                dates = recurrence.series_dates(todo.rrule, anchor, base, first, last, limit=limit)
+            found += [ForecastDate(todo.id, d) for d in dates]
+        return found
 
     def move(
         self,
@@ -751,32 +833,66 @@ class TodoService:
         except RecurrenceError as exc:
             raise ValidationFailed(str(exc)) from exc
 
-    def _repeat_fields(self, todo: Todo, changes: Mapping[str, object]) -> dict[str, object]:
-        """The rrule/anchor columns an update implies.
+    def _start_series(self, rule: str, due: date | None, repeat_from: str) -> tuple[str, date]:
+        """Normalises a new rule and picks the date its series is anchored on.
 
-        A new rule is anchored on the (new) due date, or today, which then
-        becomes the due date. Clearing the due date stops the repeat.
+        That is the due date, or without one the first date of the series
+        from today ("every Monday" starts on the next Monday, not today).
+
+        Returns:
+            The normalised rule and the anchor, which is also the due date.
         """
+        if due is None:
+            today = self._today()
+            first = recurrence.date_after(
+                self._normalize_rule(rule, today), today, today - timedelta(days=1)
+            )
+            due = first or today
+        text = self._normalize_rule(rule, due)
+        if repeat_from == "completion" and not recurrence.is_plain(text):
+            raise ValidationFailed(
+                "Only every N days, weeks, months or years can repeat from completion."
+            )
+        return text, due
+
+    def _repeat_fields(self, todo: Todo, changes: Mapping[str, object]) -> dict[str, object]:
+        """The rrule/anchor/repeat_from columns an update implies.
+
+        A new rule is anchored on the (new) due date, or on its first date
+        from today, which then becomes the due date. Clearing the due date
+        stops the repeat. Changing only ``repeat_from`` keeps the series.
+        """
+        stop: dict[str, object] = {"rrule": None, "recurrence_anchor": None, "repeat_from": "due"}
         if "due_date" in changes and changes["due_date"] is None:
-            return {"rrule": None, "recurrence_anchor": None}
-        if "rrule" not in changes:
+            return stop
+        if "rrule" not in changes and changes.get("repeat_from") is None:
             return {}
-        rule = changes["rrule"]
+        rule = changes.get("rrule", todo.rrule)
         if rule is None:
-            return {"rrule": None, "recurrence_anchor": None}
+            return stop
         if todo.parent_id is not None:
             raise ValidationFailed("Subtasks cannot repeat; let their parent repeat.")
+        mode = changes.get("repeat_from")
+        repeat_from = clean_repeat_from(todo.repeat_from if mode is None else mode)
+        if "rrule" not in changes:
+            if repeat_from == "completion" and not recurrence.is_plain(str(rule)):
+                raise ValidationFailed(
+                    "Only every N days, weeks, months or years can repeat from completion."
+                )
+            return {"repeat_from": repeat_from}
         due = changes.get("due_date")
         if isinstance(due, date):
-            anchor = due
+            start: date | None = due
         elif todo.due_date is not None:
-            anchor = date.fromisoformat(todo.due_date)
+            start = date.fromisoformat(todo.due_date)
         else:
-            anchor = self._today()
+            start = None
+        text, anchor = self._start_series(str(rule), start, repeat_from)
         return {
-            "rrule": self._normalize_rule(str(rule), anchor),
+            "rrule": text,
             "recurrence_anchor": anchor.isoformat(),
             "due_date": anchor.isoformat(),
+            "repeat_from": repeat_from,
         }
 
     def _insert_next(self, todo: Todo, children: Sequence[Todo], now: str) -> list[str]:
@@ -784,11 +900,20 @@ class TodoService:
         if todo.rrule is None or todo.due_date is None or todo.recurrence_anchor is None:
             return []
         due = date.fromisoformat(todo.due_date)
-        next_due = recurrence.date_after(
-            todo.rrule, date.fromisoformat(todo.recurrence_anchor), max(due, self._today())
-        )
-        if next_due is None:
-            return []
+        rule, anchor = todo.rrule, todo.recurrence_anchor
+        if todo.repeat_from == "completion":
+            stepped = recurrence.step_after(rule, self._today())
+            if stepped is None:
+                return []
+            next_due, rule = stepped
+            anchor = next_due.isoformat()
+        else:
+            following = recurrence.date_after(
+                rule, date.fromisoformat(anchor), max(due, self._today())
+            )
+            if following is None:
+                return []
+            next_due = following
         siblings = self._repos.todos.positions(todo.list_id, todo.section_id, None)
         successor = dataclasses.replace(
             todo,
@@ -800,6 +925,8 @@ class TodoService:
             updated_at=now,
             recurs_from_id=todo.id,
             today_position=None,
+            rrule=rule,
+            recurrence_anchor=anchor,
         )
         self._repos.todos.insert(successor)
         self._copy_tags(todo.id, successor.id)

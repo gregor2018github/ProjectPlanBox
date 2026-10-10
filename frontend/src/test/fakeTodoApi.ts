@@ -127,6 +127,19 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         next_cursor: null,
       });
     }
+    if (path === "/api/todos/forecast") {
+      // Fake rule: every repeating todo repeats daily; the next two days are forecast.
+      const start = url.searchParams.get("start") ?? "";
+      const end = url.searchParams.get("end") ?? "";
+      return json(
+        live()
+          .filter((t) => t.rrule !== null && t.completed_at === null && t.due_date !== null)
+          .flatMap((t) =>
+            [1, 2].map((n) => ({ todo_id: t.id, date: addDays(t.due_date ?? "", n) })),
+          )
+          .filter((f) => f.date >= start && f.date <= end),
+      );
+    }
     if (path === "/api/todos/items" && method === "POST") {
       const placement = {
         list_id: (b.list_id as string | null | undefined) ?? null,
@@ -151,8 +164,9 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         created_at: state.now,
         updated_at: state.now,
         tag_ids: (b.tag_ids as string[] | undefined) ?? [],
-        rrule: null,
-        recurrence_anchor: null,
+        rrule: (b.rrule as string | null | undefined) ?? null,
+        recurrence_anchor: b.rrule ? ((b.due_date as string | null | undefined) ?? null) : null,
+        repeat_from: (b.repeat_from as Todo["repeat_from"] | undefined) ?? "due",
         today_position: null,
       };
       state.todos.push(todo);
@@ -226,6 +240,17 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
           for (const t of live()) if (t.recurs_from_id === id) t.deleted_at = state.now;
         }
         return json({ todos: changed.map(strip) });
+      }
+      if (action === "skip") {
+        if (target.rrule === null || target.due_date === null) {
+          return problem(422, "Only a repeating todo can skip a date.");
+        }
+        Object.assign(target, {
+          due_date: addDays(target.due_date, 1),
+          today_position: null,
+          updated_at: state.now,
+        });
+        return json(strip(target));
       }
       if (action === "move") {
         Object.assign(target, {

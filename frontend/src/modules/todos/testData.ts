@@ -22,6 +22,7 @@ export function makeTodo(overrides: Partial<Todo> = {}): Todo {
     tag_ids: [],
     rrule: null,
     recurrence_anchor: null,
+    repeat_from: "due",
     today_position: null,
     ...overrides,
   };

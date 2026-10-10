@@ -8,6 +8,7 @@ import {
   FolderInput,
   PanelRightOpen,
   RotateCcw,
+  SkipForward,
   Sun,
   Trash2,
 } from "lucide-react";
@@ -40,6 +41,19 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
         actions.toggleComplete(todo);
       },
     },
+    ...(todo.rrule === null || done
+      ? []
+      : [
+          {
+            id: "skip",
+            label: "Skip this one",
+            icon: SkipForward,
+            shortcut: "S",
+            onSelect: () => {
+              actions.skip(todo);
+            },
+          },
+        ]),
     { kind: "separator", id: "s1" },
     ...(dates === null
       ? []

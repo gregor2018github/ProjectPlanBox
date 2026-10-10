@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildRule,
+  dayOrdinal,
   defaultSpec,
   describeRule,
   nthWeekdayOf,
@@ -40,13 +41,55 @@ describe("parseRule / buildRule", () => {
   });
 
   it("leaves rules it cannot edit to be kept as they are", () => {
-    expect(parseRule("FREQ=MONTHLY;BYMONTHDAY=1,15", START, TZ)).toBeNull();
     expect(parseRule("FREQ=MONTHLY;BYDAY=1MO", START, TZ)).toBeNull();
-    expect(repeatOf("FREQ=MONTHLY;BYMONTHDAY=1,15", START, TZ)).toEqual({
+    expect(parseRule("FREQ=WEEKLY;BYMONTHDAY=1", START, TZ)).toBeNull();
+    expect(parseRule("FREQ=MONTHLY;BYMONTHDAY=0", START, TZ)).toBeNull();
+    expect(repeatOf("FREQ=MONTHLY;BYDAY=1MO", START, TZ)).toEqual({
       kind: "custom",
-      rule: "FREQ=MONTHLY;BYMONTHDAY=1,15",
+      rule: "FREQ=MONTHLY;BYDAY=1MO",
     });
     expect(ruleOf({ kind: "none" }, START)).toBeNull();
+  });
+});
+
+describe("days of the month", () => {
+  it("reads and writes several days, the last day after the numbered ones", () => {
+    const spec = parseRule("FREQ=MONTHLY;BYMONTHDAY=15,1", START, TZ);
+    expect(spec?.monthly).toBe("days");
+    expect(spec?.byMonthDay).toEqual([1, 15]);
+    if (spec) {
+      expect(buildRule({ ...spec, byMonthDay: [-1, 15, 1] }, START)).toBe(
+        "FREQ=MONTHLY;BYMONTHDAY=1,15,-1",
+      );
+    }
+  });
+
+  it("treats the start's own day alone as plain monthly", () => {
+    expect(parseRule("FREQ=MONTHLY;BYMONTHDAY=8", START, TZ)?.monthly).toBe("day");
+    const spec = { ...defaultSpec("MONTHLY", START), monthly: "days" as const };
+    expect(buildRule(spec, START)).toBe("FREQ=MONTHLY");
+  });
+
+  it("describes month days and counts from completion", () => {
+    expect(describeRule("FREQ=MONTHLY;BYMONTHDAY=1,15,-1", START, TZ)).toBe(
+      "Every month on the 1st, 15th and last day",
+    );
+    expect(describeRule("FREQ=MONTHLY;BYMONTHDAY=22", START, TZ)).toBe("Every month on the 22nd");
+    expect(describeRule("FREQ=DAILY;INTERVAL=3", START, TZ, true)).toBe(
+      "Every 3 days after completion",
+    );
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 23, -1].map(dayOrdinal)).toEqual([
+      "1st",
+      "2nd",
+      "3rd",
+      "4th",
+      "11th",
+      "12th",
+      "13th",
+      "21st",
+      "23rd",
+      "last day",
+    ]);
   });
 });
 

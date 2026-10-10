@@ -8,9 +8,22 @@
  * - Tags: `@word` (existing tags match case-insensitively; others are created).
  * - Place: #List or #List/Section; names may contain spaces and match the
  *   longest known name. Unknown #words stay in the title.
- * Only the first date and priority count; recognised parts leave the title.
+ * - Repeat (always after "every"): every day/week/month/year, every 3 days,
+ *   every other week, every weekday, every mon / every mon, thu / every
+ *   monday and friday, every 1st / every 1st and 15th / every last day. A
+ *   plain interval may end in "after done" (counted from completion).
+ *   Without a date the todo is due on the repeat's first date from today.
+ * Only the first date, repeat and priority count; recognised parts leave the
+ * title.
  */
+import {
+  describeRule,
+  LAST_DAY,
+  sortMonthDays,
+  WEEKDAYS as RULE_WEEKDAYS,
+} from "../../core/recurrence/recurrence";
 import { addDays, isoWeekday, type IsoDate } from "../../core/time";
+import type { RepeatFrom } from "./types";
 
 /** Known names the parser can resolve. */
 export interface ParseContext {
@@ -22,7 +35,7 @@ export interface ParseContext {
 
 /** A recognised part, for the chips under the input. */
 export interface ParsedToken {
-  kind: "due" | "priority" | "place" | "tag";
+  kind: "due" | "priority" | "place" | "tag" | "repeat";
   /** The text as typed. */
   text: string;
   /** What it means, e.g. "Fri 9 Oct" or "Home / Bills". */
@@ -39,6 +52,9 @@ export interface ParsedTodo {
   tag_ids: string[];
   /** Tag words (`@name`) without an existing tag; created on submit. */
   new_tags: string[];
+  /** A repeat rule (RRULE text); `due_date` is then always set. */
+  rrule: string | null;
+  repeat_from: RepeatFrom;
   tokens: ParsedToken[];
 }
 
@@ -74,14 +90,32 @@ export function parseQuickAdd(input: string, ctx: ParseContext): ParsedTodo {
     place: null,
     tag_ids: [],
     new_tags: [],
+    rrule: null,
+    repeat_from: "due",
     tokens: [],
   };
   const words = input.split(/\s+/).filter((w) => w !== "");
   const kept: string[] = [];
+  let repeat: RepeatMatch | null = null;
+  let repeatToken: ParsedToken | null = null;
 
   for (let i = 0; i < words.length; i += 1) {
     const word = words[i] ?? "";
     const lower = word.toLowerCase();
+
+    if (repeat === null && lower === "every") {
+      repeat = matchRepeat(words, i);
+      if (repeat !== null) {
+        repeatToken = {
+          kind: "repeat",
+          text: words.slice(i, i + repeat.length).join(" "),
+          label: "",
+        };
+        result.tokens.push(repeatToken);
+        i += repeat.length - 1;
+        continue;
+      }
+    }
 
     if (result.due_date === null) {
       const date = matchDate(words, i, ctx.today);
@@ -134,7 +168,140 @@ export function parseQuickAdd(input: string, ctx: ParseContext): ParsedTodo {
   }
 
   result.title = kept.join(" ");
+  if (repeat !== null && repeatToken !== null) {
+    const due = result.due_date ?? firstDate(repeat, ctx.today);
+    result.due_date = due;
+    result.rrule = repeat.rule;
+    result.repeat_from = repeat.afterCompletion ? "completion" : "due";
+    repeatToken.label = describeRule(repeat.rule, due, "UTC", repeat.afterCompletion);
+  }
   return result;
+}
+
+interface RepeatMatch {
+  rule: string;
+  /** Weekly on these ISO weekdays (1 = Monday), when chosen. */
+  weekdays: number[];
+  /** Monthly on these days ({@link LAST_DAY} = the last), when chosen. */
+  monthDays: number[];
+  afterCompletion: boolean;
+  /** How many words it consumed, "every" included. */
+  length: number;
+}
+
+const UNIT_FREQ: Record<string, string> = {
+  day: "DAILY",
+  days: "DAILY",
+  week: "WEEKLY",
+  weeks: "WEEKLY",
+  month: "MONTHLY",
+  months: "MONTHLY",
+  year: "YEARLY",
+  years: "YEARLY",
+};
+
+/** Matches a repeat phrase whose "every" is `words[i]`. */
+function matchRepeat(words: readonly string[], i: number): RepeatMatch | null {
+  const at = (n: number) => (words[i + n] ?? "").toLowerCase();
+  const fixed = { afterCompletion: false, weekdays: [], monthDays: [] };
+  const plain = (unit: string, interval: number, used: number): RepeatMatch => {
+    const freq = UNIT_FREQ[unit] ?? "DAILY";
+    const completion = at(used) === "after" && /^(done|completion|completing)$/.test(at(used + 1));
+    return {
+      ...fixed,
+      rule: interval > 1 ? `FREQ=${freq};INTERVAL=${String(interval)}` : `FREQ=${freq}`,
+      afterCompletion: completion,
+      length: used + (completion ? 2 : 0),
+    };
+  };
+
+  const singular = (w: string) => w in UNIT_FREQ && !w.endsWith("s");
+  if (singular(at(1))) return plain(at(1), 1, 2);
+  if (at(1) === "other" && singular(at(2))) return plain(at(2), 2, 3);
+  if (/^\d{1,2}$/.test(at(1)) && Number(at(1)) >= 1 && at(2) in UNIT_FREQ) {
+    return plain(at(2), Number(at(1)), 3);
+  }
+  if (at(1) === "weekday" || at(1) === "workday") {
+    const weekdays = [1, 2, 3, 4, 5];
+    return { ...fixed, rule: weeklyRule(weekdays), weekdays, length: 2 };
+  }
+  if (at(1) === "last" && at(2) === "day") {
+    const monthDays = [LAST_DAY];
+    return { ...fixed, rule: monthlyRule(monthDays), monthDays, length: 3 };
+  }
+  const weekdays = matchList(words, i + 1, (w) => WEEKDAYS[w] ?? null);
+  if (weekdays !== null) {
+    return {
+      ...fixed,
+      rule: weeklyRule(weekdays.values),
+      weekdays: weekdays.values,
+      length: weekdays.length + 1,
+    };
+  }
+  const monthDays = matchList(words, i + 1, readMonthDay);
+  if (monthDays !== null) {
+    const days = sortMonthDays(monthDays.values);
+    return { ...fixed, rule: monthlyRule(days), monthDays: days, length: monthDays.length + 1 };
+  }
+  return null;
+}
+
+/**
+ * Reads a list such as "mon, wed and fri" or "1st,15th" from `words[from]`
+ * on, with `read` turning one item into a value. Stops at the first word
+ * that is neither an item nor "and"/"&".
+ */
+function matchList(
+  words: readonly string[],
+  from: number,
+  read: (word: string) => number | null,
+): { values: number[]; length: number } | null {
+  const values: number[] = [];
+  let lastWord = -1;
+  for (let j = from; j < words.length; j += 1) {
+    const parts = (words[j] ?? "")
+      .toLowerCase()
+      .split(",")
+      .filter((p) => p !== "");
+    if (values.length > 0 && parts.length === 1 && (parts[0] === "and" || parts[0] === "&")) {
+      continue;
+    }
+    const items = parts.map(read);
+    if (parts.length === 0 || items.some((v) => v === null)) break;
+    for (const v of items) if (v !== null && !values.includes(v)) values.push(v);
+    lastWord = j;
+  }
+  return values.length === 0 ? null : { values, length: lastWord - from + 1 };
+}
+
+function readMonthDay(word: string): number | null {
+  const match = /^(\d{1,2})(st|nd|rd|th)$/.exec(word);
+  const day = Number(match?.[1]);
+  return match && day >= 1 && day <= 31 ? day : null;
+}
+
+function weeklyRule(weekdays: readonly number[]): string {
+  const codes = [...weekdays].sort((a, b) => a - b).map((d) => RULE_WEEKDAYS[d - 1] ?? "MO");
+  return `FREQ=WEEKLY;BYDAY=${codes.join(",")}`;
+}
+
+function monthlyRule(days: readonly number[]): string {
+  return `FREQ=MONTHLY;BYMONTHDAY=${days.join(",")}`;
+}
+
+/** The repeat's first date from today (inclusive). */
+function firstDate(repeat: RepeatMatch, today: IsoDate): IsoDate {
+  if (repeat.weekdays.length === 0 && repeat.monthDays.length === 0) return today;
+  for (let n = 0; n < 62; n += 1) {
+    const day = addDays(today, n);
+    const lastOfMonth = addDays(day, 1).endsWith("-01");
+    const matches =
+      repeat.weekdays.includes(isoWeekday(day)) ||
+      repeat.monthDays.includes(Number(day.slice(8))) ||
+      (lastOfMonth && repeat.monthDays.includes(LAST_DAY));
+    if (matches) return day;
+  }
+  return today;
 }
 
 interface DateMatch {

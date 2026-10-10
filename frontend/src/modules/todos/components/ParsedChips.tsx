@@ -1,4 +1,4 @@
-import { CalendarDays, Flag, Hash, Tag } from "lucide-react";
+import { CalendarDays, Flag, Hash, Repeat, Tag } from "lucide-react";
 
 import { formatRelativeDay, type IsoDate } from "../../../core/time";
 import type { ParsedToken } from "../quickAddParser";
@@ -9,7 +9,7 @@ export interface ParsedChipsProps {
   today: IsoDate | null;
 }
 
-const icons = { due: CalendarDays, priority: Flag, place: Hash, tag: Tag } as const;
+const icons = { due: CalendarDays, priority: Flag, place: Hash, tag: Tag, repeat: Repeat } as const;
 
 /** Shows what the quick-add parser understood, as you type. */
 export function ParsedChips({ tokens, today }: ParsedChipsProps) {

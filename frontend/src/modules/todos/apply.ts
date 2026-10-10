@@ -4,7 +4,7 @@
  * the response arrives; the response then replaces the touched rows.
  */
 import { byPosition, keyBetween, placeAmong } from "../../core/ordering";
-import type { Placement, Todo } from "./types";
+import type { Placement, RepeatFrom, Todo } from "./types";
 
 /** Live siblings in a container, sorted, optionally excluding one todo. */
 export function siblingsOf(todos: readonly Todo[], p: Placement, excludeId?: string): Todo[] {
@@ -29,6 +29,9 @@ export interface CreateTodoVars extends Placement {
   tag_ids?: string[];
   before_id?: string | null;
   after_id?: string | null;
+  /** A repeat rule; give a due date with it (the series is anchored there). */
+  rrule?: string | null;
+  repeat_from?: RepeatFrom;
 }
 
 /** Builds the optimistic row for a create. */
@@ -54,15 +57,16 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     created_at: now,
     updated_at: now,
     tag_ids: vars.tag_ids ?? [],
-    rrule: null,
-    recurrence_anchor: null,
+    rrule: vars.rrule ?? null,
+    recurrence_anchor: vars.rrule ? (vars.due_date ?? null) : null,
+    repeat_from: vars.rrule ? (vars.repeat_from ?? "due") : "due",
     today_position: null,
   };
 }
 
 /** Fields a patch may change. */
 export type TodoPatch = Partial<
-  Pick<Todo, "title" | "notes" | "priority" | "due_date" | "tag_ids" | "rrule">
+  Pick<Todo, "title" | "notes" | "priority" | "due_date" | "tag_ids" | "rrule" | "repeat_from">
 >;
 
 /**
@@ -82,7 +86,7 @@ export function applyPatch(
     const redated = patch.due_date !== undefined && patch.due_date !== t.due_date;
     const next = { ...t, ...patch, updated_at: now, ...(redated && { today_position: null }) };
     if (patch.due_date === null || patch.rrule === null) {
-      return { ...next, rrule: null, recurrence_anchor: null };
+      return { ...next, rrule: null, recurrence_anchor: null, repeat_from: "due" as const };
     }
     if (patch.rrule !== undefined) return { ...next, recurrence_anchor: next.due_date };
     return next;

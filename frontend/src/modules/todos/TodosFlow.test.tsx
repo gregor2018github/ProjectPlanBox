@@ -122,6 +122,59 @@ describe("todos", () => {
     });
   });
 
+  it("repeats counted from completion: only plain intervals, saved with repeat_from", async () => {
+    const user = userEvent.setup();
+    const todo = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa06",
+      title: "Haircut",
+      due_date: "2026-10-08",
+    });
+    const api = open("/todos/inbox", createFakeTodoApi({ todos: [todo] }));
+
+    await user.click(await screen.findByText("Haircut"));
+    await user.click(await screen.findByRole("button", { name: "Repeat" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Repeat" }), "WEEKLY");
+    expect(screen.getByRole("group", { name: "Repeat on" })).toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Next date counted from" }),
+      "completion",
+    );
+    expect(screen.queryByRole("group", { name: "Repeat on" })).toBeNull();
+    expect(screen.getByText("Every week after completion")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Done" }));
+
+    await screen.findByRole("button", { name: "Every week after completion" });
+    const patch = api.state.requests.find((r) => r.method === "PATCH");
+    expect(patch?.body).toEqual({ rrule: "FREQ=WEEKLY", repeat_from: "completion" });
+  });
+
+  it("skips one date of a repeating todo, and Ctrl+Z puts the date back", async () => {
+    const user = userEvent.setup();
+    const todo = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa07",
+      title: "Bins",
+      due_date: "2026-10-08",
+      rrule: "FREQ=DAILY",
+      recurrence_anchor: "2026-10-08",
+    });
+    const api = open("/todos/today", createFakeTodoApi({ todos: [todo] }));
+
+    await user.click(await screen.findByText("Bins"));
+    await user.click(await screen.findByRole("button", { name: "Skip" }));
+
+    expect((await screen.findAllByText("Next one: Tomorrow")).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(api.state.todos[0]?.due_date).toBe("2026-10-09");
+    });
+    expect(api.state.todos[0]?.completed_at).toBeNull();
+
+    await user.keyboard("{Control>}z{/Control}");
+    await waitFor(() => {
+      expect(api.state.todos[0]?.due_date).toBe("2026-10-08");
+    });
+    expect(api.state.todos[0]?.rrule).toBe("FREQ=DAILY");
+  });
+
   it("opens details with one click on the row, but not from its checkbox", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa04", title: "Call mum" });

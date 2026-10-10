@@ -295,12 +295,13 @@ export function useCalendarActions() {
 
       /** Moves another module's item to a date (the module records the undo). */
       rescheduleEntry(entry: EntryItem, date: IsoDate): void {
-        if (entry.entry.date !== date) feedOf(entry)?.reschedule(entry.entry.ref, date);
+        if (entry.entry.projected === true || entry.entry.date === date) return;
+        feedOf(entry)?.reschedule(entry.entry.ref, date);
       },
 
       /** Marks another module's item done or not done. */
       toggleEntry(entry: EntryItem): void {
-        feedOf(entry)?.toggleDone(entry.entry.ref);
+        if (entry.entry.projected !== true) feedOf(entry)?.toggleDone(entry.entry.ref);
       },
     };
   }, [

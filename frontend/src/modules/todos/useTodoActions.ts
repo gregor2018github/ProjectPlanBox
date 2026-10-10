@@ -21,10 +21,11 @@ import {
   useRestoreTodo,
   useSetCompleted,
   useSetTodayOrder,
+  useSkipTodo,
   useUpdateTodo,
 } from "./mutations";
 import { todoKeys } from "./queries";
-import type { Placement, Todo } from "./types";
+import type { Placement, RepeatFrom, Todo } from "./types";
 import { todoUi } from "./uiStore";
 
 /** Input for creating a todo; tags named in `new_tags` are created first. */
@@ -45,6 +46,7 @@ export function useTodoActions() {
   const createTag = useCreateTag();
   const updateTodo = useUpdateTodo();
   const setCompleted = useSetCompleted();
+  const skipTodo = useSkipTodo();
   const moveTodo = useMoveTodo();
   const setTodayOrder = useSetTodayOrder();
   const deleteTodo = useDeleteTodo();
@@ -157,15 +159,51 @@ export function useTodoActions() {
         };
       },
 
-      /** Starts, changes or (with null) stops a todo's repeat. */
-      setRepeat(t: Todo, rrule: string | null): void {
-        const before = { rrule: t.rrule, due_date: t.due_date };
-        updateTodo.mutate({ id: t.id, patch: { rrule } });
+      /**
+       * Starts, changes or (with null) stops a todo's repeat, counted from
+       * the schedule or from completion.
+       */
+      setRepeat(t: Todo, rrule: string | null, repeatFrom: RepeatFrom = "due"): void {
+        const before: TodoPatch = {
+          rrule: t.rrule,
+          due_date: t.due_date,
+          ...(t.rrule !== null && { repeat_from: t.repeat_from }),
+        };
+        const modeChanged = rrule !== null && repeatFrom !== t.repeat_from;
+        updateTodo.mutate({
+          id: t.id,
+          patch: modeChanged ? { rrule, repeat_from: repeatFrom } : { rrule },
+        });
         pushUndo({
           label: rrule === null ? "Stopped repeating" : "Changed the repeat",
           silent: true,
           undo: () => {
             updateTodo.mutate({ id: t.id, patch: before });
+          },
+        });
+      },
+
+      /** Moves an open repeating todo to its next date without completing it. */
+      skip(t: Todo): void {
+        if (t.rrule === null || t.completed_at !== null) return;
+        const before = t.due_date;
+        skipTodo.mutate(
+          { id: t.id },
+          {
+            onSuccess: (skipped) => {
+              if (skipped.due_date === null || today === null) return;
+              show({
+                title: `Skipped “${t.title}”`,
+                description: `Next one: ${formatRelativeDay(skipped.due_date, today)}`,
+              });
+            },
+          },
+        );
+        pushUndo({
+          label: `Skipped “${t.title}”`,
+          silent: true,
+          undo: () => {
+            updateTodo.mutate({ id: t.id, patch: { due_date: before } });
           },
         });
       },
@@ -267,6 +305,7 @@ export function useTodoActions() {
     createTag,
     updateTodo,
     setCompleted,
+    skipTodo,
     moveTodo,
     setTodayOrder,
     deleteTodo,

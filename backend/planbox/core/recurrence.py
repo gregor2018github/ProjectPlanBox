@@ -10,6 +10,7 @@ Only the parts the UI can produce (and a few harmless extras) are accepted,
 which keeps every stored rule something the frontend can describe.
 """
 
+from calendar import monthrange
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
@@ -282,3 +283,119 @@ def remaining(rule: str, anchor: Anchor, day: date) -> str:
         left = int(parts["COUNT"]) - count_before(rule, anchor, day)
         parts["COUNT"] = str(max(left, 1))
     return format_rule(parts)
+
+
+# ------------------------------------------------- repeating after completion
+
+_PLAIN_PARTS = frozenset({"FREQ", "INTERVAL", "COUNT", "UNTIL"})
+
+
+def is_plain(rule: str) -> bool:
+    """Whether a rule is only "every N days/weeks/months/years" (with an optional end).
+
+    Only such rules can repeat counted from a completion: chosen weekdays or
+    month days belong to a fixed schedule.
+    """
+    return set(parse(rule)) <= _PLAIN_PARTS
+
+
+def step(rule: str, day: date) -> date:
+    """``day`` plus one interval of a plain rule.
+
+    Months and years keep the day of the month, clamped to the month's last
+    day (31 Jan + 1 month is 28 or 29 Feb).
+    """
+    parts = parse(rule)
+    interval = int(parts.get("INTERVAL", "1"))
+    match parts["FREQ"]:
+        case "DAILY":
+            return day + timedelta(days=interval)
+        case "WEEKLY":
+            return day + timedelta(weeks=interval)
+        case "MONTHLY":
+            return _add_months(day, interval)
+        case _:
+            return _add_months(day, 12 * interval)
+
+
+def _add_months(day: date, months: int) -> date:
+    index = day.year * 12 + day.month - 1 + months
+    year, month = divmod(index, 12)
+    month += 1
+    return date(year, month, min(day.day, monthrange(year, month)[1]))
+
+
+def floating_until(rule: str) -> date | None:
+    """The last allowed date of a floating-date rule (its ``UNTIL``), if any."""
+    value = parse(rule).get("UNTIL")
+    return None if value is None else datetime.strptime(value[:8], "%Y%m%d").date()  # noqa: DTZ007
+
+
+def with_count(rule: str, count: int) -> str:
+    """The rule with ``COUNT`` replaced (only if it has one)."""
+    parts = parse(rule)
+    if "COUNT" in parts:
+        parts["COUNT"] = str(count)
+    return format_rule(parts)
+
+
+def step_after(rule: str, day: date) -> tuple[date, str] | None:
+    """The next date of a plain rule, one interval after ``day``.
+
+    ``COUNT`` counts the occurrence on ``day`` itself, so the returned rule
+    (for the next occurrence) has one less.
+
+    Returns:
+        The date and the rule left for it, or None when the repeat has ended.
+    """
+    parts = parse(rule)
+    if parts.get("COUNT") == "1":
+        return None
+    following = step(rule, day)
+    until = floating_until(rule)
+    if until is not None and following > until:
+        return None
+    left = with_count(rule, int(parts["COUNT"]) - 1) if "COUNT" in parts else rule
+    return following, left
+
+
+def stepped_dates(rule: str, base: date, first: date, last: date, *, limit: int) -> list[date]:
+    """Dates of a plain rule repeated from ``base`` (excluded) within ``[first, last]``.
+
+    At most ``limit`` dates are returned.
+    """
+    found: list[date] = []
+    day, left = base, rule
+    while len(found) < limit:
+        stepped = step_after(left, day)
+        if stepped is None or stepped[0] > last:
+            break
+        day, left = stepped
+        if day >= first:
+            found.append(day)
+    return found
+
+
+def series_dates(
+    rule: str, start: date, after: date, first: date, last: date, *, limit: int
+) -> list[date]:
+    """Dates of a floating-date series within ``[first, last]``.
+
+    Args:
+        rule: A normalised rule.
+        start: The series anchor.
+        after: Only dates after this one count.
+        first: First date of the range.
+        last: Last date of the range (inclusive).
+        limit: At most this many dates are returned.
+    """
+    anchor = all_day_anchor(start, start)
+    low = max(first, after + timedelta(days=1))
+    if low > last:
+        return []
+    found: list[date] = []
+    for moment in _build(rule, anchor).xafter(datetime.combine(low, time()), inc=True):
+        if moment.date() > last or len(found) >= limit:
+            break
+        found.append(moment.date())
+    return found

@@ -24,12 +24,18 @@ will come later.
   - a priority: `!1` high to `!3` low
   - tags: `@tag`
   - a list and optional section: `#List/Section`
+  - a repeat, always after `every`: `every day`, `every 3 days`,
+    `every other week`, `every weekday`, `every mon, thu`,
+    `every 1st and 15th`, `every last day`. Add `after done` to a plain
+    interval (`every 4 weeks after done`) to count the next date from when
+    you finish it.
 
   **Shift+Q** adds a subtask to the selected todo.
 - In a list: **↑/↓** select, **Space** or **X** completes, **Enter** opens
   details, **Alt+↑/↓** moves, **Alt+→/←** makes a subtask or promotes it,
-  **T/M** set the date to today or tomorrow, **D** picks a date, **V** moves
-  the todo to another list, **1/2/3/0** set the priority, **Delete** deletes.
+  **T/M** set the date to today or tomorrow, **D** picks a date, **S** skips
+  one date of a repeating todo, **V** moves the todo to another list,
+  **1/2/3/0** set the priority, **Delete** deletes.
 - **Ctrl+Z** undoes the last delete, completion or move.
 - Drag todos to reorder them, or drop them on a list in the sidebar. Drag
   lists between areas, and drag sections by their grip.

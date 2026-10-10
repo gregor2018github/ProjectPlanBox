@@ -1,4 +1,4 @@
-import { CornerLeftUp, Flag, Trash2 } from "lucide-react";
+import { CornerLeftUp, Flag, SkipForward, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { LinkedItems } from "../../../core/links/LinkedItems";
@@ -130,10 +130,22 @@ export function TodoDetail({ id }: TodoDetailProps) {
           <RepeatPicker
             todo={todo}
             today={data.today}
-            onChange={(rrule) => {
-              actions.setRepeat(todo, rrule);
+            onChange={(rrule, repeatFrom) => {
+              actions.setRepeat(todo, rrule, repeatFrom);
             }}
           />
+        )}
+        {todo.rrule !== null && todo.completed_at === null && (
+          <Button
+            size="sm"
+            className="text-text-muted"
+            onClick={() => {
+              actions.skip(todo);
+            }}
+          >
+            <SkipForward size={16} strokeWidth={1.75} aria-hidden />
+            Skip
+          </Button>
         )}
         <Menu
           align="start"

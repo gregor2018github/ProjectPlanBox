@@ -6,6 +6,7 @@ real rows and retries are idempotent. Moves name the neighbours
 """
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -100,7 +101,9 @@ class TodoOut(BaseModel):
     """A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
 
     A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
-    series starts on ``recurrence_anchor``. ``today_position`` is its place in
+    series starts on ``recurrence_anchor``. ``repeat_from`` says whether the
+    next date follows that schedule (``due``) or is counted from the day it
+    was done (``completion``). ``today_position`` is its place in
     Today's manual order (null until Today is reordered, and after the due
     date changes).
     """
@@ -120,6 +123,7 @@ class TodoOut(BaseModel):
     tag_ids: list[str]
     rrule: str | None
     recurrence_anchor: date | None
+    repeat_from: Literal["due", "completion"]
     today_position: str | None
 
 
@@ -138,13 +142,16 @@ class TodoCreate(BaseModel):
     before_id: str | None = None
     after_id: str | None = None
     rrule: str | None = Field(default=None, max_length=500)
+    repeat_from: Literal["due", "completion"] = "due"
 
 
 class TodoPatch(BaseModel):
     """Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.
 
-    ``rrule`` starts (or changes) a repeat anchored on the due date (today if
-    none); ``rrule: null`` stops it, and so does clearing the due date.
+    ``rrule`` starts (or changes) a repeat anchored on the due date (its
+    first date from today if none); ``rrule: null`` stops it, and so does
+    clearing the due date. ``repeat_from: completion`` needs a plain
+    "every N days/weeks/months/years" rule.
     """
 
     title: str | None = None
@@ -152,6 +159,7 @@ class TodoPatch(BaseModel):
     priority: int | None = Field(default=None, ge=0, le=3)
     due_date: date | None = None
     rrule: str | None = Field(default=None, max_length=500)
+    repeat_from: Literal["due", "completion"] | None = None
     tag_ids: list[str] | None = None
 
 
@@ -169,6 +177,13 @@ class TodayOrder(BaseModel):
     """The todos of one group in Today, top to bottom."""
 
     ids: list[str] = Field(max_length=2000)
+
+
+class ForecastOut(BaseModel):
+    """A later date of an open repeating todo, for showing it ahead on the calendar."""
+
+    todo_id: str
+    date: date
 
 
 class TodosOut(BaseModel):

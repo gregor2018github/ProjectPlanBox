@@ -13,7 +13,7 @@ _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
     "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, "
     "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id, "
-    "today_position"
+    "today_position, repeat_from"
 )
 _TODO_EDITABLE = frozenset(
     {
@@ -28,6 +28,7 @@ _TODO_EDITABLE = frozenset(
         "rrule",
         "recurrence_anchor",
         "today_position",
+        "repeat_from",
     }
 )
 
@@ -297,6 +298,14 @@ class TodoRepository:
         ).fetchall()
         return [Todo(**dict(r)) for r in rows]
 
+    def open_repeating(self) -> list[Todo]:
+        """Live, open todos with a repeat rule."""
+        rows = self._conn.execute(
+            f"SELECT {_TODO} FROM todos WHERE deleted_at IS NULL "  # noqa: S608
+            "AND completed_at IS NULL AND rrule IS NOT NULL ORDER BY position, id"
+        ).fetchall()
+        return [Todo(**dict(r)) for r in rows]
+
     def live_ids_in(self, column: str, values: Sequence[str]) -> list[str]:
         """Ids of live todos whose ``column`` (list_id/section_id/parent_id) is in ``values``."""
         return _ids_where(self._conn, "todos", _todo_scope(column), values, None)
@@ -311,7 +320,8 @@ class TodoRepository:
             f"INSERT INTO todos ({_TODO}) VALUES ("  # noqa: S608
             ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, "
             ":position, :completed_at, :created_at, :updated_at, :deleted_at, "
-            ":rrule, :recurrence_anchor, :recurs_from_id, :today_position)",
+            ":rrule, :recurrence_anchor, :recurs_from_id, :today_position, "
+            ":repeat_from)",
             _asdict(todo),
         )
 

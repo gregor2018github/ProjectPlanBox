@@ -41,13 +41,9 @@ rule.
 - [ ] Open Logbook rows in the detail panel. The single-todo GET and the
       read-only panel exist (search uses them); the Logbook rows only need
       to open it.
-- [ ] "Repeat after completion" (every 3 days counted from when it was done).
-- [ ] Several days of the month in the repeat editor (the engine accepts
-      them).
-- [ ] Quick-add syntax for repeats ("every monday", "every 2 weeks").
-- [ ] Future occurrences of repeating todos on the calendar (only the next
-      one shows).
-- [ ] Skip one occurrence without completing it.
+- [ ] Quick-add for nth weekdays ("every 2nd tue"); the editor has them.
+- [ ] Skip changes the date only when the server answers (only the server
+      expands rules). Fine on localhost; make it optimistic if it lags.
 
 ## Calendar
 

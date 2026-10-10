@@ -63,7 +63,10 @@ export function entryItems(feeds: readonly CalendarFeed[]): EntryItem[] {
   return feeds.flatMap((feed) =>
     feed.entries.map((entry) => ({
       kind: "entry" as const,
-      key: `${feed.id}:${entry.ref}`,
+      key:
+        entry.projected === true
+          ? `${feed.id}:${entry.ref}:${entry.date}`
+          : `${feed.id}:${entry.ref}`,
       feedId: feed.id,
       entry,
     })),
@@ -190,7 +193,9 @@ export function itemsByDay(
     );
     day.entries.sort(
       (a, b) =>
-        Number(a.entry.done) - Number(b.entry.done) || a.entry.title.localeCompare(b.entry.title),
+        Number(a.entry.done) - Number(b.entry.done) ||
+        Number(a.entry.projected === true) - Number(b.entry.projected === true) ||
+        a.entry.title.localeCompare(b.entry.title),
     );
   }
   return result;

@@ -39,7 +39,7 @@ ProjectPlanBox/
 │   │       ├── habits/       # habits, check-ins, streaks (streaks.py is pure)
 │   │       └── todos/
 │   │           ├── __init__.py      # `module = Module(...)`
-│   │           ├── migrations/      # 0001_create_todos.sql, 0002_add_recurrence.sql
+│   │           ├── migrations/      # 0001_create_todos.sql … 0004_add_repeat_from.sql
 │   │           ├── models.py        # frozen dataclasses (domain rows)
 │   │           ├── schemas.py       # Pydantic request/response models
 │   │           ├── repository.py    # SQL only
@@ -148,7 +148,12 @@ feed (`useCalendarFeed`) of entries addressed by entity ref, with
 `reschedule` and `toggleDone` callbacks; the calendar reads all feeds
 (`useCalendarFeeds`). Calendar days are drop targets carrying
 `{ kind: "date", date }`; a module's draggable reads it with
-`droppedDate(info)` (todos turn it into a due date).
+`droppedDate(info)` (todos turn it into a due date). The other way round,
+every calendar view announces the dates it shows (`useCalendarRange`), and a
+module can read them (`useCalendarRanges`) to add range-dependent entries:
+todos fetch the later dates of repeating todos for exactly those ranges and
+publish them as `projected` entries, which only open the item (no tick, no
+drag).
 
 **Linkable sources** (`core/links/`). The same pattern feeds the link
 picker: a module's Host publishes its entities (`useLinkableSource`) with
@@ -475,8 +480,9 @@ that can be enforced in SQL are also CHECK constraints.
   floating date) and `recurs_from_id` (the occurrence whose completion
   created this row). A CHECK keeps a rule only on top-level todos with a due
   date and an anchor.
-  - Setting a rule anchors the series on the due date (today if there is
-    none, which also becomes the due date). Moving the due date later moves
+  - Setting a rule anchors the series on the due date. Without one, it
+    starts on the series' first date from today ("every Monday" set on a
+    Thursday is due next Monday), which also becomes the due date. Moving the due date later moves
     only this occurrence. Clearing the due date or sending `rrule: null`
     stops the repeat. Subtasks cannot repeat, and a repeating todo cannot
     become a subtask.
@@ -491,6 +497,30 @@ that can be enforced in SQL are also CHECK constraints.
     makes undo exact. If that next one is already done, the reopened todo
     becomes a one-off instead of starting a second series.
   - This is why completion is its own endpoint (below), not a field patch.
+  - **Repeat after completion:** migration `0004_add_repeat_from.sql` adds
+    `repeat_from` (`due`, the default, or `completion`). With `completion`
+    the next date is one interval after the day it was done ("every 3
+    days" done on Friday is due Monday), whatever the due date was. Months
+    and years keep the day of the month, clamped to the month's end (31
+    Jan + 1 month is 28/29 Feb), unlike the schedule, where RFC 5545 skips
+    months without that day. Only plain rules (FREQ, INTERVAL, COUNT,
+    UNTIL) may count from completion, since chosen weekdays or month days
+    are a schedule. COUNT then counts down on each copy (`COUNT=3`, then
+    2, then 1, then no copy), and the copy's anchor is its own due date.
+    Stopping the repeat resets the mode to `due`.
+  - **Skip** (`POST …/skip`) moves an open repeating todo to its next date
+    without completing it: on a schedule, the first series date after the
+    due date that is not in the past (so an overdue daily todo lands on
+    today); counted from completion, one interval after the due date (more
+    while that is still past). A skipped date does not use up a COUNT when
+    counting from completion. Undo is a plain due-date patch back, which
+    leaves the series alone. The last date of a finished series cannot be
+    skipped (409).
+  - **Forecast** (`GET /api/todos/forecast?start=&end=`, at most 400 days)
+    lists the later dates of every open repeating todo in the range: the
+    dates its next copies would get if each is done on its due date (or
+    today when overdue). The calendar shows them ahead of time. Only the
+    server expands rules, so the client never guesses these dates.
 - **Today's manual order:** migration `0003_add_today_position.sql` adds a
   nullable `today_position` (a fractional key). Today mixes todos from
   every list, so `position` cannot order it. Reordering a Today group
@@ -509,8 +539,10 @@ that can be enforced in SQL are also CHECK constraints.
 | GET | `/api/todos/items?completed_since=<utc>` | All open todos (including subtasks) plus those completed since the given instant (the frontend passes the start of today) |
 | GET | `/api/todos/items/completed?before=<utc>&limit=50` | The logbook, cursor-paginated |
 | POST | `/api/todos/items` | Optional client `id`, plus `list_id`, `section_id`, `parent_id`. Repeating a POST with the same id and body returns the existing row (idempotent). |
-| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
+| PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, repeat_from, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
 | POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks. For a repeating todo, `complete` also returns the inserted next occurrence; `reopen` deletes it again (the client refetches). |
+| POST | `/api/todos/items/{id}/skip` | Moves an open repeating todo to its next date without completing it (see Recurrence). Returns the todo. |
+| GET | `/api/todos/forecast?start=&end=` | `[{todo_id, date}]`: later dates of open repeating todos in the range (inclusive, at most 400 days), for the calendar. |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
 | POST | `/api/todos/today-order` | `{ids}`: one Today group, top to bottom. Returns the todos whose `today_position` changed. |
 | DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |

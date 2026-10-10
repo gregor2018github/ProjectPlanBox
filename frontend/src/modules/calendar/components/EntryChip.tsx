@@ -1,3 +1,5 @@
+import { Repeat as RepeatIcon } from "lucide-react";
+
 import { Checkbox } from "../../../ui/Checkbox";
 import { cx } from "../../../ui/cx";
 import type { EntryItem } from "../types";
@@ -15,7 +17,8 @@ export interface EntryChipProps {
 
 /**
  * Another module's dated item (a todo): tick it off, open it in the detail
- * panel, or drag it to another day to reschedule it.
+ * panel, or drag it to another day to reschedule it. A projected entry (a
+ * repeating todo's later date) shows a repeat mark instead and only opens.
  */
 export function EntryChip({ item, surface, actions, roomy = false }: EntryChipProps) {
   const { ref, isDragging } = useItemDrag(surface, item, actions);
@@ -29,15 +32,21 @@ export function EntryChip({ item, surface, actions, roomy = false }: EntryChipPr
         isDragging && "opacity-50",
       )}
     >
-      <Checkbox
-        size="sm"
-        checked={entry.done}
-        tone={entry.tone}
-        label={`${entry.done ? "Reopen" : "Complete"} “${entry.title}”`}
-        onCheckedChange={() => {
-          actions.toggleEntry(item);
-        }}
-      />
+      {entry.projected === true ? (
+        <span className="flex size-4 shrink-0 items-center justify-center text-text-muted">
+          <RepeatIcon size={12} strokeWidth={2} aria-hidden />
+        </span>
+      ) : (
+        <Checkbox
+          size="sm"
+          checked={entry.done}
+          tone={entry.tone}
+          label={`${entry.done ? "Reopen" : "Complete"} “${entry.title}”`}
+          onCheckedChange={() => {
+            actions.toggleEntry(item);
+          }}
+        />
+      )}
       <button
         type="button"
         onClick={() => {
@@ -48,7 +57,14 @@ export function EntryChip({ item, surface, actions, roomy = false }: EntryChipPr
           roomy ? "text-base" : "text-xs",
         )}
       >
-        <span className={cx("truncate", entry.done && "text-text-muted line-through")}>
+        <span
+          className={cx(
+            "truncate",
+            entry.done && "text-text-muted line-through",
+            entry.projected === true && "text-text-muted",
+          )}
+        >
+          {entry.projected === true && <span className="sr-only">Repeats: </span>}
           {entry.title}
         </span>
         {roomy && entry.context !== undefined && (

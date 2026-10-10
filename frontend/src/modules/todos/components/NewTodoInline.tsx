@@ -43,6 +43,8 @@ export function NewTodoInline({
       priority: parsed.priority ?? 0,
       tag_ids: parsed.tag_ids,
       new_tags: parsed.new_tags,
+      ...(parsed.rrule !== null &&
+        placement.parent_id === null && { rrule: parsed.rrule, repeat_from: parsed.repeat_from }),
     });
     setText("");
   };

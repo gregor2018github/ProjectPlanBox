@@ -1,6 +1,7 @@
 """Rows of the todos module."""
 
 from dataclasses import dataclass
+from datetime import date
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +48,8 @@ class Todo:
 
     A repeating todo has an ``rrule`` anchored on ``recurrence_anchor``;
     ``recurs_from_id`` names the occurrence whose completion created it.
+    ``repeat_from`` is ``"due"`` (the next date follows the schedule) or
+    ``"completion"`` (it is counted from the day this one was done).
     ``today_position`` orders it inside Today once Today was reordered.
     """
 
@@ -67,6 +70,7 @@ class Todo:
     recurrence_anchor: str | None = None
     recurs_from_id: str | None = None
     today_position: str | None = None
+    repeat_from: str = "due"
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +79,14 @@ class TodoRecord:
 
     todo: Todo
     tag_ids: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class ForecastDate:
+    """A later date of an open repeating todo (shown ahead on the calendar)."""
+
+    todo_id: str
+    date: date
 
 
 @dataclass(frozen=True, slots=True)

@@ -115,9 +115,23 @@ pane (`H`). Decisions:
 Repeat every N days, weeks, months or years, or on chosen weekdays. Rule code
 lives in `core/recurrence.py`, shared with the calendar. Decisions:
 - Completing one creates the next, which follows the schedule (missed dates
-  are skipped), not "N days after I finished it".
+  are skipped) unless the repeat counts from completion (below).
 - Each occurrence is its own row, so the Logbook keeps every completion.
 - Undo of a completion reopens it and removes the next one.
+
+Follow-ups built 2026-10-10 (rules in ARCHITECTURE §7, Recurrence):
+- Repeat after completion: `repeat_from` (migration `todos/0004`), plain
+  intervals only, since chosen weekdays or month days are a schedule.
+- Several days of the month ("On days…" grid, 1–31 and last day) in the
+  shared editor, so events and habits get it too.
+- Quick-add repeats, always introduced by "every" (so "weekly report" stays
+  a title): `every 3 days`, `every mon, thu`, `every 1st and 15th`,
+  `… after done`.
+- Later dates on the calendar (`GET /api/todos/forecast` for the ranges the
+  calendar shows), read-only.
+- Skip one date (`…/skip`; detail panel, row menu, **S**; Ctrl+Z).
+- A repeat set without a due date now starts on the rule's first date from
+  today, not on today.
 
 ## Dependencies
 

@@ -874,6 +874,26 @@
         "title": "EventsOut",
         "type": "object"
       },
+      "ForecastOut": {
+        "description": "A later date of an open repeating todo, for showing it ahead on the calendar.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "todo_id": {
+            "title": "Todo Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "todo_id",
+          "date"
+        ],
+        "title": "ForecastOut",
+        "type": "object"
+      },
       "HabitCreate": {
         "description": "Create a habit; send a client-generated ``id`` for idempotent, optimistic creates.",
         "properties": {
@@ -2006,6 +2026,15 @@
             "title": "Priority",
             "type": "integer"
           },
+          "repeat_from": {
+            "default": "due",
+            "enum": [
+              "due",
+              "completion"
+            ],
+            "title": "Repeat From",
+            "type": "string"
+          },
           "rrule": {
             "anyOf": [
               {
@@ -2115,7 +2144,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes).",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes).",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -2196,6 +2225,14 @@
             ],
             "title": "Recurrence Anchor"
           },
+          "repeat_from": {
+            "enum": [
+              "due",
+              "completion"
+            ],
+            "title": "Repeat From",
+            "type": "string"
+          },
           "rrule": {
             "anyOf": [
               {
@@ -2261,13 +2298,14 @@
           "tag_ids",
           "rrule",
           "recurrence_anchor",
+          "repeat_from",
           "today_position"
         ],
         "title": "TodoOut",
         "type": "object"
       },
       "TodoPatch": {
-        "description": "Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.\n\n``rrule`` starts (or changes) a repeat anchored on the due date (today if\nnone); ``rrule: null`` stops it, and so does clearing the due date.",
+        "description": "Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.\n\n``rrule`` starts (or changes) a repeat anchored on the due date (its\nfirst date from today if none); ``rrule: null`` stops it, and so does\nclearing the due date. ``repeat_from: completion`` needs a plain\n\"every N days/weeks/months/years\" rule.",
         "properties": {
           "due_date": {
             "anyOf": [
@@ -2304,6 +2342,21 @@
               }
             ],
             "title": "Priority"
+          },
+          "repeat_from": {
+            "anyOf": [
+              {
+                "enum": [
+                  "due",
+                  "completion"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repeat From"
           },
           "rrule": {
             "anyOf": [
@@ -4377,6 +4430,68 @@
         ]
       }
     },
+    "/api/todos/forecast": {
+      "get": {
+        "description": "The later dates of open repeating todos in a date range (for the calendar).",
+        "operationId": "todos_forecast",
+        "parameters": [
+          {
+            "description": "First date (inclusive).",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "description": "First date (inclusive).",
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last date (inclusive), at most 400 days on.",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "description": "Last date (inclusive), at most 400 days on.",
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ForecastOut"
+                  },
+                  "title": "Response Todos Forecast",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Forecast",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
     "/api/todos/items": {
       "get": {
         "description": "All open todos and subtasks, plus those completed since ``completed_since``.",
@@ -4841,6 +4956,49 @@
           }
         },
         "summary": "Restore Item",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/items/{todo_id}/skip": {
+      "post": {
+        "description": "Moves an open repeating todo to its next date without completing it.",
+        "operationId": "todos_skip_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "todo_id",
+            "required": true,
+            "schema": {
+              "title": "Todo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Skip Item",
         "tags": [
           "todos"
         ]

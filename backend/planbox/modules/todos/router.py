@@ -16,6 +16,7 @@ from planbox.modules.todos.schemas import (
     AreaMove,
     AreaOut,
     DeletedOut,
+    ForecastOut,
     ListCreate,
     ListMove,
     ListOut,
@@ -103,6 +104,7 @@ def _todo(record: TodoRecord) -> TodoOut:
         tag_ids=record.tag_ids,
         rrule=t.rrule,
         recurrence_anchor=_date(t.recurrence_anchor),
+        repeat_from="completion" if t.repeat_from == "completion" else "due",
         today_position=t.today_position,
     )
 
@@ -276,6 +278,16 @@ def list_completed_items(
     return LogbookOut(todos=[_todo(r) for r in page.records], next_cursor=page.next_cursor)
 
 
+@router.get("/forecast")
+def forecast(
+    service: Todos,
+    start: Annotated[date, Query(description="First date (inclusive).")],
+    end: Annotated[date, Query(description="Last date (inclusive), at most 400 days on.")],
+) -> list[ForecastOut]:
+    """The later dates of open repeating todos in a date range (for the calendar)."""
+    return [ForecastOut(todo_id=f.todo_id, date=f.date) for f in service.forecast(start, end)]
+
+
 @router.get("/items/{todo_id}")
 def get_item(todo_id: str, service: Todos) -> TodoOut:
     """One live todo, open or completed (e.g. a search hit from the logbook)."""
@@ -297,6 +309,7 @@ def create_item(body: TodoCreate, service: Todos, response: Response) -> TodoOut
             before_id=body.before_id,
             after_id=body.after_id,
             rrule=body.rrule,
+            repeat_from=body.repeat_from,
         )
     )
     _created(response, created)
@@ -320,6 +333,12 @@ def complete_item(todo_id: str, service: Todos) -> TodosOut:
 def reopen_item(todo_id: str, service: Todos) -> TodosOut:
     """Reopens a todo (and what was completed with it, or its parent)."""
     return _todos_out(service.reopen(todo_id))
+
+
+@router.post("/items/{todo_id}/skip")
+def skip_item(todo_id: str, service: Todos) -> TodoOut:
+    """Moves an open repeating todo to its next date without completing it."""
+    return _todo(service.skip(todo_id))
 
 
 @router.post("/items/{todo_id}/move")

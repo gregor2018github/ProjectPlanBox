@@ -45,3 +45,22 @@ describe("droppedDate", () => {
     expect(droppedDate(drop(null))).toBeNull();
   });
 });
+
+describe("CalendarFeedRegistry ranges", () => {
+  it("lists each shown range once and drops it when the last watcher leaves", () => {
+    const registry = new CalendarFeedRegistry();
+    const listener = vi.fn();
+    registry.subscribe(listener);
+    const month = { start: "2026-09-28", end: "2026-11-08" };
+    const stopA = registry.watch(month);
+    const stopB = registry.watch({ ...month });
+    const stopC = registry.watch({ start: "2026-10-08", end: "2026-10-14" });
+    expect(registry.listRanges()).toEqual([month, { start: "2026-10-08", end: "2026-10-14" }]);
+    expect(listener).toHaveBeenCalledTimes(2);
+    stopA();
+    expect(listener).toHaveBeenCalledTimes(2);
+    stopB();
+    stopC();
+    expect(registry.listRanges()).toEqual([]);
+  });
+});

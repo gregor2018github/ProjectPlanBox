@@ -10,6 +10,12 @@ export type Area = components["schemas"]["AreaOut"];
 /** A list of todos. */
 export type TodoList = components["schemas"]["ListOut"];
 
+/** A later date of an open repeating todo (shown ahead on the calendar). */
+export type Forecast = components["schemas"]["ForecastOut"];
+
+/** Where a repeating todo's next date counts from. */
+export type RepeatFrom = Todo["repeat_from"];
+
 /** A heading inside a list. */
 export type Section = components["schemas"]["SectionOut"];
 

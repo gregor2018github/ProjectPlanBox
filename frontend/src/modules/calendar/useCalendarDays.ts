@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useCalendarFeeds } from "../../core/calendar/feedContext";
+import { useCalendarFeeds, useCalendarRange } from "../../core/calendar/feedContext";
 import type { IsoDate } from "../../core/time";
 import { useCalendarEvents } from "./queries";
 import { entryItems, itemsByDay, type DayItems } from "./selectors";
@@ -13,6 +13,7 @@ export function useCalendarDays(
   const first = days[0] ?? "";
   const last = days.at(-1) ?? first;
   const { events, loading } = useCalendarEvents(first, last);
+  useCalendarRange(first, last);
   const feeds = useCalendarFeeds();
   const byDay = useMemo(
     () => itemsByDay(days, events, entryItems(feeds), timeZone),

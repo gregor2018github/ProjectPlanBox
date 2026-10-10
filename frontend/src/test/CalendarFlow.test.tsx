@@ -131,6 +131,34 @@ describe("calendar", () => {
     });
   });
 
+  it("shows a repeating todo's later dates read-only; they open the todo", async () => {
+    const user = userEvent.setup();
+    const todos = createFakeTodoApi({
+      todos: [
+        makeTodo({
+          id: "t-bins",
+          title: "Bins",
+          due_date: "2026-10-08",
+          rrule: "FREQ=DAILY",
+          recurrence_anchor: "2026-10-08",
+        }),
+      ],
+    });
+    open("/calendar", [], todos);
+
+    const projected = await screen.findAllByText(
+      (_, el) => el?.tagName === "SPAN" && el.textContent === "Repeats: Bins",
+    );
+    expect(projected.length).toBe(2);
+    expect(screen.getAllByRole("checkbox", { name: "Complete “Bins”" })).toHaveLength(1);
+    expect(todos.state.requests.some((r) => r.path === "/api/todos/forecast")).toBe(true);
+
+    const first = projected[0]?.closest("button");
+    if (!first) throw new Error("projected entry is not a button");
+    await user.click(first);
+    expect(await screen.findByRole("complementary", { name: "Details" })).toBeInTheDocument();
+  });
+
   it("shows the week on the calendar page and switches views by keyboard", async () => {
     const user = userEvent.setup();
     open("/calendar?view=week&date=2026-10-08");

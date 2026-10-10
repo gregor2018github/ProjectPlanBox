@@ -644,6 +644,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Forecast
+         * @description The later dates of open repeating todos in a date range (for the calendar).
+         */
+        get: operations["todos_forecast"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/todos/items": {
         parameters: {
             query?: never;
@@ -790,6 +810,26 @@ export interface paths {
          * @description Undoes a delete.
          */
         post: operations["todos_restore_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/todos/items/{todo_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Skip Item
+         * @description Moves an open repeating todo to its next date without completing it.
+         */
+        post: operations["todos_skip_item"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1300,6 +1340,19 @@ export interface components {
         EventsOut: {
             /** Events */
             events: components["schemas"]["EventOut"][];
+        };
+        /**
+         * ForecastOut
+         * @description A later date of an open repeating todo, for showing it ahead on the calendar.
+         */
+        ForecastOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Todo Id */
+            todo_id: string;
         };
         /**
          * HabitCreate
@@ -1837,6 +1890,12 @@ export interface components {
              * @default 0
              */
             priority?: number;
+            /**
+             * Repeat From
+             * @default due
+             * @enum {string}
+             */
+            repeat_from?: "due" | "completion";
             /** Rrule */
             rrule?: string | null;
             /** Section Id */
@@ -1867,7 +1926,9 @@ export interface components {
          * @description A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.
          *
          *     A repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose
-         *     series starts on ``recurrence_anchor``. ``today_position`` is its place in
+         *     series starts on ``recurrence_anchor``. ``repeat_from`` says whether the
+         *     next date follows that schedule (``due``) or is counted from the day it
+         *     was done (``completion``). ``today_position`` is its place in
          *     Today's manual order (null until Today is reordered, and after the due
          *     date changes).
          */
@@ -1892,6 +1953,11 @@ export interface components {
             priority: number;
             /** Recurrence Anchor */
             recurrence_anchor: string | null;
+            /**
+             * Repeat From
+             * @enum {string}
+             */
+            repeat_from: "due" | "completion";
             /** Rrule */
             rrule: string | null;
             /** Section Id */
@@ -1909,8 +1975,10 @@ export interface components {
          * TodoPatch
          * @description Change fields of a todo. Absent fields stay; ``due_date: null`` clears the date.
          *
-         *     ``rrule`` starts (or changes) a repeat anchored on the due date (today if
-         *     none); ``rrule: null`` stops it, and so does clearing the due date.
+         *     ``rrule`` starts (or changes) a repeat anchored on the due date (its
+         *     first date from today if none); ``rrule: null`` stops it, and so does
+         *     clearing the due date. ``repeat_from: completion`` needs a plain
+         *     "every N days/weeks/months/years" rule.
          */
         TodoPatch: {
             /** Due Date */
@@ -1919,6 +1987,8 @@ export interface components {
             notes?: string | null;
             /** Priority */
             priority?: number | null;
+            /** Repeat From */
+            repeat_from?: ("due" | "completion") | null;
             /** Rrule */
             rrule?: string | null;
             /** Tag Ids */
@@ -3358,6 +3428,40 @@ export interface operations {
             };
         };
     };
+    todos_forecast: {
+        parameters: {
+            query: {
+                /** @description First date (inclusive). */
+                start: string;
+                /** @description Last date (inclusive), at most 400 days on. */
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForecastOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     todos_list_items: {
         parameters: {
             query: {
@@ -3667,6 +3771,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodosOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_skip_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoOut"];
                 };
             };
             /** @description Problem details */

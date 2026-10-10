@@ -2,13 +2,16 @@ import {
   infiniteQueryOptions,
   queryOptions,
   useInfiniteQuery,
+  useQueries,
   useQuery,
 } from "@tanstack/react-query";
 
 import { useApiClient } from "../../core/api/apiContext";
 import { unwrap, type ApiClient } from "../../core/api/client";
 import { useMeta } from "../../core/api/coreQueries";
+import type { CalendarRange } from "../../core/calendar/feed";
 import { startOfDayUtc, todayIn } from "../../core/time";
+import type { Forecast } from "./types";
 
 /** Query keys of the todos module. */
 export const todoKeys = {
@@ -19,6 +22,8 @@ export const todoKeys = {
   sections: ["todos", "sections"] as const,
   logbook: ["todos", "logbook"] as const,
   item: (id: string) => ["todos", "item", id] as const,
+  forecasts: ["todos", "forecast"] as const,
+  forecast: (range: CalendarRange) => ["todos", "forecast", range.start, range.end] as const,
 };
 
 /** Every open todo plus today's completed ones (one cache for all views). */
@@ -89,6 +94,36 @@ export function logbookQueryOptions(client: ApiClient) {
 /** Subscribes to the logbook. */
 export function useLogbook() {
   return useInfiniteQuery(logbookQueryOptions(useApiClient()));
+}
+
+/** The later dates of open repeating todos in one range (server-expanded). */
+export function forecastQueryOptions(client: ApiClient, range: CalendarRange) {
+  return queryOptions({
+    queryKey: todoKeys.forecast(range),
+    queryFn: () =>
+      unwrap(
+        client.GET("/api/todos/forecast", {
+          params: { query: { start: range.start, end: range.end } },
+        }),
+      ),
+  });
+}
+
+function joinForecasts(results: { data?: Forecast[] | undefined }[]): Forecast[] {
+  const seen = new Map<string, Forecast>();
+  for (const result of results) {
+    for (const f of result.data ?? []) seen.set(`${f.todo_id}:${f.date}`, f);
+  }
+  return [...seen.values()];
+}
+
+/** The forecast for every range in `ranges`, joined (refetched after each todo change). */
+export function useForecast(ranges: readonly CalendarRange[]): Forecast[] {
+  const client = useApiClient();
+  return useQueries({
+    queries: ranges.map((range) => forecastQueryOptions(client, range)),
+    combine: joinForecasts,
+  });
 }
 
 /**

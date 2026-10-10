@@ -14,6 +14,7 @@ import {
   type RecurrenceSpec,
   type Repeat,
 } from "./recurrence";
+import { MonthDayToggles } from "./MonthDayToggles";
 import { WeekdayToggles } from "./WeekdayToggles";
 
 /** Props for {@link RecurrenceFields}. */
@@ -23,6 +24,13 @@ export interface RecurrenceFieldsProps {
   start: IsoDate;
   timeZone: string;
   onChange: (repeat: Repeat) => void;
+  /**
+   * Only "every N days/weeks/months/years": hides the weekday and month-day
+   * choices (a todo repeating after completion has no fixed days).
+   */
+  plain?: boolean;
+  /** Overrides the sentence under the fields (e.g. "Every 3 days after completion"). */
+  description?: string;
 }
 
 const FREQUENCIES: [Frequency, string][] = [
@@ -46,7 +54,14 @@ const ORDINALS: Record<number, string> = {
 };
 
 /** The repeat part of the event dialog: frequency, interval, days, and when it ends. */
-export function RecurrenceFields({ value, start, timeZone, onChange }: RecurrenceFieldsProps) {
+export function RecurrenceFields({
+  value,
+  start,
+  timeZone,
+  onChange,
+  plain = false,
+  description,
+}: RecurrenceFieldsProps) {
   const spec = value.kind === "spec" ? value.spec : null;
   const rule = ruleOf(value, start);
   const setSpec = (patch: Partial<RecurrenceSpec>) => {
@@ -97,7 +112,7 @@ export function RecurrenceFields({ value, start, timeZone, onChange }: Recurrenc
             />
             {UNITS[spec.freq]}
           </label>
-          {spec.freq === "WEEKLY" && (
+          {spec.freq === "WEEKLY" && !plain && (
             <WeekdayToggles
               value={spec.byDay}
               onChange={(byDay) => {
@@ -105,17 +120,27 @@ export function RecurrenceFields({ value, start, timeZone, onChange }: Recurrenc
               }}
             />
           )}
-          {spec.freq === "MONTHLY" && (
+          {spec.freq === "MONTHLY" && !plain && (
             <Select
               aria-label="Repeat monthly on"
               value={spec.monthly}
               onChange={(event) => {
-                setSpec({ monthly: event.target.value === "weekday" ? "weekday" : "day" });
+                const next = event.target.value;
+                setSpec({ monthly: next === "weekday" || next === "days" ? next : "day" });
               }}
             >
               <option value="day">{`On day ${String(Number(start.slice(8)))}`}</option>
               <option value="weekday">{`On the ${nth} ${format(parseISO(start), "EEEE")}`}</option>
+              <option value="days">On days…</option>
             </Select>
+          )}
+          {spec.freq === "MONTHLY" && !plain && spec.monthly === "days" && (
+            <MonthDayToggles
+              value={spec.byMonthDay}
+              onChange={(byMonthDay) => {
+                setSpec({ byMonthDay });
+              }}
+            />
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Select
@@ -171,7 +196,9 @@ export function RecurrenceFields({ value, start, timeZone, onChange }: Recurrenc
         </div>
       )}
       {rule !== null && (
-        <p className="pl-6 text-sm text-text-muted">{describeRule(rule, start, timeZone)}</p>
+        <p className="pl-6 text-sm text-text-muted">
+          {description ?? describeRule(rule, start, timeZone)}
+        </p>
       )}
     </div>
   );

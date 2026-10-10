@@ -124,3 +124,59 @@ def test_split_of_timed_series_ends_just_before_that_local_day() -> None:
     anchor = _timed("2026-10-05T07:00:00Z", "2026-10-05T08:00:00Z")
     head = recurrence.end_before("FREQ=DAILY", anchor, date(2026, 10, 8), AMS)
     assert head == "FREQ=DAILY;UNTIL=20261007T215959Z"
+
+
+@pytest.mark.parametrize(
+    ("rule", "day", "expected"),
+    [
+        ("FREQ=DAILY;INTERVAL=3", date(2026, 10, 8), date(2026, 10, 11)),
+        ("FREQ=WEEKLY;INTERVAL=2", date(2026, 10, 8), date(2026, 10, 22)),
+        ("FREQ=MONTHLY", date(2026, 1, 31), date(2026, 2, 28)),
+        ("FREQ=MONTHLY;INTERVAL=2", date(2026, 12, 31), date(2027, 2, 28)),
+        ("FREQ=YEARLY", date(2028, 2, 29), date(2029, 2, 28)),
+    ],
+)
+def test_step_adds_one_interval_and_clamps_to_the_month(
+    rule: str, day: date, expected: date
+) -> None:
+    """Months and years keep the day of the month where it exists."""
+    assert recurrence.step(rule, day) == expected
+
+
+def test_only_plain_rules_can_repeat_from_completion() -> None:
+    """Chosen weekdays or month days belong to a schedule."""
+    assert recurrence.is_plain("FREQ=WEEKLY;INTERVAL=2;COUNT=3")
+    assert not recurrence.is_plain("FREQ=WEEKLY;BYDAY=MO")
+    assert not recurrence.is_plain("FREQ=MONTHLY;BYMONTHDAY=1,15")
+
+
+def test_step_after_uses_up_the_count_and_respects_until() -> None:
+    """COUNT counts the current date; UNTIL is the last allowed date."""
+    assert recurrence.step_after("FREQ=DAILY;COUNT=3", date(2026, 10, 8)) == (
+        date(2026, 10, 9),
+        "FREQ=DAILY;COUNT=2",
+    )
+    assert recurrence.step_after("FREQ=DAILY;COUNT=1", date(2026, 10, 8)) is None
+    assert recurrence.step_after("FREQ=DAILY;UNTIL=20261008", date(2026, 10, 8)) is None
+
+
+def test_stepped_and_series_dates_stay_in_the_range() -> None:
+    """Both forecasts exclude their starting date and stop at the range end."""
+    stepped = recurrence.stepped_dates(
+        "FREQ=DAILY;INTERVAL=2;COUNT=4",
+        date(2026, 10, 8),
+        date(2026, 10, 11),
+        date(2026, 12, 1),
+        limit=10,
+    )
+    series = recurrence.series_dates(
+        "FREQ=MONTHLY;BYMONTHDAY=1,15",
+        date(2026, 10, 1),
+        date(2026, 10, 15),
+        date(2026, 10, 1),
+        date(2026, 11, 30),
+        limit=10,
+    )
+
+    assert stepped == [date(2026, 10, 12), date(2026, 10, 14)]
+    assert series == [date(2026, 11, 1), date(2026, 11, 15)]

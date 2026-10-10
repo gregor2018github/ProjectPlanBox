@@ -88,3 +88,57 @@ describe("priority, tags and place", () => {
     ]);
   });
 });
+
+describe("repeats", () => {
+  it.each([
+    ["Stretch every day", "FREQ=DAILY", "2026-10-08"],
+    ["Water every 3 days", "FREQ=DAILY;INTERVAL=3", "2026-10-08"],
+    ["Review every other week", "FREQ=WEEKLY;INTERVAL=2", "2026-10-08"],
+    ["Backup every month", "FREQ=MONTHLY", "2026-10-08"],
+    ["Standup every weekday", "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR", "2026-10-08"],
+    ["Bins every monday", "FREQ=WEEKLY;BYDAY=MO", "2026-10-12"],
+    ["Gym every tue, fri", "FREQ=WEEKLY;BYDAY=TU,FR", "2026-10-09"],
+    ["Gym every fri and mon", "FREQ=WEEKLY;BYDAY=MO,FR", "2026-10-09"],
+    ["Gym every mon,thu", "FREQ=WEEKLY;BYDAY=MO,TH", "2026-10-08"],
+    ["Pay every 1st and 15th", "FREQ=MONTHLY;BYMONTHDAY=1,15", "2026-10-15"],
+    ["Invoice every last day", "FREQ=MONTHLY;BYMONTHDAY=-1", "2026-10-31"],
+  ])("%s → %s from %s", (text, rule, due) => {
+    const result = parse(text);
+    expect(result.rrule).toBe(rule);
+    expect(result.due_date).toBe(due);
+    expect(result.repeat_from).toBe("due");
+    expect(result.title).toBe(text.split(" ")[0]);
+  });
+
+  it("counts a plain interval from completion with 'after done'", () => {
+    const result = parse("Haircut every 4 weeks after done !2");
+    expect(result.rrule).toBe("FREQ=WEEKLY;INTERVAL=4");
+    expect(result.repeat_from).toBe("completion");
+    expect(result.priority).toBe(2);
+    expect(result.title).toBe("Haircut");
+    expect(result.tokens.find((t) => t.kind === "repeat")?.label).toBe(
+      "Every 4 weeks after completion",
+    );
+  });
+
+  it("keeps an explicit date as the first one, wherever it is typed", () => {
+    const result = parse("Bins every monday 2026-10-19");
+    expect(result.due_date).toBe("2026-10-19");
+    expect(parse("Bins 2026-10-19 every monday").rrule).toBe("FREQ=WEEKLY;BYDAY=MO");
+  });
+
+  it("leaves 'every' alone when no repeat follows", () => {
+    const result = parse("Read every chapter");
+    expect(result.rrule).toBeNull();
+    expect(result.title).toBe("Read every chapter");
+    expect(parse("Call mom every mon and dad").title).toBe("Call mom and dad");
+  });
+
+  it("describes the repeat in the chip", () => {
+    expect(parse("Bins every monday").tokens).toContainEqual({
+      kind: "repeat",
+      text: "every monday",
+      label: "Every week on Mon",
+    });
+  });
+});

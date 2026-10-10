@@ -44,4 +44,37 @@ describe("todoCalendarEntries", () => {
       },
     ]);
   });
+
+  it("adds a repeating todo's later dates as projected entries", () => {
+    const todos = [
+      makeTodo({ id: "r", title: "Bins", due_date: "2026-10-12", rrule: "FREQ=WEEKLY" }),
+      makeTodo({
+        id: "done",
+        title: "Done",
+        due_date: "2026-10-08",
+        rrule: "FREQ=DAILY",
+        completed_at: "2026-10-08T09:00:00.000Z",
+      }),
+    ];
+    const forecast = [
+      { todo_id: "r", date: "2026-10-19" },
+      { todo_id: "r", date: "2026-10-12" },
+      { todo_id: "done", date: "2026-10-09" },
+      { todo_id: "gone", date: "2026-10-09" },
+    ];
+    const projected = todoCalendarEntries({ todos, lookup }, forecast).filter(
+      (e) => e.projected === true,
+    );
+    expect(projected).toEqual([
+      {
+        ref: "todos.todo:r",
+        title: "Bins",
+        date: "2026-10-19",
+        done: false,
+        tone: "default",
+        context: "Inbox",
+        projected: true,
+      },
+    ]);
+  });
 });

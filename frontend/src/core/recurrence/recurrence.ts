@@ -27,10 +27,18 @@ export interface RecurrenceSpec {
   interval: number;
   /** Weekly only; empty means the start's weekday. */
   byDay: Weekday[];
-  /** Monthly only: on the start's day of the month, or on its nth weekday ("2nd Thursday"). */
-  monthly: "day" | "weekday";
+  /**
+   * Monthly only: on the start's day of the month, on its nth weekday ("2nd
+   * Thursday"), or on the chosen days of the month (`byMonthDay`).
+   */
+  monthly: "day" | "weekday" | "days";
+  /** Monthly "days" only: 1..31, and -1 for the last day of the month. */
+  byMonthDay: number[];
   end: RecurrenceEnd;
 }
+
+/** The last day of the month in `byMonthDay`. */
+export const LAST_DAY = -1;
 
 const WEEKDAY_NAMES: Record<Weekday, string> = {
   MO: "Mon",
@@ -55,6 +63,32 @@ const UNITS: Record<Frequency, [string, string]> = {
   MONTHLY: ["month", "months"],
   YEARLY: ["year", "years"],
 };
+
+/** "1st", "2nd", "23rd", or "last day" for {@link LAST_DAY}. */
+export function dayOrdinal(day: number): string {
+  if (day === LAST_DAY) return "last day";
+  const tens = day % 100;
+  const suffix =
+    tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[day % 10] ?? "th");
+  return `${String(day)}${suffix}`;
+}
+
+/** Days of the month in calendar order, the last day after the numbered ones. */
+export function sortMonthDays(days: readonly number[]): number[] {
+  const key = (d: number) => (d === LAST_DAY ? 32 : d);
+  return [...new Set(days)].sort((a, b) => key(a) - key(b));
+}
+
+function joinWords(words: readonly string[]): string {
+  if (words.length < 2) return words.join("");
+  return `${words.slice(0, -1).join(", ")} and ${words.at(-1) ?? ""}`;
+}
+
+function monthDaysOf(value: string): number[] | null {
+  const days = value.split(",").map(Number);
+  const valid = days.every((d) => Number.isInteger(d) && ((d >= 1 && d <= 31) || d === LAST_DAY));
+  return valid && days.length > 0 ? sortMonthDays(days) : null;
+}
 
 /** The weekday code of a date. */
 export function weekdayOf(date: IsoDate): Weekday {
@@ -91,6 +125,7 @@ export function defaultSpec(freq: Frequency, start: IsoDate): RecurrenceSpec {
     interval: 1,
     byDay: freq === "WEEKLY" ? [weekdayOf(start)] : [],
     monthly: "day",
+    byMonthDay: [Number(start.slice(8))],
     end: { kind: "never" },
   };
 }
@@ -105,7 +140,7 @@ export function parseRule(rule: string, start: IsoDate, timeZone: string): Recur
   if (freq !== "DAILY" && freq !== "WEEKLY" && freq !== "MONTHLY" && freq !== "YEARLY") {
     return null;
   }
-  const known = new Set(["FREQ", "INTERVAL", "BYDAY", "COUNT", "UNTIL"]);
+  const known = new Set(["FREQ", "INTERVAL", "BYDAY", "BYMONTHDAY", "COUNT", "UNTIL"]);
   if ([...parts.keys()].some((key) => !known.has(key))) return null;
   const interval = Number(parts.get("INTERVAL") ?? "1");
   const byDayRaw = parts.get("BYDAY");
@@ -124,6 +159,14 @@ export function parseRule(rule: string, start: IsoDate, timeZone: string): Recur
     } else {
       return null;
     }
+  }
+  const byMonthDayRaw = parts.get("BYMONTHDAY");
+  if (byMonthDayRaw !== undefined) {
+    const days = monthDaysOf(byMonthDayRaw);
+    if (freq !== "MONTHLY" || byDayRaw !== undefined || days === null) return null;
+    spec.byMonthDay = days;
+    const startDay = Number(start.slice(8));
+    spec.monthly = days.length === 1 && days[0] === startDay ? "day" : "days";
   }
   const count = parts.get("COUNT");
   const until = parts.get("UNTIL");
@@ -145,13 +188,28 @@ export function buildRule(spec: RecurrenceSpec, start: IsoDate): string {
   if (spec.freq === "MONTHLY" && spec.monthly === "weekday") {
     parts.push(`BYDAY=${String(nthWeekdayOf(start))}${weekdayOf(start)}`);
   }
+  if (spec.freq === "MONTHLY" && spec.monthly === "days") {
+    const days = sortMonthDays(spec.byMonthDay);
+    if (days.length > 0 && !(days.length === 1 && days[0] === Number(start.slice(8)))) {
+      parts.push(`BYMONTHDAY=${days.join(",")}`);
+    }
+  }
   if (spec.end.kind === "count") parts.push(`COUNT=${String(spec.end.count)}`);
   if (spec.end.kind === "until") parts.push(`UNTIL=${spec.end.date.replaceAll("-", "")}`);
   return parts.join(";");
 }
 
-/** Describes any rule in words: "Every 2 weeks on Mon, Wed, until 31 Dec 2026". */
-export function describeRule(rule: string, start: IsoDate, timeZone: string): string {
+/**
+ * Describes any rule in words: "Every 2 weeks on Mon, Wed, until 31 Dec
+ * 2026". With `afterCompletion` (a todo whose next date counts from when it
+ * was done) it reads "Every 3 days after completion".
+ */
+export function describeRule(
+  rule: string,
+  start: IsoDate,
+  timeZone: string,
+  afterCompletion = false,
+): string {
   const parts = partsOf(rule);
   const freq = parts.get("FREQ") as Frequency | undefined;
   if (freq === undefined || !(freq in UNITS)) return "Custom repeat";
@@ -160,7 +218,10 @@ export function describeRule(rule: string, start: IsoDate, timeZone: string): st
   let text = interval === 1 ? `Every ${one}` : `Every ${String(interval)} ${many}`;
 
   const byDay = parts.get("BYDAY");
-  if (freq === "WEEKLY") {
+  const byMonthDay = monthDaysOf(parts.get("BYMONTHDAY") ?? "");
+  if (afterCompletion) {
+    text += " after completion";
+  } else if (freq === "WEEKLY") {
     const days = (byDay ?? weekdayOf(start)).split(",") as Weekday[];
     const workweek = ["MO", "TU", "WE", "TH", "FR"];
     text +=
@@ -171,10 +232,9 @@ export function describeRule(rule: string, start: IsoDate, timeZone: string): st
     const match = /^(-?\d)([A-Z]{2})$/.exec(byDay ?? "");
     const ordinal = match ? ORDINALS[match[1] ?? ""] : undefined;
     const name = match ? WEEKDAY_NAMES[match[2] as Weekday] : undefined;
-    text +=
-      ordinal !== undefined && name !== undefined
-        ? ` on the ${ordinal} ${name}`
-        : ` on day ${String(Number(start.slice(8)))}`;
+    if (ordinal !== undefined && name !== undefined) text += ` on the ${ordinal} ${name}`;
+    else if (byMonthDay !== null) text += ` on the ${joinWords(byMonthDay.map(dayOrdinal))}`;
+    else text += ` on day ${String(Number(start.slice(8)))}`;
   } else if (freq === "YEARLY") {
     text += ` on ${format(parseISO(start), "d MMM")}`;
   }

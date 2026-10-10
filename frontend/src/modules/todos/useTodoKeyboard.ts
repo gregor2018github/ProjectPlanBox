@@ -205,6 +205,15 @@ export function useTodoKeyboard(
     }),
   });
   useShortcut({
+    id: "todos.skip",
+    keys: "S",
+    description: "Skip this repeat (next date, not done)",
+    group: GROUP,
+    run: withSelected((t) => {
+      actions.skip(t);
+    }),
+  });
+  useShortcut({
     id: "todos.move",
     keys: "V",
     description: "Move to list or section",
