@@ -94,6 +94,12 @@ describe("todos", () => {
       within(await screen.findByRole("list", { name: "Completed today" })).getByText("Call mum"),
     );
     expect(await screen.findByRole("complementary", { name: "Details" })).toBeInTheDocument();
+
+    // Clicking empty space in the view closes it again.
+    await user.click(screen.getByRole("heading", { name: "Inbox", level: 1 }));
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Details" })).toBeNull();
+    });
   });
 
   it("selects with the keyboard, deletes, and undoes from the toast", async () => {

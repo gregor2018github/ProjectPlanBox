@@ -9,6 +9,7 @@ import { DndRoot } from "../ui/DndRoot";
 import { Sheet } from "../ui/Sheet";
 import { Toaster } from "../ui/Toaster";
 import { DetailPanel } from "./DetailPanel";
+import { isBackgroundClick } from "./isBackgroundClick";
 import { useModules } from "./modulesContext";
 import { RailItemHost } from "./RailItemHost";
 import { RailPane } from "./RailPane";
@@ -128,7 +129,15 @@ export function AppShell() {
               onToggleRail={toggleRail}
             />
           )}
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div
+            className="min-h-0 flex-1 overflow-y-auto"
+            onClick={(event) => {
+              // Clicking empty space in the view dismisses the detail panel.
+              if (item !== undefined && isBackgroundClick(event.target, event.currentTarget)) {
+                closeDetail();
+              }
+            }}
+          >
             <Outlet />
           </div>
         </main>

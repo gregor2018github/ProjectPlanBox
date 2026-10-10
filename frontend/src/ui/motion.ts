@@ -25,3 +25,17 @@ export const panelTransition: Transition = {
   duration: durations.slow,
   ease: easings.inOut,
 };
+
+/**
+ * Timeline of the startup splash in seconds (STYLE_GUIDE B1, the one
+ * owner-requested exception to "no page-load choreography"): the logo fades
+ * up, the tick is drawn like a pen stroke, holds, then the splash fades out.
+ */
+export const splashTimeline = {
+  logoDelay: 0.05,
+  logoDuration: 0.35,
+  tickDelay: 0.5,
+  tickDuration: 0.65,
+  hold: 0.5,
+  fadeOut: 0.45,
+} as const;

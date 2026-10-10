@@ -41,6 +41,8 @@
   /* Typography */
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
   --font-mono: "Cascadia Code", ui-monospace, Consolas, monospace;
+  /* Wordmark only (startup splash). */
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
   --text-sm: 0.8125rem;
@@ -53,6 +55,9 @@
   --text-xl--line-height: 1.75rem;
   --text-2xl: 1.5rem;
   --text-2xl--line-height: 2rem;
+  /* Wordmark only (startup splash). */
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.5rem;
 
   /* Radius */
   --radius-sm: 6px;
