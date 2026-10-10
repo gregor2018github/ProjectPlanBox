@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import { ApiClientContext } from "../core/api/apiContext";
 import { createApiClient, type ApiClient } from "../core/api/client";
+import { CalendarFeedRegistry } from "../core/calendar/feed";
+import { CalendarFeedsContext } from "../core/calendar/feedContext";
 import { CommandsContext } from "../core/commands/commandsContext";
 import { CommandRegistry } from "../core/commands/registry";
 import type { ModuleManifest } from "../core/module";
@@ -31,6 +33,7 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
   const [queries] = useState(() => queryClient ?? createQueryClient());
   const [router] = useState(() => createAppRouter({ modules, history }));
   const [commands] = useState(() => new CommandRegistry());
+  const [calendarFeeds] = useState(() => new CalendarFeedRegistry());
 
   return (
     <ApiClientContext value={client}>
@@ -42,7 +45,9 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
                 <ShortcutsProvider>
                   <UndoProvider>
                     <CommandsContext value={commands}>
-                      <RouterProvider router={router} />
+                      <CalendarFeedsContext value={calendarFeeds}>
+                        <RouterProvider router={router} />
+                      </CalendarFeedsContext>
                     </CommandsContext>
                   </UndoProvider>
                 </ShortcutsProvider>

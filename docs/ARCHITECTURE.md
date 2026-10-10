@@ -126,8 +126,17 @@ interface ModuleManifest {
   SidebarSection?: ComponentType;              // the module renders its own nav (lists, counts)
   Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
   detail?: Record<string, ComponentType<{ id: string }>>; // per entity type, for ?item=
+  rail?: { label; icon; shortcut?; Pane };     // an icon in the right-hand rail that toggles a side pane
 }
 ```
+
+**Calendar feeds** (`core/calendar/`). Modules put dated items on the
+calendar without the calendar importing them: a module's Host publishes a
+feed (`useCalendarFeed`) of entries addressed by entity ref, with
+`reschedule` and `toggleDone` callbacks; the calendar reads all feeds
+(`useCalendarFeeds`). Calendar days are drop targets carrying
+`{ kind: "date", date }`; a module's draggable reads it with
+`droppedDate(info)` (todos turn it into a due date).
 
 Modules contribute through **components rather than data**. A
 `SidebarSection` can show live counts from the query cache, and a `Host` can
@@ -503,7 +512,10 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
 - The detail panel is driven by `?item=todos.todo:<id>`. It can be deep
   linked, works with Back, and the owning module renders it.
 - Shell: collapsible sidebar (nav items from the manifests) | main |
-  optional detail panel.
+  optional detail panel | optional rail pane | icon rail (from manifests'
+  `rail`). The pane sits inline from 1280 px, floats over the content
+  between 768 and 1280 px; below 768 px the rail icons move to the top bar
+  and the pane fills the screen. The open pane is remembered per browser.
   - Width ≥ 1280 px: all three columns.
   - 768–1279 px: the detail panel overlays.
   - Under 768 px: the sidebar becomes a drawer and the detail panel a
@@ -539,6 +551,20 @@ Selection, expanded parents, todos "lingering" for 600 ms after completion
 (motion rule 4) and pending pickers (D / V) live in a tiny external store
 (`modules/todos/uiStore.ts`). The views, the detail panel and the module
 Host share it, and none of them is an ancestor of the others.
+
+### Calendar module (phase 4, brought forward)
+
+- Tables `calendar_events` (timed: UTC `start_at`/`end_at`; all-day:
+  floating `start_date`/`end_date`, end inclusive; optional `rrule`) and
+  `calendar_exceptions` (skipped occurrences keyed by local start date).
+- `GET /api/calendar/events?start=&end=` expands series server-side in the
+  configured zone (python-dateutil + tzdata), max 100 days. PATCH/DELETE
+  take `scope` = `all` | `this` | `following` plus `occurrence_date`;
+  `this` adds an exception and a detached event, `following` cuts the
+  series with UNTIL and starts a new one (`split_id` lets the client name it).
+- The frontend caches per calendar month (`['calendar','month','YYYY-MM']`).
+  Mutations patch every cached month optimistically, then refetch, since
+  only the server expands recurrence exactly.
 
 ## 9. Runtime topology
 

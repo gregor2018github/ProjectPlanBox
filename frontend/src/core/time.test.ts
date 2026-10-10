@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import {
   addDays,
+  addMonths,
   daysBetween,
   formatDayLong,
   formatDayShort,
+  formatMinutes,
   formatRelativeDay,
   isoWeekday,
+  parseMinutes,
   startOfDayUtc,
   startOfWeekOf,
   todayIn,
+  zonedInstant,
+  zonedParts,
 } from "./time";
 
 describe("todayIn", () => {
@@ -64,5 +69,37 @@ describe("day arithmetic", () => {
     expect(formatRelativeDay("2026-10-12", today)).toBe("Monday");
     expect(formatRelativeDay("2026-10-20", today)).toBe("Tue 20 Oct");
     expect(formatRelativeDay("2027-01-04", today)).toBe("4 Jan 2027");
+  });
+});
+
+describe("zoned times", () => {
+  it("reads an instant as local date and minutes", () => {
+    expect(zonedParts("2026-10-08T07:30:00.000Z", "Europe/Amsterdam")).toEqual({
+      date: "2026-10-08",
+      minutes: 9 * 60 + 30,
+    });
+    expect(zonedParts("2026-10-08T22:30:00.000Z", "Europe/Amsterdam").date).toBe("2026-10-09");
+  });
+
+  it("builds instants from local wall-clock time across DST", () => {
+    expect(zonedInstant("2026-10-24", 9 * 60, "Europe/Amsterdam")).toBe("2026-10-24T07:00:00.000Z");
+    expect(zonedInstant("2026-10-26", 9 * 60, "Europe/Amsterdam")).toBe("2026-10-26T08:00:00.000Z");
+    // Minutes past midnight roll into the next day.
+    expect(zonedInstant("2026-10-24", 1440 + 60, "Europe/Amsterdam")).toBe(
+      zonedInstant("2026-10-25", 60, "Europe/Amsterdam"),
+    );
+  });
+
+  it("formats and parses times of day", () => {
+    expect(formatMinutes(9 * 60 + 5)).toBe("09:05");
+    expect(formatMinutes(1440)).toBe("24:00");
+    expect(parseMinutes("9:05")).toBe(545);
+    expect(parseMinutes("24:00")).toBeNull();
+    expect(parseMinutes("nine")).toBeNull();
+  });
+
+  it("adds months and clamps the day", () => {
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+    expect(addMonths("2026-10-10", -10)).toBe("2025-12-10");
   });
 });

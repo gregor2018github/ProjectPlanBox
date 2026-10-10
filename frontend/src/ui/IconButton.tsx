@@ -12,6 +12,8 @@ export interface IconButtonProps extends Omit<ComponentPropsWithRef<"button">, "
   /** Key spec shown in the tooltip. */
   shortcut?: string | undefined;
   tooltipSide?: "top" | "bottom" | "left" | "right";
+  /** Makes it a toggle button (aria-pressed) and highlights it while on. */
+  pressed?: boolean;
 }
 
 /** An icon-only ghost button with an accessible name and a tooltip. */
@@ -20,6 +22,7 @@ export function IconButton({
   icon: Icon,
   shortcut,
   tooltipSide,
+  pressed,
   className,
   type = "button",
   ...props
@@ -29,8 +32,10 @@ export function IconButton({
       <button
         type={type}
         aria-label={label}
+        {...(pressed !== undefined && { "aria-pressed": pressed })}
         className={cx(
           "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors duration-(--duration-fast) ease-out hover:bg-hover hover:text-text coarse:size-11",
+          pressed === true && "bg-selected text-text",
           className,
         )}
         {...props}

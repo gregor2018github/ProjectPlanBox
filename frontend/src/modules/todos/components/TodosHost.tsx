@@ -8,6 +8,7 @@ import { todoPaths } from "../paths";
 import { INBOX, type Placement } from "../types";
 import { todoUi } from "../uiStore";
 import { useContainerActions } from "../useContainerActions";
+import { useTodoCalendarFeed } from "../useTodoCalendarFeed";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 import { NameDialog } from "./NameDialog";
@@ -27,6 +28,7 @@ export function TodosHost() {
   const data = useTodoData();
   const actions = useTodoActions();
   const containers = useContainerActions();
+  useTodoCalendarFeed(data, actions);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [quickAdd, setQuickAdd] = useState<QuickAddTarget | null>(null);

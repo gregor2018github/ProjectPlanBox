@@ -245,7 +245,7 @@ Pydantic resolve string annotations at runtime.
 - `scripts/package.py` and the release zip.
 - CI on Python 3.12.10 and 3.14 with Node 24, plus releases from `v*` tags.
 
-## Phase 4 (brought forward): Calendar (2026-10-10)
+## Phase 4 (brought forward): Calendar. Built 2026-10-10
 
 The owner asked for the calendar before phases 2 and 3. Knowledge and Search
 keep their numbers and scope and come next. The calendar shows todo due dates

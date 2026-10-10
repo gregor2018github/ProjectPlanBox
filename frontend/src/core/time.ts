@@ -6,6 +6,7 @@
 import { TZDate } from "@date-fns/tz";
 import {
   addDays as addDaysFns,
+  addMonths as addMonthsFns,
   differenceInCalendarDays,
   format,
   parseISO,
@@ -72,4 +73,58 @@ export function formatRelativeDay(date: IsoDate, today: IsoDate): string {
   if (diff > 1 && diff < 7) return format(parseISO(date), "EEEE");
   const sameYear = date.slice(0, 4) === today.slice(0, 4);
   return format(parseISO(date), sameYear ? "EEE d MMM" : "d MMM yyyy");
+}
+
+/** Minutes in a day; a time of day is minutes since local midnight (0..1440). */
+export const MINUTES_PER_DAY = 1440;
+
+/** Where an instant falls in `timeZone`: the local date and minutes since midnight. */
+export function zonedParts(instant: string, timeZone: string): { date: IsoDate; minutes: number } {
+  const local = new TZDate(new Date(instant).getTime(), timeZone);
+  return {
+    date: format(local, "yyyy-MM-dd"),
+    minutes: local.getHours() * 60 + local.getMinutes(),
+  };
+}
+
+/**
+ * The UTC instant (ISO-8601 with ms and Z) at `minutes` past local midnight
+ * of `date` in `timeZone`. Minutes may run past 1440 into the next days.
+ */
+export function zonedInstant(date: IsoDate, minutes: number, timeZone: string): string {
+  const [year, month, day] = date.split("-").map(Number) as [number, number, number];
+  const local = new TZDate(year, month - 1, day, 0, minutes, timeZone);
+  return new Date(local.getTime()).toISOString();
+}
+
+/** Formats minutes since midnight as 24-hour "09:05" (1440 shows as "24:00"). */
+export function formatMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Parses "9:05" or "09:05" into minutes since midnight, or null. */
+export function parseMinutes(text: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+  if (!match) return null;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (h > 23 || m > 59) return null;
+  return h * 60 + m;
+}
+
+/** The first day of the month containing `date`. */
+export function startOfMonthOf(date: IsoDate): IsoDate {
+  return `${date.slice(0, 7)}-01`;
+}
+
+/** Moves a date by whole months, clamping the day (31 Jan + 1 month = 28/29 Feb). */
+export function addMonths(date: IsoDate, months: number): IsoDate {
+  return format(addMonthsFns(parseISO(date), months), "yyyy-MM-dd");
+}
+
+/** Formats a month as "October 2026". */
+export function formatMonth(date: IsoDate): string {
+  return format(parseISO(date), "MMMM yyyy");
 }

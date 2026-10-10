@@ -3,7 +3,8 @@
  * Adding a module means adding one entry here and touching no other module.
  */
 import type { ModuleManifest } from "../core/module";
+import { calendarModule } from "./calendar";
 import { todosModule } from "./todos";
 
 /** Every enabled module, in sidebar order. */
-export const MODULES: readonly ModuleManifest[] = [todosModule];
+export const MODULES: readonly ModuleManifest[] = [todosModule, calendarModule];

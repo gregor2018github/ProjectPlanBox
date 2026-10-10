@@ -10,23 +10,31 @@ import { Sheet } from "../ui/Sheet";
 import { Toaster } from "../ui/Toaster";
 import { DetailPanel } from "./DetailPanel";
 import { useModules } from "./modulesContext";
+import { RailItemHost } from "./RailItemHost";
+import { RailPane } from "./RailPane";
+import { RightRail } from "./RightRail";
 import { ShutdownDialog } from "./ShutdownDialog";
 import { Sidebar } from "./Sidebar";
 import { SidebarContent } from "./SidebarContent";
 import { StoppedScreen } from "./StoppedScreen";
 import { TopBar } from "./TopBar";
 import { useShellCommands } from "./useShellCommands";
+import { useRailPane } from "./useRailPane";
 import { useSidebarCollapsed } from "./useSidebarCollapsed";
 
 /**
- * The root layout: sidebar | main | optional detail panel, plus the global
- * hosts (palette, shortcut overview, toasts) and every module's Host.
- * After a shutdown it is replaced by the stopped screen.
+ * The root layout: sidebar | main | optional detail panel | optional rail
+ * pane | icon rail, plus the global hosts (palette, shortcut overview,
+ * toasts) and every module's Host. After a shutdown it is replaced by the
+ * stopped screen.
  */
 export function AppShell() {
   const modules = useModules();
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
+  const [railOpen, toggleRail, closeRail] = useRailPane();
+  const railModules = modules.filter((m) => m.rail !== undefined);
+  const openPane = railModules.find((m) => m.id === railOpen);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Close the navigation sheet once the user has navigated somewhere.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -90,7 +98,7 @@ export function AppShell() {
 
   return (
     <DndRoot>
-      <div className="flex h-full overflow-hidden bg-bg">
+      <div className="relative flex h-full overflow-hidden bg-bg">
         {isDesktop ? (
           <Sidebar
             collapsed={collapsed}
@@ -111,14 +119,37 @@ export function AppShell() {
           </Sheet>
         )}
         <main className="flex min-w-0 flex-1 flex-col">
-          {showTopBar && <TopBar onToggleSidebar={toggleSidebar} isDesktop={isDesktop} />}
+          {showTopBar && (
+            <TopBar
+              onToggleSidebar={toggleSidebar}
+              isDesktop={isDesktop}
+              railModules={isDesktop ? [] : railModules}
+              railOpen={railOpen}
+              onToggleRail={toggleRail}
+            />
+          )}
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Outlet />
           </div>
         </main>
         <DetailPanel item={item} onClose={closeDetail} />
+        <RailPane module={openPane} onClose={closeRail} />
+        {isDesktop && railModules.length > 0 && (
+          <RightRail modules={railModules} openId={railOpen} onToggle={toggleRail} />
+        )}
 
         {modules.map((module) => module.Host && <module.Host key={module.id} />)}
+        {railModules.map(
+          (module) =>
+            module.rail && (
+              <RailItemHost
+                key={module.id}
+                id={module.id}
+                item={module.rail}
+                onToggle={toggleRail}
+              />
+            ),
+        )}
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
         <ShutdownDialog open={shutdownOpen} onOpenChange={setShutdownOpen} onStopped={stop} />

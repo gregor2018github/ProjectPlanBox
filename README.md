@@ -8,8 +8,11 @@ will come later.
 
 > **Status:** phase 1 (todos) is done. That covers areas, lists, sections,
 > todos and subtasks, plus Today, Upcoming and Logbook, quick-add, keyboard
-> control, drag and drop and undo. Knowledge collections come next. See
-> [docs/PLAN.md](docs/PLAN.md).
+> control, drag and drop and undo. The calendar (phase 4, brought forward)
+> is built too: the calendar icon on the right edge (or `C`) opens a pane
+> with a mini month and agenda; `G C` opens month/week/day views. Events can
+> repeat, and dated todos show up and can be dragged onto days. Knowledge
+> collections come next. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 

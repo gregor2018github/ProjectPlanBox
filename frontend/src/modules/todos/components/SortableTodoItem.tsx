@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
+import { droppedDate } from "../../../core/calendar/dateDrop";
 import { cx } from "../../../ui/cx";
 import { useSortableItem } from "../../../ui/dnd";
 import { durations, easings, springs } from "../../../ui/motion";
@@ -44,6 +45,12 @@ export function SortableTodoItem({
     disabled: group === null,
     data: { ...data },
     onDragEnd: (info) => {
+      // Dropped on a calendar day: that becomes the due date.
+      const date = droppedDate(info);
+      if (date !== null) {
+        if (todo.due_date !== date) actions.setDue(todo, date);
+        return;
+      }
       const move = resolveTodoDrop(todo.id, info);
       if (move) actions.move(todo, move.target, move.before_id, move.after_id);
     },

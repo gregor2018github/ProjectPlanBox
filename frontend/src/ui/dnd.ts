@@ -5,7 +5,7 @@
  * Each draggable carries its own `onDragEnd` in its data; {@link DndRoot}
  * calls it with a library-neutral {@link DropInfo}.
  */
-import { useDroppable } from "@dnd-kit/react";
+import { useDraggable, useDroppable } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 
 /** What happened when a drag ended. */
@@ -59,4 +59,23 @@ export interface DropTargetOptions {
 export function useDropTarget({ id, accept, data, disabled = false }: DropTargetOptions) {
   const { ref, isDropTarget } = useDroppable({ id, accept, data, disabled });
   return { ref, isDropTarget };
+}
+
+/** Options for {@link useDragItem}. */
+export interface DragItemOptions {
+  id: string;
+  /** Drop targets accept items by type. */
+  type: string;
+  disabled?: boolean;
+  data?: Record<string, unknown>;
+  onDragEnd: DragEndHandler;
+}
+
+/**
+ * Makes an element draggable without sorting (e.g. an event chip moved to
+ * another calendar day); spread `ref` on it.
+ */
+export function useDragItem({ id, type, disabled = false, data, onDragEnd }: DragItemOptions) {
+  const { ref, isDragging } = useDraggable({ id, type, disabled, data: { ...data, onDragEnd } });
+  return { ref, isDragging };
 }

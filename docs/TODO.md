@@ -39,3 +39,13 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
 - [ ] Off-machine backups. Backups currently live inside `private_data/`, so
       they do not survive losing that folder or the disk. Planned for phase 8;
       bring it forward if daily use starts before then.
+
+## Calendar follow-ups (deferred from phase 4)
+
+- [ ] Replace the native date/time inputs in the event dialog with our own
+      fields: Chrome shows them in the browser locale (e.g. `10/07/2026`,
+      `02:00 PM`) instead of `Wed 7 Oct` and 24-hour time.
+- [ ] Multi-day all-day events as bars spanning the month grid (now a chip per day).
+- [ ] Touch: moving timed events by dragging (touch uses the dialog; a tap opens/creates).
+- [ ] Undoing a "this and following" change does not re-attach exceptions moved to the new series.
+- [ ] Reminders/notifications; Google Calendar import (see connectors above).
