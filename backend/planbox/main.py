@@ -21,6 +21,7 @@ from planbox.core.lifecycle.service import ShutdownHook
 from planbox.core.links.router import router as links_router
 from planbox.core.meta.router import router as meta_router
 from planbox.core.module import Module
+from planbox.core.search.router import router as search_router
 from planbox.core.tags.router import router as tags_router
 from planbox.modules import ENABLED_MODULES
 
@@ -119,6 +120,7 @@ def create_app(
     app.include_router(lifecycle_router, prefix="/api")
     app.include_router(tags_router, prefix="/api")
     app.include_router(links_router, prefix="/api")
+    app.include_router(search_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

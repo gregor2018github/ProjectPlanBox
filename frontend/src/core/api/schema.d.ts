@@ -356,6 +356,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description Live items whose title or text contains every word, best first.
+         */
+        get: operations["core_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/shutdown": {
         parameters: {
             query?: never;
@@ -1386,6 +1406,32 @@ export interface components {
             name: string;
         };
         /**
+         * SearchHitOut
+         * @description One search result.
+         */
+        SearchHitOut: {
+            /**
+             * Hint
+             * @description Short context from the owning module, e.g. 'Done · Groceries'.
+             */
+            hint: string;
+            /**
+             * Ref
+             * @description Entity reference, e.g. 'todos.todo:<id>'.
+             */
+            ref: string;
+            /**
+             * Snippet
+             * @description An excerpt of the text around the match, marked like the title (empty when the item has no text).
+             */
+            snippet: string;
+            /**
+             * Title
+             * @description The title; matched terms sit between U+E000 and U+E001.
+             */
+            title: string;
+        };
+        /**
          * SectionCreate
          * @description Create a section in a list (at the end unless neighbours are given).
          */
@@ -2388,6 +2434,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetaOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_search: {
+        parameters: {
+            query?: {
+                /** @description Words to find (prefix match). */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchHitOut"][];
                 };
             };
             /** @description Problem details */

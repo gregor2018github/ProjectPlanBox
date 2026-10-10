@@ -426,14 +426,44 @@ def _update(
     )
 
 
-def summarize_todos(conn: sqlite3.Connection, ids: Sequence[str]) -> dict[str, tuple[str, bool]]:
-    """Title and deleted flag per todo id (for core tags/links/search)."""
-    result: dict[str, tuple[str, bool]] = {}
+def summarize_todos(
+    conn: sqlite3.Connection, ids: Sequence[str]
+) -> dict[str, tuple[str, bool, str]]:
+    """Title, deleted flag and context hint per todo id (for core tags/links/search).
+
+    The hint is the list name (or "Inbox"), prefixed with "Done · " once completed.
+    """
+    result: dict[str, tuple[str, bool, str]] = {}
     for chunk in _chunks(ids):
         rows = conn.execute(
-            f"SELECT id, title, deleted_at FROM todos WHERE id IN ({_marks(chunk)})",  # noqa: S608
+            "SELECT t.id, t.title, t.deleted_at, t.completed_at, l.name AS list_name "  # noqa: S608
+            "FROM todos t LEFT JOIN todos_lists l ON l.id = t.list_id "
+            f"WHERE t.id IN ({_marks(chunk)})",
             chunk,
         ).fetchall()
         for r in rows:
-            result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None)
+            place = "Inbox" if r["list_name"] is None else str(r["list_name"])
+            hint = place if r["completed_at"] is None else f"Done · {place}"
+            result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None, hint)
     return result
+
+
+def todo_search_rows(
+    conn: sqlite3.Connection, since: str | None
+) -> list[tuple[str, str, str, bool, str]]:
+    """``(id, title, notes, deleted, updated_at)`` of todos changed at or after ``since``."""
+    rows = conn.execute(
+        "SELECT id, title, notes, deleted_at, updated_at FROM todos "
+        "WHERE :since IS NULL OR updated_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [
+        (
+            str(r["id"]),
+            str(r["title"]),
+            str(r["notes"]),
+            r["deleted_at"] is not None,
+            str(r["updated_at"]),
+        )
+        for r in rows
+    ]

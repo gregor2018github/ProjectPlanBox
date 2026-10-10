@@ -42,9 +42,24 @@ class EntitySummary:
 
     title: str
     deleted: bool
+    hint: str = ""
+    """Short context for search hits, e.g. ``Done · Groceries`` (may be empty)."""
+
+
+@dataclass(frozen=True, slots=True)
+class SearchDocument:
+    """What the search index stores for one entity (live or deleted)."""
+
+    id: str
+    title: str
+    body: str
+    deleted: bool
+    updated_at: str
 
 
 type Summarizer = Callable[[sqlite3.Connection, Sequence[str]], Mapping[str, EntitySummary]]
+type DocumentSource = Callable[[sqlite3.Connection, str | None], Iterable[SearchDocument]]
+"""Documents whose ``updated_at`` is at or after the given instant (all for ``None``)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,10 +69,13 @@ class EntityType:
     Attributes:
         name: ``<module_id>.<kind>``, e.g. ``todos.todo``.
         summarize: Looks up summaries for a batch of ids; unknown ids are omitted.
+        documents: Feeds the search index. Every write must bump ``updated_at``
+            (soft deletes included) so the index picks the change up.
     """
 
     name: str
     summarize: Summarizer
+    documents: DocumentSource | None = None
 
     def __post_init__(self) -> None:
         if _TYPE_RE.fullmatch(self.name) is None:

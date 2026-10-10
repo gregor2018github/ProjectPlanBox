@@ -1343,6 +1343,39 @@
         "title": "Rename",
         "type": "object"
       },
+      "SearchHitOut": {
+        "description": "One search result.",
+        "properties": {
+          "hint": {
+            "description": "Short context from the owning module, e.g. 'Done · Groceries'.",
+            "title": "Hint",
+            "type": "string"
+          },
+          "ref": {
+            "description": "Entity reference, e.g. 'todos.todo:<id>'.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "snippet": {
+            "description": "An excerpt of the text around the match, marked like the title (empty when the item has no text).",
+            "title": "Snippet",
+            "type": "string"
+          },
+          "title": {
+            "description": "The title; matched terms sit between U+E000 and U+E001.",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "title",
+          "snippet",
+          "hint"
+        ],
+        "title": "SearchHitOut",
+        "type": "object"
+      },
       "SectionCreate": {
         "description": "Create a section in a list (at the end unless neighbours are given).",
         "properties": {
@@ -3096,6 +3129,69 @@
           }
         },
         "summary": "Get Meta",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/search": {
+      "get": {
+        "description": "Live items whose title or text contains every word, best first.",
+        "operationId": "core_search",
+        "parameters": [
+          {
+            "description": "Words to find (prefix match).",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "description": "Words to find (prefix match).",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SearchHitOut"
+                  },
+                  "title": "Response Core Search",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Search",
         "tags": [
           "core"
         ]

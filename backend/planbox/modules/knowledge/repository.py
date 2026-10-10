@@ -179,16 +179,52 @@ def _update(
     )
 
 
-def summarize_entries(conn: sqlite3.Connection, ids: Sequence[str]) -> dict[str, tuple[str, bool]]:
-    """Title and deleted flag per entry id (for core tags/links/search)."""
-    result: dict[str, tuple[str, bool]] = {}
+_KIND_LABELS = {"note": "Note", "link": "Link", "snippet": "Snippet"}
+
+
+def summarize_entries(
+    conn: sqlite3.Connection, ids: Sequence[str]
+) -> dict[str, tuple[str, bool, str]]:
+    """Title, deleted flag and context hint per entry id (for core tags/links/search).
+
+    The hint is the kind and the collection, e.g. "Link · Recipes".
+    """
+    result: dict[str, tuple[str, bool, str]] = {}
     for start in range(0, len(ids), 500):
         chunk = list(ids[start : start + 500])
         rows = conn.execute(
-            "SELECT id, title, deleted_at FROM knowledge_entries "  # noqa: S608
-            f"WHERE id IN ({','.join('?' * len(chunk))})",
+            "SELECT e.id, e.title, e.kind, e.deleted_at, c.name AS collection_name "  # noqa: S608
+            "FROM knowledge_entries e "
+            "LEFT JOIN knowledge_collections c ON c.id = e.collection_id "
+            f"WHERE e.id IN ({','.join('?' * len(chunk))})",
             chunk,
         ).fetchall()
         for r in rows:
-            result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None)
+            place = "Unsorted" if r["collection_name"] is None else str(r["collection_name"])
+            hint = f"{_KIND_LABELS.get(str(r['kind']), 'Entry')} · {place}"
+            result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None, hint)
     return result
+
+
+def entry_search_rows(
+    conn: sqlite3.Connection, since: str | None
+) -> list[tuple[str, str, str, bool, str]]:
+    """``(id, title, text, deleted, updated_at)`` of entries changed at or after ``since``.
+
+    The text is the body, plus the address for links.
+    """
+    rows = conn.execute(
+        "SELECT id, title, body, url, deleted_at, updated_at FROM knowledge_entries "
+        "WHERE :since IS NULL OR updated_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [
+        (
+            str(r["id"]),
+            str(r["title"]),
+            str(r["body"]) if r["url"] is None else f"{r['url']}\n{r['body']}",
+            r["deleted_at"] is not None,
+            str(r["updated_at"]),
+        )
+        for r in rows
+    ]
