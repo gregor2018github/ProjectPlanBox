@@ -18,6 +18,7 @@ from planbox.core.entities import EntityRegistry
 from planbox.core.errors import NotFound, Problem, install_error_handlers
 from planbox.core.lifecycle.router import router as lifecycle_router
 from planbox.core.lifecycle.service import ShutdownHook
+from planbox.core.links.router import router as links_router
 from planbox.core.meta.router import router as meta_router
 from planbox.core.module import Module
 from planbox.core.tags.router import router as tags_router
@@ -117,6 +118,7 @@ def create_app(
     app.include_router(meta_router, prefix="/api")
     app.include_router(lifecycle_router, prefix="/api")
     app.include_router(tags_router, prefix="/api")
+    app.include_router(links_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

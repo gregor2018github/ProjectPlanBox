@@ -114,6 +114,108 @@
         "title": "CalendarRangeOut",
         "type": "object"
       },
+      "CollectionCreate": {
+        "description": "Create a collection at the end; send a client ``id`` for idempotent, optimistic creates.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CollectionCreate",
+        "type": "object"
+      },
+      "CollectionMove": {
+        "description": "Reorder a collection between two neighbours (either may be omitted).",
+        "properties": {
+          "after_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Id"
+          },
+          "before_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Id"
+          }
+        },
+        "title": "CollectionMove",
+        "type": "object"
+      },
+      "CollectionOut": {
+        "description": "A collection of entries.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "position",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CollectionOut",
+        "type": "object"
+      },
+      "CollectionRename": {
+        "description": "Rename a collection.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CollectionRename",
+        "type": "object"
+      },
       "DeletedOut": {
         "description": "What a (cascading) soft delete or its restore touched.",
         "properties": {
@@ -146,6 +248,241 @@
           "todos"
         ],
         "title": "DeletedOut",
+        "type": "object"
+      },
+      "EntryCreate": {
+        "description": "Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.",
+        "properties": {
+          "body": {
+            "default": "",
+            "title": "Body",
+            "type": "string"
+          },
+          "collection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Id"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/Kind"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "tag_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tag Ids",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "kind",
+          "title"
+        ],
+        "title": "EntryCreate",
+        "type": "object"
+      },
+      "EntryOut": {
+        "description": "A note, link or snippet. ``collection_id`` null means Unsorted.",
+        "properties": {
+          "body": {
+            "description": "Note text, link description or snippet code.",
+            "title": "Body",
+            "type": "string"
+          },
+          "collection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Id"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/Kind"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Snippets only, e.g. python.",
+            "title": "Language"
+          },
+          "tag_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tag Ids",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Links only: an http(s) address.",
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "collection_id",
+          "kind",
+          "title",
+          "body",
+          "url",
+          "language",
+          "created_at",
+          "updated_at",
+          "tag_ids"
+        ],
+        "title": "EntryOut",
+        "type": "object"
+      },
+      "EntryPatch": {
+        "description": "Partial update: absent fields stay unchanged, ``null`` clears (language, collection).",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "collection_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Id"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "tag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Ids"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "EntryPatch",
         "type": "object"
       },
       "EventCreate": {
@@ -542,6 +879,142 @@
           "schema_versions"
         ],
         "title": "HealthOut",
+        "type": "object"
+      },
+      "Kind": {
+        "enum": [
+          "note",
+          "link",
+          "snippet"
+        ],
+        "type": "string"
+      },
+      "KnowledgeDeletedOut": {
+        "description": "What a delete (or its restore) touched; restore by id to undo.",
+        "properties": {
+          "collections": {
+            "title": "Collections",
+            "type": "integer"
+          },
+          "deleted_at": {
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "entries": {
+            "title": "Entries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted_at",
+          "collections",
+          "entries"
+        ],
+        "title": "KnowledgeDeletedOut",
+        "type": "object"
+      },
+      "LinkCreate": {
+        "description": "Link two entities; send a client-generated ``id`` for idempotent, optimistic creates.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "source": {
+            "description": "Entity reference of the linking item.",
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "description": "Entity reference of the linked item.",
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ],
+        "title": "LinkCreate",
+        "type": "object"
+      },
+      "LinkDeletedOut": {
+        "description": "Result of a soft delete; restore by id to undo.",
+        "properties": {
+          "deleted_at": {
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "deleted_at"
+        ],
+        "title": "LinkDeletedOut",
+        "type": "object"
+      },
+      "LinkEndOut": {
+        "description": "One end of a link.",
+        "properties": {
+          "deleted": {
+            "description": "True when the entity is deleted (or no longer known).",
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "ref": {
+            "description": "Entity reference, e.g. 'todos.todo:<id>'.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "title",
+          "deleted"
+        ],
+        "title": "LinkEndOut",
+        "type": "object"
+      },
+      "LinkOut": {
+        "description": "A link with both ends summarised.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/LinkEndOut"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LinkEndOut"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "created_at"
+        ],
+        "title": "LinkOut",
         "type": "object"
       },
       "ListCreate": {
@@ -1888,6 +2361,660 @@
           }
         },
         "summary": "Get Health",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/knowledge/collections": {
+      "get": {
+        "description": "All live collections in order.",
+        "operationId": "knowledge_list_collections",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionOut"
+                  },
+                  "title": "Response Knowledge List Collections",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Collections",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "post": {
+        "description": "Creates a collection at the end (idempotent per client id).",
+        "operationId": "knowledge_create_collection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Create Collection",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/collections/{collection_id}": {
+      "delete": {
+        "description": "Deletes a collection with its entries (undo with restore).",
+        "operationId": "knowledge_delete_collection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection_id",
+            "required": true,
+            "schema": {
+              "title": "Collection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDeletedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Delete Collection",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "patch": {
+        "description": "Renames a collection.",
+        "operationId": "knowledge_rename_collection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection_id",
+            "required": true,
+            "schema": {
+              "title": "Collection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionRename"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Rename Collection",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/collections/{collection_id}/move": {
+      "post": {
+        "description": "Reorders a collection.",
+        "operationId": "knowledge_move_collection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection_id",
+            "required": true,
+            "schema": {
+              "title": "Collection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionMove"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Move Collection",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/collections/{collection_id}/restore": {
+      "post": {
+        "description": "Undoes a collection delete.",
+        "operationId": "knowledge_restore_collection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection_id",
+            "required": true,
+            "schema": {
+              "title": "Collection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDeletedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Restore Collection",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/entries": {
+      "get": {
+        "description": "Every live entry, most recently changed first.",
+        "operationId": "knowledge_list_entries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EntryOut"
+                  },
+                  "title": "Response Knowledge List Entries",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Entries",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "post": {
+        "description": "Creates a note, link or snippet (idempotent per client id).",
+        "operationId": "knowledge_create_entry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Create Entry",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/entries/{entry_id}": {
+      "delete": {
+        "description": "Deletes an entry (undo with restore).",
+        "operationId": "knowledge_delete_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDeletedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Delete Entry",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "patch": {
+        "description": "Changes the fields present in the body.",
+        "operationId": "knowledge_update_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Update Entry",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/entries/{entry_id}/restore": {
+      "post": {
+        "description": "Undoes a delete.",
+        "operationId": "knowledge_restore_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Restore Entry",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/links": {
+      "get": {
+        "description": "Live links from and to one entity, oldest first.",
+        "operationId": "core_list_links",
+        "parameters": [
+          {
+            "description": "Entity reference, e.g. 'todos.todo:<id>'.",
+            "in": "query",
+            "name": "entity",
+            "required": true,
+            "schema": {
+              "description": "Entity reference, e.g. 'todos.todo:<id>'.",
+              "title": "Entity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LinkOut"
+                  },
+                  "title": "Response Core List Links",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Links",
+        "tags": [
+          "core"
+        ]
+      },
+      "post": {
+        "description": "Links two entities (idempotent per client id).",
+        "operationId": "core_create_link",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Create Link",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/links/{link_id}": {
+      "delete": {
+        "description": "Removes a link (undo with restore).",
+        "operationId": "core_delete_link",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkDeletedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Delete Link",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/links/{link_id}/restore": {
+      "post": {
+        "description": "Undoes a delete.",
+        "operationId": "core_restore_link",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Restore Link",
         "tags": [
           "core"
         ]

@@ -4,6 +4,7 @@ import dataclasses
 import sqlite3
 from collections.abc import Mapping, Sequence
 
+from planbox.core.placement import Positions
 from planbox.modules.todos.models import Area, Section, Todo, TodoList
 
 _AREA = "id, name, position, created_at, updated_at, deleted_at"
@@ -16,9 +17,6 @@ _TODO = (
 _TODO_EDITABLE = frozenset(
     {"title", "notes", "priority", "due_date", "list_id", "section_id", "parent_id", "position"}
 )
-
-type Positions = list[tuple[str, str]]
-"""(id, position) pairs in display order."""
 
 
 def _positions(rows: Sequence[sqlite3.Row]) -> Positions:

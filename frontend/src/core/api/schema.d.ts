@@ -116,6 +116,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/knowledge/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Collections
+         * @description All live collections in order.
+         */
+        get: operations["knowledge_list_collections"];
+        put?: never;
+        /**
+         * Create Collection
+         * @description Creates a collection at the end (idempotent per client id).
+         */
+        post: operations["knowledge_create_collection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/collections/{collection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Collection
+         * @description Deletes a collection with its entries (undo with restore).
+         */
+        delete: operations["knowledge_delete_collection"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename Collection
+         * @description Renames a collection.
+         */
+        patch: operations["knowledge_rename_collection"];
+        trace?: never;
+    };
+    "/api/knowledge/collections/{collection_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move Collection
+         * @description Reorders a collection.
+         */
+        post: operations["knowledge_move_collection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/collections/{collection_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Collection
+         * @description Undoes a collection delete.
+         */
+        post: operations["knowledge_restore_collection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Entries
+         * @description Every live entry, most recently changed first.
+         */
+        get: operations["knowledge_list_entries"];
+        put?: never;
+        /**
+         * Create Entry
+         * @description Creates a note, link or snippet (idempotent per client id).
+         */
+        post: operations["knowledge_create_entry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Entry
+         * @description Deletes an entry (undo with restore).
+         */
+        delete: operations["knowledge_delete_entry"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Entry
+         * @description Changes the fields present in the body.
+         */
+        patch: operations["knowledge_update_entry"];
+        trace?: never;
+    };
+    "/api/knowledge/entries/{entry_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Entry
+         * @description Undoes a delete.
+         */
+        post: operations["knowledge_restore_entry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Links
+         * @description Live links from and to one entity, oldest first.
+         */
+        get: operations["core_list_links"];
+        put?: never;
+        /**
+         * Create Link
+         * @description Links two entities (idempotent per client id).
+         */
+        post: operations["core_create_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links/{link_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Link
+         * @description Removes a link (undo with restore).
+         */
+        delete: operations["core_delete_link"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/links/{link_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Link
+         * @description Undoes a delete.
+         */
+        post: operations["core_restore_link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meta": {
         parameters: {
             query?: never;
@@ -687,6 +907,50 @@ export interface components {
             occurrences: components["schemas"]["OccurrenceOut"][];
         };
         /**
+         * CollectionCreate
+         * @description Create a collection at the end; send a client ``id`` for idempotent, optimistic creates.
+         */
+        CollectionCreate: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * CollectionMove
+         * @description Reorder a collection between two neighbours (either may be omitted).
+         */
+        CollectionMove: {
+            /** After Id */
+            after_id?: string | null;
+            /** Before Id */
+            before_id?: string | null;
+        };
+        /**
+         * CollectionOut
+         * @description A collection of entries.
+         */
+        CollectionOut: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * CollectionRename
+         * @description Rename a collection.
+         */
+        CollectionRename: {
+            /** Name */
+            name: string;
+        };
+        /**
          * DeletedOut
          * @description What a (cascading) soft delete or its restore touched.
          */
@@ -701,6 +965,82 @@ export interface components {
             sections: number;
             /** Todos */
             todos: number;
+        };
+        /**
+         * EntryCreate
+         * @description Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.
+         */
+        EntryCreate: {
+            /**
+             * Body
+             * @default
+             */
+            body?: string;
+            /** Collection Id */
+            collection_id?: string | null;
+            /** Id */
+            id?: string | null;
+            kind: components["schemas"]["Kind"];
+            /** Language */
+            language?: string | null;
+            /** Tag Ids */
+            tag_ids?: string[];
+            /** Title */
+            title: string;
+            /** Url */
+            url?: string | null;
+        };
+        /**
+         * EntryOut
+         * @description A note, link or snippet. ``collection_id`` null means Unsorted.
+         */
+        EntryOut: {
+            /**
+             * Body
+             * @description Note text, link description or snippet code.
+             */
+            body: string;
+            /** Collection Id */
+            collection_id: string | null;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["Kind"];
+            /**
+             * Language
+             * @description Snippets only, e.g. python.
+             */
+            language: string | null;
+            /** Tag Ids */
+            tag_ids: string[];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /**
+             * Url
+             * @description Links only: an http(s) address.
+             */
+            url: string | null;
+        };
+        /**
+         * EntryPatch
+         * @description Partial update: absent fields stay unchanged, ``null`` clears (language, collection).
+         */
+        EntryPatch: {
+            /** Body */
+            body?: string | null;
+            /** Collection Id */
+            collection_id?: string | null;
+            /** Language */
+            language?: string | null;
+            /** Tag Ids */
+            tag_ids?: string[] | null;
+            /** Title */
+            title?: string | null;
+            /** Url */
+            url?: string | null;
         };
         /**
          * EventCreate
@@ -834,6 +1174,78 @@ export interface components {
             status: "ok" | "degraded";
             /** Version */
             version: string;
+        };
+        /** @enum {string} */
+        Kind: "note" | "link" | "snippet";
+        /**
+         * KnowledgeDeletedOut
+         * @description What a delete (or its restore) touched; restore by id to undo.
+         */
+        KnowledgeDeletedOut: {
+            /** Collections */
+            collections: number;
+            /** Deleted At */
+            deleted_at: string;
+            /** Entries */
+            entries: number;
+        };
+        /**
+         * LinkCreate
+         * @description Link two entities; send a client-generated ``id`` for idempotent, optimistic creates.
+         */
+        LinkCreate: {
+            /** Id */
+            id?: string | null;
+            /**
+             * Source
+             * @description Entity reference of the linking item.
+             */
+            source: string;
+            /**
+             * Target
+             * @description Entity reference of the linked item.
+             */
+            target: string;
+        };
+        /**
+         * LinkDeletedOut
+         * @description Result of a soft delete; restore by id to undo.
+         */
+        LinkDeletedOut: {
+            /** Deleted At */
+            deleted_at: string;
+            /** Id */
+            id: string;
+        };
+        /**
+         * LinkEndOut
+         * @description One end of a link.
+         */
+        LinkEndOut: {
+            /**
+             * Deleted
+             * @description True when the entity is deleted (or no longer known).
+             */
+            deleted: boolean;
+            /**
+             * Ref
+             * @description Entity reference, e.g. 'todos.todo:<id>'.
+             */
+            ref: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * LinkOut
+         * @description A link with both ends summarised.
+         */
+        LinkOut: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            source: components["schemas"]["LinkEndOut"];
+            target: components["schemas"]["LinkEndOut"];
         };
         /**
          * ListCreate
@@ -1453,6 +1865,486 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_list_collections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_create_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_delete_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeDeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_rename_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionRename"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_move_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_restore_collection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeDeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_list_entries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_create_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_delete_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeDeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_update_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_restore_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_list_links: {
+        parameters: {
+            query: {
+                /** @description Entity reference, e.g. 'todos.todo:<id>'. */
+                entity: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_create_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_delete_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkDeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_restore_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                link_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkOut"];
                 };
             };
             /** @description Problem details */
