@@ -53,6 +53,20 @@ describe("calendar", () => {
     expect(railButton).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("closes the pane when opening the full calendar from it", async () => {
+    const user = userEvent.setup();
+    open("/todos/inbox");
+
+    const railButton = await screen.findByRole("button", { name: "Calendar" });
+    await user.click(railButton);
+    await user.click(within(pane()).getByRole("button", { name: "Open full calendar" }));
+
+    expect(railButton).toHaveAttribute("aria-pressed", "false");
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Calendar" })).not.toBeInTheDocument();
+    });
+  });
+
   it("creates an event from the dialog, optimistically", async () => {
     const user = userEvent.setup();
     const { api } = open("/todos/inbox", []);

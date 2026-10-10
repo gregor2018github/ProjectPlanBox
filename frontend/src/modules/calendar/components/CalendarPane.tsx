@@ -82,6 +82,8 @@ export function CalendarPane({ onClose }: RailPaneProps) {
           icon={Maximize2}
           shortcut="G C"
           onClick={() => {
+            // The full page shows the same calendar, so the pane would only double it.
+            onClose();
             void navigate({ to: CALENDAR_PATH, search: { date: selected } });
           }}
         />
