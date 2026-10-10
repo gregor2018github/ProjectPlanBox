@@ -9,6 +9,7 @@ import { todosModule } from "../modules/todos";
 import { createFakeHabitsApi, makeFakeHabit, type FakeHabit } from "./fakeHabitsApi";
 import { createFakeKnowledgeApi } from "./fakeKnowledgeApi";
 import { createFakeTodoApi } from "./fakeTodoApi";
+import { installMatchMedia } from "./matchMedia";
 import { renderApp, useDesktopViewport } from "./renderApp";
 
 beforeEach(() => {
@@ -80,6 +81,25 @@ describe("habits", () => {
 
     await waitFor(() => {
       expect(api.state.habits[0]?.checkins).toEqual([today]);
+    });
+  });
+
+  it("closes the floating pane when a habit opens from it (narrower than 1280 px)", async () => {
+    installMatchMedia((query) => query.includes("768px"));
+    const user = userEvent.setup();
+    open("/todos/inbox", [makeFakeHabit("Water plants", today)]);
+    await screen.findByRole("navigation", { name: "Panels" });
+
+    await user.keyboard("h");
+    const pane = await screen.findByRole("list", { name: "Today's habits" });
+    await user.click(within(pane).getByRole("button", { name: "Water plants" }));
+
+    const details = await screen.findByRole("complementary", { name: "Details" });
+    expect(await within(details).findByRole("textbox", { name: "Name" })).toHaveValue(
+      "Water plants",
+    );
+    await waitFor(() => {
+      expect(screen.queryByRole("list", { name: "Today's habits" })).not.toBeInTheDocument();
     });
   });
 

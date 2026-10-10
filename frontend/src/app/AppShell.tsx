@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useMeta } from "../core/api/coreQueries";
 import { CommandPalette } from "../core/commands/CommandPalette";
 import { ShortcutsDialog } from "../core/shortcuts/ShortcutsDialog";
-import { DESKTOP_QUERY, useMediaQuery } from "../core/useMediaQuery";
+import { DESKTOP_QUERY, PANE_INLINE_QUERY, useMediaQuery } from "../core/useMediaQuery";
 import { DndRoot } from "../ui/DndRoot";
 import { Sheet } from "../ui/Sheet";
 import { Toaster } from "../ui/Toaster";
@@ -54,6 +54,14 @@ export function AppShell() {
   const search: unknown = useSearch({ strict: false });
   const item = itemOf(search);
   const navigate = useNavigate();
+  // Below 1280 px the rail pane floats over the detail panel, so opening an
+  // item (from the pane or anywhere else) closes the pane to show it.
+  const paneInline = useMediaQuery(PANE_INLINE_QUERY);
+  const [shownItem, setShownItem] = useState(item);
+  if (item !== shownItem) {
+    setShownItem(item);
+    if (item !== undefined && !paneInline && railOpen !== null) closeRail();
+  }
 
   const toggleSidebar = useCallback(() => {
     if (isDesktop) toggleCollapsed();

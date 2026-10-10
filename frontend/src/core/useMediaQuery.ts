@@ -17,3 +17,6 @@ export function useMediaQuery(query: string): boolean {
 
 /** Matches Tailwind's `md` breakpoint: sidebar inline instead of a sheet. */
 export const DESKTOP_QUERY = "(min-width: 768px)";
+
+/** Matches Tailwind's `xl` breakpoint: the rail pane sits beside the content instead of floating. */
+export const PANE_INLINE_QUERY = "(min-width: 1280px)";
