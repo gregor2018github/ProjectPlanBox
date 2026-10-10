@@ -27,8 +27,9 @@ export interface TodoRowProps {
 }
 
 /**
- * One todo: checkbox, title, metadata and a ⋯ menu. Click selects, double
- * click opens details; every action is also in the context menu.
+ * One todo: checkbox, title, metadata and a ⋯ menu. Clicking the row opens
+ * it in the detail panel (clicks on its own controls don't); every action is
+ * also in the context menu.
  */
 export function TodoRow({
   todo,
@@ -56,10 +57,8 @@ export function TodoRow({
         ref={ref}
         data-todo-id={todo.id}
         aria-current={selected ? "true" : undefined}
-        onClick={() => {
-          todoUi.select(todo.id);
-        }}
-        onDoubleClick={() => {
+        onClick={(event) => {
+          if (isOwnControl(event.target, event.currentTarget)) return;
           actions.open(todo);
         }}
         className={cx(
@@ -119,4 +118,16 @@ export function TodoRow({
       </div>
     </ContextMenu>
   );
+}
+
+/**
+ * True when a click belongs to something other than the row itself: one of
+ * its controls (checkbox, ⋯ menu, subtask toggle) or a portalled menu, whose
+ * React events still bubble up here.
+ */
+function isOwnControl(target: EventTarget, row: HTMLElement): boolean {
+  if (!(target instanceof Node) || !row.contains(target)) return true;
+  const element = target instanceof Element ? target : target.parentElement;
+  const control = element ? element.closest("button, a, input, [role='checkbox']") : null;
+  return control !== null && control !== row;
 }

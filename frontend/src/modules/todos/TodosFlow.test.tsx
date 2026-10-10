@@ -82,6 +82,20 @@ describe("todos", () => {
     });
   });
 
+  it("opens details with one click on the row, but not from its checkbox", async () => {
+    const user = userEvent.setup();
+    const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa04", title: "Call mum" });
+    open("/todos/inbox", createFakeTodoApi({ todos: [todo] }));
+
+    await user.click(await screen.findByRole("checkbox", { name: "Complete “Call mum”" }));
+    expect(screen.queryByRole("complementary", { name: "Details" })).toBeNull();
+
+    await user.click(
+      within(await screen.findByRole("list", { name: "Completed today" })).getByText("Call mum"),
+    );
+    expect(await screen.findByRole("complementary", { name: "Details" })).toBeInTheDocument();
+  });
+
   it("selects with the keyboard, deletes, and undoes from the toast", async () => {
     const user = userEvent.setup();
     const todos = [
