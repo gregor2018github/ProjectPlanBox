@@ -209,8 +209,7 @@ SQLAlchemy Core or SQLModel would add a large dependency to give us query
 building we barely need. Our queries are simple, SQLite-specific (partial
 indexes, FTS5, `STRICT`, `RETURNING`) and written once per module. Plain SQL
 in repositories, tested against a real temporary database, is easier to read
-and debug. The repository layer keeps the cost contained. I agree with the
-brief here.
+and debug. The repository layer keeps the cost contained.
 
 ## 4. Data model conventions
 
@@ -231,9 +230,9 @@ bookkeeping and is never synced.
 | Recurrence | `rrule TEXT` (iCalendar RRULE, without `DTSTART`) plus an anchor (an event's start; a todo's `recurrence_anchor`). Validated and expanded only by `core/recurrence.py`. |
 | Foreign keys | Real FKs inside a module. Never across modules. Cross-module references are `EntityRef` pairs. |
 
-### Dates vs. timestamps: a deliberate refinement of the brief
+### Dates vs. timestamps
 
-The brief says to store timestamps in UTC. I agree for **instants**
+Timestamps are stored in UTC, which is right for **instants**
 (`created_at`, `completed_at`, a timed calendar event). A **due date** is
 not an instant, though. "Due Friday" means Friday wherever I am. If it were
 stored as a UTC midnight, it would show up on Thursday in another time zone,

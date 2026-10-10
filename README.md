@@ -6,21 +6,11 @@ collections), a calendar and habit tracking. The app grows one module at a
 time. The desktop is the hub. Mobile access as a PWA over a private network
 will come later.
 
-> **Status:** phase 1 (todos) is done. That covers areas, lists, sections,
-> todos and subtasks, plus Today, Upcoming and Logbook, quick-add, keyboard
-> control, drag and drop and undo. The calendar (phase 4, brought forward)
-> is built too: the calendar icon on the right edge (or `C`) opens a pane
-> with a mini month and agenda; `G C` opens month/week/day views. Events can
-> repeat, and dated todos show up and can be dragged onto days. Knowledge
-> collections (phase 2) are built: notes, links and snippets grouped into
-> collections, and links between any two items (a todo and a note, say).
-> Todos can repeat (phase 6, brought forward): every N days, weeks, months
-> or years, or on chosen weekdays, and completing one adds the next.
-> Search (phase 3) is built: Ctrl+K finds todos and knowledge entries by
-> any word in their title or text. Habits (phase 5) are built: schedules,
-> daily check-ins and streaks; the flame icon on the right edge (or `H`)
-> opens today's habits, and `G B` opens the Habits page. See
-> [docs/PLAN.md](docs/PLAN.md).
+> **Status:** phases 0–6 are built: todos (with repeats), knowledge
+> collections and links between items, search (Ctrl+K), calendar (`C` or the
+> right-edge icon; `G C` for the full page) and habits (`H`; `G B` for the
+> page). Next are the mobile PWA (phase 7) and data safety and sync (phase
+> 8). See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 

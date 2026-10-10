@@ -2,611 +2,207 @@
 
 Every phase ends with the same steps: `py scripts\check.py` is green, the
 docs are updated, and there is a short report (what was built, what was
-deferred, what diverged from the plan).
+deferred, what diverged from the plan). Agreed but unscheduled items live in
+[TODO.md](TODO.md). How things work is in [ARCHITECTURE.md](ARCHITECTURE.md);
+this file records what was planned, decided and pinned.
 
-## Phase 0: Foundation (no features). Done 2026-10-08
+## Status
 
-**Goal:** the empty app runs, looks and feels right, and every pipeline that
-later phases depend on is in place and tested.
-
-### Backend
-1. `pyproject.toml`: Python 3.14, exact pins, a `dev` dependency group, and
-   Ruff, pyright (strict) and pytest config.
-2. `config.py`: a `Settings` frozen dataclass built from defaults, then
-   `private_data/settings.toml` (stdlib `tomllib`), then `PLANBOX_*` env vars
-   (data dir, timezone, port, mode).
-3. `core/db`: a connection factory with pragmas (WAL, foreign keys,
-   busy_timeout, synchronous=NORMAL), a `transaction()` context manager and
-   a request-scoped connection dependency.
-4. `core/db/migrations.py`: the runner. Per-owner sequences, a
-   `schema_migrations` table, SHA-256 checksums (refuse on mismatch), one
-   transaction per file, the `foreign_keys=off` directive, and a
-   `VACUUM INTO` backup before pending migrations (keeps 10). Tested with
-   fixture migration folders.
-5. `core/ids.py` (UUIDv7), `core/clock.py`, `core/errors.py` (problem+json
-   handler), `core/module.py`, `core/entities.py` (registry, no entity types
-   yet).
-6. `main.py`: `create_app(settings)`. The lifespan runs migrations. It mounts
-   the core routers, then each module router at `/api/{id}`. In serve mode it
-   serves `frontend/dist` with an SPA fallback. It binds to 127.0.0.1 only
-   (enforced in `serve.py`/`dev.py`, not configurable).
-7. `GET /api/health` (status, applied migrations per owner) and
-   `GET /api/meta` (app version, timezone, week start).
-8. `tests/test_boundaries.py` (import and table-prefix rules), already
-   passing with zero modules.
-
-### Frontend
-9. A Vite + React + TS strict scaffold. ESLint flat config (including the
-   module-boundary and "no Base UI outside `ui/`" rules), Prettier, Vitest +
-   RTL + jsdom.
-10. `styles/tokens.css` with the full token set from STYLE_GUIDE (light and
-    dark), the Tailwind v4 `@theme inline` mapping, and the token contrast
-    test.
-11. Theme: `system | light | dark` switch, the inline no-flash bootstrap in
-    `index.html`, live `prefers-color-scheme`.
-12. The `ui/` primitives the shell needs: Button, IconButton, Tooltip, Kbd,
-    Dialog, Menu, Toast host, `motion.ts` presets, `<MotionConfig
-    reducedMotion="user">`.
-13. App shell: collapsible sidebar (`[` toggles it and the state persists),
-    drawer below `md`, main area, and the detail-panel slot (empty, opened
-    via `?item=`). The module registry and router assembly work with zero
-    modules. There are no placeholder module screens. The main area shows a
-    neutral "PlanBox" home.
-14. Core hosts: the shortcut registry (`useShortcut`, a scoped "not in text
-    input" guard, a `?` overlay listing registered shortcuts) and the command
-    palette (Ctrl+K) with core commands only: toggle theme, toggle sidebar,
-    show shortcuts.
-15. API pipeline: `scripts/gen_api.py` → `openapi.json` → `schema.d.ts`; an
-    `openapi-fetch` client; a typed `getHealth` hook used by a small
-    connection indicator in the sidebar footer (green dot / "Server
-    unreachable"). This proves the pipeline end to end.
-16. `core/ids.ts` (UUIDv7) and `core/time.ts` (today in the configured zone,
-    Monday-start weeks), with tests.
-
-### Scripts and docs
-17. `scripts/setup.py`, `dev.py`, `test.py`, `check.py` (including the API
-    drift check), `gen_api.py`, `serve.py`, `migrate.py`. Windows-first
-    (they call `.venv\Scripts\python.exe` directly) but written in plain
-    Python, so they would also run elsewhere.
-18. `.gitignore` (`.venv/`, `private_data/`, `frontend/node_modules/`,
-    `frontend/dist/`, …), `.gitattributes` (`* text=auto eol=lf`, which stops
-    the CRLF warnings from the first commit), `.editorconfig`, VS Code
-    recommended settings/extensions.
-19. README, ARCHITECTURE and STYLE_GUIDE updated to match reality.
-
-**Added after phase 0 (owner request):** `main.py` launcher (first-run
-setup, rebuild if stale, open the browser, detect a running instance), a
-shutdown button and palette command (`POST /api/shutdown`, launcher-only),
-and the loopback `Host` check that the shutdown endpoint made necessary.
-Later (owner request): the launcher opens PlanBox in its own Chrome/Edge app
-window, closes it on shutdown, and shuts down when it is closed
-(`scripts/app_window.py`, ARCHITECTURE §9).
-
-**Done when:** `setup.py` on a fresh clone and then `dev.py` gives a themed,
-responsive, keyboard-navigable empty shell showing a live health indicator;
-`serve.py` serves the same from one port; `check.py` is green; and the
-migration runner has tests for ordering, checksum refusal, rollback on
-failure, backup and the directive.
-
-## Phase 1: Todos (the reference vertical slice). Done 2026-10-08
-
-**As built, differences from the plan below:**
-- Drag and drop wraps `@dnd-kit/react` + `@dnd-kit/dom` in `ui/dnd.ts` and
-  `ui/DndRoot.tsx` (not a `ui/Sortable` component). Each dragged item carries
-  its own drop handler. dnd-kit's Accessibility plugin is turned off because
-  it made every row a `role="button"` around the row's own buttons. Keyboard
-  reordering is Alt+↑/↓ and "Move to…" (V), not dnd-kit's keyboard sensor.
-- Todo routes live under `/todos/…`, and `/` redirects to `/todos/today`
-  (the manifest's `homePath`).
-- The tag and move-to pickers use our own `ui/PickerList` inside a Popover
-  rather than Base UI's Combobox. This keeps "create on Enter" simple.
-- Logbook rows can be reopened but not opened in the detail panel, because
-  completed todos from earlier days are not in the shared cache.
-- The generated API types use `--default-non-nullable false`, so fields
-  with server defaults stay optional in request bodies.
-
-This slice sets the pattern every later module copies. Each step lands with
-its tests. Adding areas, sections and subtasks (decision 2) makes this phase
-noticeably bigger than first sketched. I'll report at the end of each
-milestone 1a–1f, not just at the end of the phase.
-
-### 1a. Backend
-- `core/ordering.py`: fractional index keys, plus
-  `shared/ordering-vectors.json` used by both pytest and Vitest.
-- Core tags: migration, repository, service (`set_tags(ref, ids)`,
-  case-insensitive unique names), router, tests.
-- Todos: migration (`todos_areas`, `todos_lists`, `todos_sections`,
-  `todos`), models, repository, service and router per ARCHITECTURE §7. This
-  covers idempotent create with a client-sent id, PATCH with absent-vs-null
-  handling, complete/reopen (cascading to subtasks), one `move` for reorder,
-  re-home and indent/outdent with all hierarchy invariants checked, soft
-  delete/restore cascading down the hierarchy with a shared `deleted_at`, and
-  the logbook. Registers the `todos.todo` entity type.
-- Tests: repository and service against a temp DB, API tests for every
-  endpoint including the error shapes.
-
-### 1b. Frontend data layer
-- `modules/todos/types.ts` (aliases of generated types), `api.ts` (query
-  options, a key factory, mutation hooks with `scope: 'todos'`),
-  `applyTodoPatch`/`applyTodoMove` (mirroring the server's invariants), and
-  selectors (inbox; today = overdue + due today + completed today; upcoming
-  grouped by day; per area; per list grouped by section with nested
-  subtasks; counts for the sidebar).
-- The undo stack in `core` (toast "Undo" and Ctrl+Z).
-- Tests for selectors, the optimistic apply/rollback (fetch failure →
-  snapshot restored), and ordering parity.
-
-### 1c. Views and editing
-- Sidebar nav: Inbox, Today, Upcoming and Logbook, then lists outside any
-  area, then collapsible areas containing their lists. Create, rename,
-  reorder and delete (with undo) areas and lists. Open counts.
-- List view: unsectioned todos first, then sections as headings (create,
-  rename, delete, collapse). `TodoRow` shows checkbox, title, due, priority,
-  tags and a subtask progress (`2/5`) that expands the subtasks inline.
-  There is an inline "new todo" row per section and a completed-today group.
-- Area view: its lists, each with its open todos (read-only grouping, links
-  to the list).
-- Detail panel: title, notes (plain textarea that autosaves with a debounce;
-  Markdown rendering is deferred), due date picker (a popover with quick
-  picks Today/Tomorrow/Next Monday/None and a Monday-start month grid built on
-  date-fns), priority menu, a list/section picker, tag combobox (create on
-  Enter), a subtask checklist (add, complete, reorder, promote to todo), and
-  delete.
-- Today (overdue group first) and Upcoming (grouped by day: "Tomorrow",
-  "Mon 13 Oct", …) views. They are auto-sorted (decision 3). Subtasks show
-  their parent's title as context.
-- Motion: row enter/exit, completion per STYLE_GUIDE B1 rule 4, layout
-  springs.
-
-### 1d. Reordering
-- Drag and drop via `ui/Sortable` (wrapping `@dnd-kit/react`), with
-  pointer, touch and keyboard sensors:
-  - todos within and across sections
-  - subtasks within their parent
-  - sections within a list
-  - lists within and across areas in the sidebar
-  - dropping a todo onto a sidebar list or the Inbox moves it there
-
-  Dragging is disabled in Today/Upcoming, which are auto-sorted. (Today
-  became sortable on 2026-10-10, see decision 3.)
-- Keyboard: Alt+↑ / Alt+↓ moves the selection. Alt+→ makes it a subtask of
-  the todo above (indent) and Alt+← promotes it (outdent).
-
-### 1e. Keyboard and quick-add
-- Global quick-add (`Q`, or the palette's "New todo") opens a dialog that
-  parses as you type and shows the result as chips: `tomorrow`, `fri`,
-  `next week`, `in 3 days`, `12.10`, `2026-10-12` → due; `!1`/`!2`/`!3` →
-  priority (high/medium/low); `#list` or `#list/section` → placement;
-  `@tag` → tag. The parser is pure and tested. When a todo is selected,
-  `Shift+Q` opens quick-add for a subtask of it.
-- Palette commands from the module (go to Today/Upcoming/Inbox/Logbook/any
-  area or list; new todo/subtask/section/list/area; move to…) plus
-  client-side todo search by title.
-
-| Key | Action (in list views; not while typing) |
+| Phase | State |
 |---|---|
-| `Ctrl+K` | Command palette |
-| `Q` / `Shift+Q` | Quick-add todo / subtask of the selection |
-| `↑`/`↓` or `K`/`J` | Move selection |
-| `Enter` | Open in the detail panel / edit title |
-| `Space` or `X` | Complete / reopen |
-| `Alt+↑`/`Alt+↓` | Move up/down |
-| `Alt+→`/`Alt+←` | Indent (make subtask) / outdent |
-| `→`/`←` | Expand/collapse subtasks or section |
-| `V` | Move to list/section… (picker) |
-| `1` `2` `3` `0` | Priority high / medium / low / none |
-| `T` / `M` / `D` | Due today / tomorrow / pick date |
-| `Delete` | Delete (undoable) |
-| `Ctrl+Z` | Undo the last delete/complete/move |
-| `G` then `I`/`T`/`U`/`L` | Go to Inbox / Today / Upcoming / Logbook |
-| `[` / `]` | Toggle sidebar / detail panel |
-| `Esc` | Close panel or dialog, clear selection |
-| `?` | Shortcut overview |
+| 0. Foundation | Done 2026-10-08 |
+| 1. Todos | Done 2026-10-08 |
+| 2. Knowledge collections and core links | Built 2026-10-10 |
+| 3. Search | Built 2026-10-10 |
+| 4. Calendar | Built 2026-10-10 (brought forward) |
+| 5. Habits | Built 2026-10-10 |
+| 6. Recurring todos | Built 2026-10-10 (brought forward) |
+| **7. Mobile PWA** | **Next, not started** |
+| **8. Data safety and sync** | **Not started** |
 
-### 1f. Smoke suite and wrap-up
-- **Playwright comes in here.** Phase 0 has nothing worth driving in a
-  browser. From now on the suite should guard the slice every module copies.
-  It runs Chromium only against a real backend on a temp data dir, with 5–6
-  tests: quick-add with parsing → shows in Today; complete + undo; drag
-  reorder survives reload; indent to subtask and complete the parent; edit in the detail panel; theme switch; 375 px
-  viewport smoke. It runs via `py scripts\test.py --e2e` and is part of
-  `check.py --full`. It stays out of the default fast loop.
-- A "module recipe" section in ARCHITECTURE: the checklist for adding a
-  module, derived from what todos actually needed.
+Side task (2026-10-10): Python 3.12 became the minimum, with a runtime-only
+install (no Node.js), a lock file, release zips and CI on 3.12 and 3.14.
 
-**Done when:** all of the above is usable daily via `serve.py`, every
-mutation is optimistic with a tested rollback, and `check.py --full` is
-green.
+## Open phases
 
-## Side task: Python 3.12 minimum and a runtime-only install (2026-10-10)
+### Phase 7: Mobile PWA
 
-An owner-approved task outside the phase order. No module work was done.
+Manifest and service worker, binding to the private network interface,
+authentication, and a touch polish pass. Binding beyond `127.0.0.1` and
+relaxing the loopback `Host` check need the owner's explicit go-ahead
+(CLAUDE.md). The theme preference moves from `localStorage` to the server so
+it follows across devices.
 
-**Why 3.12 became the minimum.** The owner wants to run PlanBox on a work PC
-that has only Python 3.12 and pip, and where neither Node.js nor another
-Python can be installed. The code used only four 3.14 conveniences:
-- `uuid.uuid7()`, replaced by our own thread-safe, strictly increasing
-  UUIDv7 in `core/ids.py`
-- an unparenthesised multi-exception `except`
-- two self-referencing annotations
-- methods named `list` shadowing the builtin inside class bodies
+### Phase 8: Data safety and sync
 
-A compatibility layer would have meant two code paths to test forever, so
-3.12 became the floor. The Ruff and pyright targets are 3.12, so the
-quality gate rejects 3.14-only code from now on. `from __future__ import
-annotations` was deliberately *not* added everywhere: pyright on 3.12
-already catches every such case, and the import would make FastAPI and
-Pydantic resolve string annotations at runtime.
+Scheduled and off-machine backups, export/import, and a sync design built on
+the existing UUIDv7 IDs, timestamps and tombstones. Purging soft-deleted rows
+and a trash view wait for this design. Off-machine backups can be brought
+forward, since PlanBox is already in daily use.
 
-**What was added:**
-- `requirements.lock.txt` (`scripts/lock.py`): every runtime package at an
-  exact version, resolved on 3.12, used by both install modes and CI.
-- A runtime-only install path (no Node.js) through `main.py` and
-  `setup.py`.
-- `scripts/package.py` and the release zip.
-- CI on Python 3.12.10 and 3.14 with Node 24, plus releases from `v*` tags.
+## Built phases
 
-## Phase 4 (brought forward): Calendar. Built 2026-10-10
+Each summary lists what exists and the decisions worth remembering. The
+follow-ups each phase cut are in TODO.md.
 
-The owner asked for the calendar before phases 2 and 3. Knowledge and Search
-keep their numbers and scope and come next. The calendar shows todo due dates
-now and picks up knowledge links when they exist.
+### Phase 0: Foundation
 
-**Scope (owner, 2026-10-10):** events with month, week and day views; todo
-due dates on the calendar; recurring events. Google Calendar sync stays in
-TODO.md.
+The backend skeleton (settings from defaults → `settings.toml` → `PLANBOX_*`,
+SQLite with WAL and foreign keys, the migration runner with checksums and
+pre-migration backups, UUIDv7, clock, problem+json errors, entity registry),
+the frontend shell (tokens, themes, `ui/` primitives, sidebar, detail panel,
+shortcut registry, command palette), the generated API types, the boundary
+tests and the scripts. Added later at the owner's request: the `main.py`
+launcher with its own app window, the shutdown button and the loopback `Host`
+check.
 
-**Placement (owner, 2026-10-10):** a slim icon rail on the far right of the
-shell. Its calendar icon toggles a calendar pane beside the current view
-(mini month plus agenda), and todos can be dragged onto its days. The pane
-expands to a full-page calendar at `/calendar`. Under 768 px the icon sits in
-the top bar and the pane opens full screen. Rail items come from the module
-manifest (`rail`), so later modules (habits) can add their own.
+### Phase 1: Todos
 
-**Backend** (`modules/calendar`):
-- `calendar_events`: timed events store UTC instants (`start_at`/`end_at`).
-  All-day events store floating dates (`start_date`/`end_date`, end
-  inclusive). `rrule` holds an RRULE without `DTSTART`.
-- `calendar_exceptions`: skipped occurrences of a series, keyed by the
-  occurrence's local date. Soft-deleting one restores the occurrence (undo).
+Areas, lists, sections, todos and subtasks; Inbox, Today, Upcoming and
+Logbook; quick-add with parsing; full keyboard control (table in the
+README); drag and drop; undo; tags; a Playwright smoke suite. As built:
+- Drag and drop wraps `@dnd-kit/react` in `ui/dnd.ts`; its Accessibility
+  plugin is off and keyboard reordering is Alt+↑/↓ and "Move to…" (V).
+- Pickers use our own `ui/PickerList`, not Base UI's Combobox.
+- Generated types use `--default-non-nullable false`, so fields with server
+  defaults stay optional in request bodies.
+
+### Phase 2: Knowledge collections and core links
+
+Collections of notes, links and snippets, and core links between any two
+items. Decisions:
+- **One entries table with a `kind`**, not three tables. The kinds differ by
+  one column each, and three tables would triple the code and make "all of a
+  collection" a union. It is still a specific table, not a generic item
+  model. A kind is fixed at creation.
+- Links need an `http(s)` URL, so a stored link can never run script.
+- Links to deleted items stay and show as deleted, so a restore brings them
+  back. The link picker reads a client-side **linkable source registry**, so
+  core never imports a module.
+
+### Phase 3: Search
+
+A core FTS5 index over todos, knowledge and habits, shown in the palette.
+**Diverged from the first design:** modules do not push to the index in
+their write transactions. The index pulls rows changed since its watermark
+at the start of every search, which cannot be broken by a forgotten call. It
+relies on every write bumping `updated_at` (ARCHITECTURE §6.3).
+
+### Phase 4: Calendar (brought forward)
+
+Events with month, week and day views, recurring events with
+this/following/all edits, todo due dates on the calendar, and a right-hand
+icon rail with a calendar pane. Decisions:
 - Recurrence is expanded on the server in the configured zone, so a weekly
-  09:00 meeting stays at 09:00 across DST. Frequencies are DAILY, WEEKLY,
-  MONTHLY and YEARLY, with INTERVAL, BYDAY, BYMONTHDAY, COUNT and UNTIL.
-- Editing or deleting one occurrence takes a scope, like other calendars:
-  `this` (an exception plus a detached single event), `following` (the
-  series ends before it and a new series starts there) or `all`.
-- `GET /api/calendar/events?start=&end=` returns the events and their
-  occurrences in a date range.
+  09:00 stays at 09:00 across DST.
+- Todos reach the calendar through a core **calendar feed** registry, not a
+  module import.
+- A multi-day event is one item everywhere: one bar per week row, one agenda
+  row with its whole range.
+- Google Calendar sync is not in scope (TODO.md).
 
-**Frontend** (`modules/calendar`):
-- Month, week and day views. In the time grid you can drag to create, move
-  and resize in 15-minute steps; in the month grid you drag items to another
-  day. Everything is also reachable through the event dialog and the
-  keyboard.
-- A multi-day event is one item everywhere: one bar per week row in the
-  month grid and the week/day all-day row (square ends where it continues),
-  and one agenda row with its whole range on the first day shown. Timed
-  overnight events shorter than 24 hours stay in the time grid, split at
-  midnight. Dragging a bar moves the event's start to the drop day.
-- Optimistic mutations patch every cached month and refetch afterwards,
-  because only the server expands recurrence.
-- **Todos on the calendar without a module import:** core gains a *calendar
-  feed* registry (like the command registry). The todos Host publishes its
-  dated todos and a `reschedule` action, and the calendar renders every
-  feed. Dropping a todo row on a calendar day uses a core date drop target,
-  which the todos module turns into a due date change.
+### Phase 5: Habits
 
-## Phase 6 (brought forward): Recurring todos. Built 2026-10-10
+Habits with schedules, daily check-ins and streaks, a Habits page (`G B`,
+because `G H` is Home), a detail panel with a 26-week history, and a rail
+pane (`H`). Decisions:
+- A streak counts scheduled days, and catching up before the start date
+  counts too. "3 times a week, any days" is not expressible yet.
+- The history grid is display only; days are ticked in the 7-day strip.
 
-The owner asked for repeating todos: every N days, weeks, months or years,
-or on a chosen set of weekdays, with the next one created on completion.
+### Phase 6: Recurring todos (brought forward)
 
-**Backend:**
-- `core/recurrence.py`: the calendar's rule code moved to core (plus
-  `date_after`), so todos reuse it without a module import.
-- Migration `todos/0002_add_recurrence.sql`: `rrule`, `recurrence_anchor`,
-  `recurs_from_id`. Rules, completion and reopen behaviour are in
-  ARCHITECTURE §7 (Recurrence).
-- `rrule` on `TodoCreate`/`TodoPatch`/`TodoOut`, plus `recurrence_anchor` on
-  `TodoOut`. No new dependencies.
-
-**Frontend:**
-- The repeat editor (`RecurrenceFields`, `WeekdayToggles`, rule text
-  helpers) moved from the calendar to `core/recurrence/`.
-- A **Repeat** button in the todo detail panel (top-level todos only)
-  opens the editor and saves when it closes. Repeating rows show a repeat
-  icon. Completing one shows a toast with the next date. Undo (Ctrl+Z)
-  reopens it and the next one disappears.
-
-**Decisions:**
-- The next date follows the schedule (skipping missed dates), not "N days
-  after I finished it". The latter is in TODO.md.
-- "A free set of days" is read as chosen weekdays (weekly with day toggles).
-  Several days of the month (e.g. the 1st and 15th) would need a new editor
-  control. The engine already accepts them; it is in TODO.md.
+Repeat every N days, weeks, months or years, or on chosen weekdays. Rule code
+lives in `core/recurrence.py`, shared with the calendar. Decisions:
+- Completing one creates the next, which follows the schedule (missed dates
+  are skipped), not "N days after I finished it".
 - Each occurrence is its own row, so the Logbook keeps every completion.
-
-## Phase 2: Knowledge collections and core links. Built 2026-10-10
-
-**Scope:** collections of notes, links and snippets, and the first build of
-core **links** (ARCHITECTURE §6.2) now that there are two modules to link.
-No new dependencies.
-
-**Backend** (`modules/knowledge`, `core/links`):
-- `knowledge_collections` (flat, manually ordered) and `knowledge_entries`.
-  Entries without a collection are **Unsorted**, like the todos Inbox.
-  Deleting a collection deletes its entries with one shared `deleted_at`, so
-  one undo restores exactly them.
-- **One entries table with a `kind`** (`note`, `link`, `snippet`), not three
-  tables. The kinds share title, text, collection, tags and ordering, and
-  differ by one column each (`url` for links, `language` for snippets),
-  guarded by CHECK constraints. Three tables would triple the repository,
-  API and cache code, and make "everything in this collection, newest
-  first" a union. This is still a specific table, not the generic
-  block/item model the brief rules out. A kind is fixed at creation.
-- Links need an `http(s)` URL (enforced on both sides), so a stored link can
-  never run script.
-- `core_links` + `/api/links`: refs are validated and summarised through the
-  entity registry; a pair is linked once in either direction; unlinking is
-  undoable. Links to deleted items stay and show as deleted, so restoring
-  the item brings them back.
-- `place()`/`free_position()` moved from the todos service to
-  `core/placement.py`.
-
-**Frontend** (`modules/knowledge`, `core/links`):
-- Views: All entries, Unsorted and one per collection, newest change first,
-  with a kind filter and a word filter (title, text, address, language,
-  tags). Sidebar collections can be dragged to reorder; entries can be
-  dropped on a collection (or Unsorted).
-- `E` opens "new entry" (into the collection on screen); `G K` goes to
-  Knowledge; palette commands for each kind, each collection and each entry.
-  A link without a title is named after its site, and `https://` is added
-  to bare addresses.
-- Detail panel per entry: title, address (with Open) or language, text
-  (autosaves), collection, tags, copy code, links, delete with undo.
-- **Links UI:** a core `LinkedItems` block in the todo and entry detail
-  panels. The picker lists everything module Hosts publish through a
-  **linkable source registry** (`core/links/linkables.ts`, the same pattern
-  as calendar feeds), so core never imports a module. Phase 3 can swap the
-  client-side list for server search without touching modules' displays,
-  which already come from the server's summaries.
-- Shared pieces moved out of todos: `NameDialog`, `PageHeader`,
-  `ViewLayout`, `InlineTitle` to `ui/`, `TagPicker` to `core/tags/`; new
-  `ui/AutosaveTextArea`.
-
-**Cut to keep it lean** (in TODO.md): Markdown rendering of notes, fetching
-link titles/previews from the web, changing an entry's kind, manual order
-inside a collection, nested collections, and links on calendar events.
-
-## Phase 3: Search. Built 2026-10-10
-
-**Scope:** a core FTS5 index fed by todos and knowledge, and palette
-integration. No new dependencies (FTS5 ships with the bundled SQLite).
-
-**Backend** (`core/search`, migration `core/0003_create_search.sql`):
-- `core_search` (FTS5, `unicode61 remove_diacritics 2`) and
-  `core_search_sync` (a watermark per entity type).
-- `EntityType` gains an optional `documents(conn, since)` feed, and
-  `EntitySummary` gains a `hint` ("Done · Work", "Link · Recipes").
-- `GET /api/search?q=&limit=`: every word is a prefix match, bm25 with the
-  title weighted 8×, marked title and snippet, deleted items excluded.
-- `GET /api/todos/items/{id}`, so search hits and links can open a todo
-  that was completed before today.
-- `scripts/reindex.py` empties the index; the next search rebuilds it.
-
-**Frontend:**
-- The palette shows matching commands, then "Search results" (icon, marked
-  title, hint, snippet). Enter or a click opens the item in the detail
-  panel. The per-entity palette commands ("Open todos", knowledge entries)
-  were removed, because search covers them, including the text and old
-  completed todos.
-- The link picker adds server hits that are not in the caches.
-- A read-only panel for todos completed before today, with Reopen.
-
-**Diverged from ARCHITECTURE §6.3 as first designed:** modules do not call
-`SearchIndex.upsert()` in their write transactions. The index instead
-**pulls** the rows changed since its watermark at the start of every search.
-It is equally fresh and cannot be broken by a forgotten call in one of the
-roughly fifteen write paths. The cost is a few cheap `updated_at >= ?`
-scans per search, and the rule that every write bumps `updated_at`, which
-every repository already follows. Details are in ARCHITECTURE §6.3.
-
-**Cut to keep it lean** (in TODO.md): indexing tag names and calendar
-events, a dedicated search page with filters, and match highlighting inside
-the opened item.
-
-## Phase 5: Habits. Built 2026-10-10
-
-**Scope:** habits with schedules (RRULE), daily check-ins stored as
-floating dates, and streaks. No new dependencies.
-
-**Backend** (`modules/habits`, migration `habits/0001_create_habits.sql`):
-`habits` and `habits_checkins`, one list endpoint with days in a range plus
-streaks, and idempotent PUT/DELETE check-ins. Rules are in ARCHITECTURE §7c.
-
-**Frontend** (`modules/habits`):
-- **Habits page** (`/habits`, `G B`): each habit with its schedule, its
-  current streak and the last 7 days as round toggles (today last). Any of
-  them can be ticked, so missed days can be caught up.
-- **Detail panel:** name, schedule (the shared repeat editor), the 7-day
-  strip, current/best streak and times done, a 26-week history grid, notes,
-  links and delete with undo.
-- **Rail pane** (`H`, flame icon): today's habits as checkboxes, then the
-  ones not scheduled today. This is the first use of the rail by a second
-  module.
-- Sidebar entry with the number still due today; palette commands "New
-  habit", "Go to Habits" and "Check off habit: …" for each one due today.
-  Habits are searchable and linkable.
-
-**Decisions:**
-- A streak counts scheduled days. "3 times a week, any days" is not
-  expressible yet (TODO.md); use chosen weekdays instead.
-- `G H` was taken (Home), so the page is `G B`.
-- The history grid is display only (its cells are too small to be touch
-  targets); days are ticked in the 7-day strip.
-
-**Cut to keep it lean** (in TODO.md): reordering habits, archiving
-(pausing) a habit, weekly targets ("3× per week"), counts per day
-("8 glasses"), reminders, and editing the start date in the UI.
-
-## Later phases (sketch)
-
-- **Phase 2: Knowledge collections.** Built; see above.
-- **Phase 3: Search.** Built; see above.
-- **Phase 4: Calendar.** Brought forward; see above.
-- **Phase 5: Habits.** Built; see above.
-- **Phase 6: Recurring todos.** Brought forward; see above.
-- **Phase 7: Mobile PWA.** Manifest and service worker, binding to the
-  private network interface, authentication, and a touch polish pass.
-- **Phase 8: Data safety and sync.** Scheduled backups, export/import, and
-  sync design using the existing UUIDv7 IDs, timestamps and tombstones.
-
----
+- Undo of a completion reopens it and removes the next one.
 
 ## Dependencies
 
-All versions were checked against PyPI and npm on **2026-10-08** and will be
-pinned exactly.
+Versions were checked against PyPI and npm on **2026-10-08** (later additions
+on their own dates) and are pinned exactly. A new package needs a row here
+first (CLAUDE.md rule 9).
 
 ### Runtimes
 
 | Runtime | Pick | Note |
 |---|---|---|
-| Python | **3.12 minimum**; 3.14.8 on the home PC, 3.12.10 on the work PC | 3.12 became the minimum on 2026-10-10 (see the side task above). 3.12.10 is the last 3.12 with a python.org Windows installer and bundles SQLite 3.49.1 (STRICT tables and FTS5 work). |
-| Node.js | **24 LTS** (you have 24.15; latest 24.21) | Vite 8 needs ≥ 20.19. Node 26 becomes LTS on 2026-10-28, and we can move later. |
-| SQLite | 3.49.1 (bundled with CPython) | FTS5 confirmed available |
+| Python | **3.12 minimum**; 3.14.8 on the home PC, 3.12.10 on the work PC | 3.12.10 is the last 3.12 with a python.org Windows installer and bundles SQLite 3.49.1 (STRICT and FTS5 work). |
+| Node.js | **24 LTS** | Vite 8 needs ≥ 20.19. Node 26 becomes LTS on 2026-10-28; we can move later. Not needed on runtime-only PCs. |
+| SQLite | bundled with CPython | FTS5 confirmed available |
 
-### Python: from the brief
+### Python
 
-| Package | Version | |
+| Package | Version | Why |
 |---|---|---|
-| fastapi | 0.143.0 | Released today. Pinned. If anything misbehaves, fall back to the previous patch. |
-| pydantic | 2.14.0 | Comes with FastAPI. Pinned explicitly because we import it directly. Released today. |
-| uvicorn | 0.54.0 | ASGI server. Plain install, not `[standard]`: uvloop does not exist on Windows and we do not need httptools. |
-| ruff | 0.16.10 | dev |
-| pyright | 1.1.414 | dev. Chosen over mypy because it is the same engine as Pylance in VS Code, so the editor and the gate agree. It downloads its Node runtime on first run. |
+| fastapi | 0.143.0 | Web framework. |
+| pydantic | 2.14.0 | Comes with FastAPI; pinned because we import it directly. |
+| uvicorn | 0.54.0 | ASGI server. Plain install: uvloop does not exist on Windows. |
+| python-dateutil | 2.9.0.post0 | Evaluates RFC 5545 RRULEs (phase 4). Correct expansion (BYSETPOS, DST) is a deep rabbit hole. Mature, updated rarely. Pulls in `six` 1.17.0. |
+| tzdata | 2026.5 | Windows has no zone database, so `zoneinfo` needs it for `Europe/Amsterdam`. The IANA data packaged by CPython core developers (PEP 615). |
+| ruff | 0.16.10 | dev. Lint and format. |
+| pyright | 1.1.414 | dev. Same engine as Pylance, so the editor and the gate agree. |
 | pytest | 9.1.1 | dev |
+| httpx | 0.28.1 | dev. FastAPI's `TestClient` needs it. Starlette 1.7 prefers `httpx2` and warns; we filter that warning and relax pyright for `backend/tests`. Switching needs approval (TODO.md). |
 
-### Python: beyond the brief
+Not used: SQLAlchemy/SQLModel (ARCHITECTURE §3), pydantic-settings (a small
+dataclass does it), uuid6 (our own UUIDv7 in `core/ids.py`), pytest-cov.
 
-| Package | Version | Justification |
+### Frontend
+
+| Package | Version | Why |
 |---|---|---|
-| httpx | 0.28.1 | dev. FastAPI's `TestClient` needs it. **Open question:** Starlette 1.7 (pulled in by FastAPI 0.143) now prefers its successor `httpx2` (2.13.1, maintained by the Pydantic team) and warns about `httpx`. We kept the agreed `httpx`, filtered that one warning in pytest, and relaxed pyright's "unknown type" rules for `backend/tests` only. Switching is a one-line change once approved (see TODO.md). |
-| python-dateutil | 2.9.0.post0 | Installed with the calendar (phase 4, brought forward). Evaluates RFC 5545 RRULEs. Correct recurrence expansion (BYSETPOS, DST, EXDATE) is a deep rabbit hole. It is mature and widely used, but updated rarely. Pulls in `six` 1.17.0. Typed through pyright's bundled typeshed stubs. |
-| tzdata | 2026.5 | Added with the calendar (2026-10-10). Windows has no system time zone database, so the stdlib `zoneinfo` cannot load `Europe/Amsterdam` without it. Recurring timed events must keep their wall-clock time across DST, which needs real zone rules. It is the IANA database packaged by CPython core developers (PEP 615), released with every tz update. |
-
-Considered and **not** used: SQLAlchemy/SQLModel (see ARCHITECTURE §3),
-pydantic-settings (a 30-line dataclass does the job), uuid6 (stdlib in 3.14;
-if we stay on 3.13 I write the 15 lines myself), pytest-cov (can be added
-when coverage numbers matter).
-
-### Frontend: from the brief
-
-| Package | Version | Note |
-|---|---|---|
-| react, react-dom | 19.3.0 | **Published today.** If the ecosystem has problems, fall back to 19.2.8. |
-| vite | 8.3.4 | |
-| @vitejs/plugin-react | 6.1.2 | |
-| typescript | **5.9.3** (not 7.0.2) | TS 7.0 (the native Go compiler) is `latest`, but `typescript-eslint` 8.71 supports TS < 6.1 and `openapi-typescript` declares `^5.x`. 5.9.3 satisfies both without peer overrides. We move up when the lint toolchain supports TS 7. |
-| tailwindcss, @tailwindcss/vite | 4.3.3 | |
-| @base-ui/react | 1.8.0 | Headless primitives, chosen over Radix (see below). |
-| motion | 14.0.0 | Imported from `motion/react` |
-| @tanstack/react-query | 5.104.1 | |
+| react, react-dom | 19.3.0 | Fallback if needed: 19.2.8. |
+| vite, @vitejs/plugin-react | 8.3.4 / 6.1.2 | Build and dev server. |
+| typescript | **5.9.3** (not 7.x) | `typescript-eslint` and `openapi-typescript` do not support TS 7 yet. Move up when they do. |
+| tailwindcss, @tailwindcss/vite | 4.3.3 | Styling over our tokens. |
+| @base-ui/react | 1.8.0 | Headless primitives. Chosen over Radix for Combobox, Toast, Context Menu and the `render` prop. Confined to `src/ui/`. |
+| motion | 14.0.0 | Animation, from `motion/react`. |
+| @tanstack/react-query | 5.104.1 | Server cache and optimistic mutations. |
+| @tanstack/react-router | 1.170.41 | Routing with typed search params (`?item=`). Code-based routes. |
+| openapi-fetch | 0.17.0 | A small typed `fetch` over the generated `paths`. Still 0.x. |
+| @dnd-kit/react, @dnd-kit/dom | 0.5.0 | Drag and drop with touch and cross-container moves. The new 0.x API; the stable `@dnd-kit/core` has had no release since Dec 2024. Confined to `src/ui/`. |
+| date-fns, @date-fns/tz | 4.4.0 / 1.5.0 | Date maths, Monday weeks, formatting in a named zone. `Temporal` is not on every target browser yet. |
+| lucide-react | 1.53.0 | Icons. |
 | openapi-typescript | 7.13.0 | dev. Generates `schema.d.ts`. |
-| vitest | 5.0.3 | dev |
+| vitest, jsdom | 5.0.3 / 30.1.2 | dev |
 | @testing-library/react / dom / user-event / jest-dom | 16.3.3 / 10.4.2 / 14.6.7 / 7.0.1 | dev |
-| jsdom | 30.1.2 | dev, the Vitest environment |
-| eslint, @eslint/js | 10.12.0 / 10.0.1 | dev |
-| typescript-eslint | 8.71.1 | dev |
-| eslint-plugin-react-hooks | 7.1.1 | dev |
-| @playwright/test | 1.64.0 | dev, phase 1f |
+| @playwright/test | 1.64.0 | dev. Smoke suite (`check.py --full`). |
+| eslint, @eslint/js, typescript-eslint | 10.12.0 / 10.0.1 / 8.71.1 | dev |
+| eslint-plugin-react-hooks, eslint-plugin-react-refresh | 7.1.1 / 0.5.7 | dev |
+| eslint-plugin-jsdoc | 65.2.0 | dev. Enforces JSDoc on exports. |
+| prettier | 3.9.9 | dev. Formats TS/CSS/JSON. |
 | @types/react, @types/react-dom | 19.3.0 | dev |
 
-**Base UI vs. Radix:** both are viable (radix-ui 1.7.0 shipped today too).
-I pick Base UI because it is actively developed by the MUI team with
-dedicated staff. It has the components we need that Radix lacks or splits
-out (**Combobox**/Autocomplete for tags and the palette, Toast, Context
-Menu). It also uses a cleaner `render` prop composition model. If you prefer
-Radix, the cost of switching is limited to `src/ui/`.
+Not used: `cmdk` (the palette is Base UI plus a small scorer),
+`clsx`/`cva`/`tailwind-merge` (a 5-line `cx()`), a hotkeys library (our
+registry needs scope + not-in-input semantics), MSW (we inject `fetch`),
+`fractional-indexing` (we need a Python twin; shared test vectors keep
+parity), `concurrently` (`dev.py` does it), React Compiler.
 
-### Frontend: beyond the brief
+## Decisions and assumptions
 
-| Package | Version | What, why not ours, maintenance |
-|---|---|---|
-| openapi-fetch | 0.17.0 | A 6 KB typed `fetch` driven by the generated `paths` type. The type-level path/param/body inference is hard to write well. It comes from the openapi-typescript project, active (June 2026), but is still 0.x. |
-| @tanstack/react-router | 1.170.41 | Routing with typed, validated search params (the detail panel `?item=`, filters). We need nested layouts, history and URL state. It pairs with Query. Very active. Code-based routes, so no codegen plugin. |
-| @dnd-kit/react, @dnd-kit/dom | 0.5.0 | Drag and drop with pointer and touch sensors, sortable groups and cross-container moves, which is a serious amount of work to do well. `dom` is pinned only to configure its plugins. **Caveat:** it is the new 0.x API, actively released (Sept 2026), while the stable `@dnd-kit/core` 6.3.1 has had no release since Dec 2024. Lint confines it to `src/ui/` so a swap stays local. (`@dnd-kit/helpers` was planned but not needed.) |
-| date-fns, @date-fns/tz | 4.4.0 / 1.5.0 | Date arithmetic, Monday-start weeks, formatting in a named zone, for "today", Upcoming grouping and the date picker. Calendar maths is a classic bug source. Actively maintained. These are also optional peers of Base UI. (`Temporal` is not yet usable on every target browser, including iOS Safari for the future PWA.) |
-| lucide-react | 1.53.0 | The icon set (tree-shaken). We don't draw icons. Very active. |
-| prettier | 3.9.9 | dev. Formats TS/CSS/JSON (ESLint no longer formats). The JS equivalent of the Ruff formatter. Active. |
-| eslint-plugin-jsdoc | 65.2.0 | dev. Enforces the "JSDoc on exports" rule from the brief. Active. |
-| eslint-plugin-react-refresh | 0.5.7 | dev. Keeps Vite HMR working (component-only exports). Active. |
-
-Considered and **not** used: `cmdk` (the palette is Base UI Dialog +
-Autocomplete plus a small fuzzy scorer; cmdk's last release was Aug 2025),
-`clsx`/`cva`/`tailwind-merge` (a 5-line `cx()` and typed variant maps), a
-hotkeys library (the shortcut registry is about 100 lines and needs our
-"scope + not-in-input" semantics), MSW (we inject `fetch` into the API
-client in tests), `fractional-indexing` (we need a Python twin anyway, and
-shared test vectors guarantee parity), `concurrently` (`dev.py` does process
-management in plain Python), React Compiler (revisit when its Vite 8 setup
-is simpler).
-
----
-
-## Decisions (owner, 2026-10-08)
-
-1. **Python 3.14.8** (the minimum is now 3.12, see the side task). Installed per-user from the signed python.org
-   installer (winget only had 3.14.7). `py -3.14` works. Its bundled SQLite
-   is 3.50.4, with FTS5.
-2. **Areas, sections and subtasks are in phase 1.** Data model in
-   ARCHITECTURE §7.
-3. **Today/Upcoming ordering:** you're indifferent, so they **auto-sort**
-   (overdue first, then priority, then list position). It is the simpler
-   model, and manual order there can be added later without touching
-   existing tables (a per-view position table).
-   **Update 2026-10-10 (owner request):** Today is now sortable by drag
-   and drop and Alt+↑/↓, within its Overdue and Due today groups. It uses a
-   nullable `todos.today_position` column (migration `0003`) instead of a
-   separate table: one cached array keeps working, and the key is cleared
-   whenever the due date changes. Todos not placed by hand yet stay
-   auto-sorted below the placed ones. Upcoming is still auto-sorted.
-4. **Due dates are date-only.** Times arrive with the calendar.
-5. **English** UI and quick-add keywords. Dates display as `Wed 8 Oct` and
+1. Areas, sections and subtasks exist. Todos live in a list or the Inbox,
+   never directly in an area. Subtasks are one level deep. Sections exist
+   only in lists.
+2. Upcoming is auto-sorted (overdue first, then priority, then list
+   position). Today is sortable by hand within its Overdue and Due today
+   groups (`todos.today_position`, cleared when the due date changes).
+3. Todo due dates are date-only. Times exist on calendar events.
+4. Deleting any container soft-deletes everything below it with one shared
+   `deleted_at`, and one undo restores it all. No confirmation dialogs for
+   undoable actions.
+5. Completed todos stay struck through for the rest of the day, then move to
+   the Logbook.
+6. English UI and quick-add keywords. Dates display as `Wed 8 Oct` and
    `8 Oct 2026`, with 24-hour time.
-6. **Design is my call.** I keep the system font stack: Segoe UI Variable is
-   native, superbly hinted on Windows 11, and needs no font dependency, and
-   the future PWA gets SF/Roboto natively. I also keep the single
-   indigo-blue accent (`oklch(0.55 0.19 264)`). It is calm and professional,
-   distinct from the red/amber semantic marks, and contrast-tested in both
-   themes.
-7. **`private_data/` holds everything that must not leave the PC**: the
-   real DB, `settings.toml`, backups and the dev DB (`private_data/dev/`).
-8. **The shortcut set is approved** and extended for the hierarchy (see the
-   phase 1 table).
-9. **`@dnd-kit/react` 0.5.0** (the new API), wrapped in `ui/dnd.ts`.
-10. **Pin versions released today** (React 19.3.0, FastAPI 0.143.0, Pydantic
-    2.14.0), with fallbacks: React 19.2.8, and the previous FastAPI/Pydantic
-    patches.
-11. **Connectors later.** Tracked in [TODO.md](TODO.md).
-
-## Remaining assumptions
-
-1. Todos live in a list or the Inbox, never directly in an area. Areas group
-   lists only.
-2. Subtasks are one level deep. Sections exist only in lists, not in the
-   Inbox.
-3. Deleting any container (area, list, section, parent todo) soft-deletes
-   everything below it, and a single undo restores it all. There is no
-   confirmation dialog because it is undoable.
-4. Completed todos stay visible, struck through, for the rest of the day,
-   then move to the paginated Logbook.
-5. Notes on a todo are plain text in phase 1. Markdown rendering is deferred.
-6. There is no trash view in phase 1 (undo covers it). Purging waits until
-   sync is designed.
-7. The daily-use server runs on port 8765, separate from dev (8000/5173), so
-   both can run at the same time. Autostart at login is not in scope yet.
-8. The theme preference is stored in the browser (`localStorage`) so it
-   applies before first paint. It moves to `settings.toml`/the server when
-   the PWA needs it on several devices.
-9. The `master` branch is used as is. I commit only when you ask.
+7. System font stack and a single indigo-blue accent
+   (`oklch(0.55 0.19 264)`), contrast-tested in both themes.
+8. `private_data/` holds everything that must not leave the PC: the real DB,
+   `settings.toml`, backups and the dev DB (`private_data/dev/`).
+9. The daily server runs on port 8765, separate from dev (8000/5173).
+   Autostart at login is not in scope.
+10. The theme preference lives in `localStorage` so it applies before first
+    paint (until phase 7).

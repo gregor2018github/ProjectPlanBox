@@ -10,8 +10,7 @@ treat their database as precious.
 - `docs/ARCHITECTURE.md`: layers, module boundaries, data model, data flow.
 - `docs/STYLE_GUIDE.md`: code conventions and the design system (tokens,
   motion, components).
-- `docs/BRIEF.md`: the owner's original brief. If a choice conflicts with it,
-  raise the conflict. Do not resolve it silently.
+- `docs/TODO.md`: agreed but unscheduled follow-ups.
 
 ## Environment (Windows 11)
 - The Python virtual env is **`.venv`** at the repo root. Call
@@ -85,7 +84,7 @@ treat their database as precious.
 - At the end of a phase or task: `check.py` is green, the docs (README,
   ARCHITECTURE, STYLE_GUIDE, PLAN) reflect reality, and a short report covers
   **built / deferred / diverged**.
-- If you think something in the brief or these docs is wrong, argue for the
+- If you think something in these docs is wrong, argue for the
   alternative before building. Do not silently comply or silently deviate.
 - Commit regularly without being asked: whenever a coherent step is done and
   `check.py` is green. Use imperative, scoped messages (`todos: …`,
@@ -96,4 +95,3 @@ treat their database as precious.
   external services. Never delete or rewrite anything in it except
   `private_data/dev/`. **Never run `git clean -x`/`-X`**, because it would
   wipe the database.
-- Deferred items (e.g. claude.ai connectors) are tracked in `docs/TODO.md`.
