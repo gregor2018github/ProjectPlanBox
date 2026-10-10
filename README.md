@@ -26,8 +26,7 @@ will come later.
 
 - **Ctrl+K** opens the command palette: every action and every list, and
   a search over all todos (completed ones too), knowledge entries and
-  habits. Words
-  match as prefixes, so `rep out` finds "Report outline".
+  habits. Words match as prefixes, so `rep out` finds "Report outline".
   **?** shows all keyboard shortcuts.
 - **Q** is quick-add. Type, for example,
   `Pay rent fri !1 @money #Home/Bills`:
