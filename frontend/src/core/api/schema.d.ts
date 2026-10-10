@@ -96,6 +96,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/habits/habits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Habits
+         * @description All live habits in order, with their days in the range and their streaks.
+         */
+        get: operations["habits_list_habits"];
+        put?: never;
+        /**
+         * Create Habit
+         * @description Creates a habit (idempotent per client id).
+         */
+        post: operations["habits_create_habit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/habits/habits/{habit_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Habit
+         * @description Deletes a habit (undo with restore).
+         */
+        delete: operations["habits_delete_habit"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Habit
+         * @description Changes the fields present in the body.
+         */
+        patch: operations["habits_update_habit"];
+        trace?: never;
+    };
+    "/api/habits/habits/{habit_id}/checkins/{day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Check Habit
+         * @description Marks the habit done on a day (idempotent; not in the future).
+         */
+        put: operations["habits_check_habit"];
+        post?: never;
+        /**
+         * Uncheck Habit
+         * @description Removes the day's check-in (idempotent).
+         */
+        delete: operations["habits_uncheck_habit"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/habits/habits/{habit_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Habit
+         * @description Undoes a delete, with the habit's history.
+         */
+        post: operations["habits_restore_habit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -951,6 +1043,18 @@ export interface components {
             occurrences: components["schemas"]["OccurrenceOut"][];
         };
         /**
+         * CheckinOut
+         * @description Whether a habit is checked on a day.
+         */
+        CheckinOut: {
+            /** Checked */
+            checked: boolean;
+            /** Day */
+            day: string;
+            /** Habit Id */
+            habit_id: string;
+        };
+        /**
          * CollectionCreate
          * @description Create a collection at the end; send a client ``id`` for idempotent, optimistic creates.
          */
@@ -1196,6 +1300,130 @@ export interface components {
         EventsOut: {
             /** Events */
             events: components["schemas"]["EventOut"][];
+        };
+        /**
+         * HabitCreate
+         * @description Create a habit; send a client-generated ``id`` for idempotent, optimistic creates.
+         */
+        HabitCreate: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes?: string;
+            /**
+             * Rrule
+             * @description Defaults to FREQ=DAILY.
+             */
+            rrule?: string | null;
+            /**
+             * Start Date
+             * @description Defaults to today.
+             */
+            start_date?: string | null;
+        };
+        /**
+         * HabitDeletedOut
+         * @description Result of a soft delete; restore by id to undo.
+         */
+        HabitDeletedOut: {
+            /** Deleted At */
+            deleted_at: string;
+            /** Id */
+            id: string;
+        };
+        /**
+         * HabitOut
+         * @description A habit.
+         */
+        HabitOut: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string;
+            /** Position */
+            position: string;
+            /**
+             * Rrule
+             * @description RRULE without DTSTART, anchored on start_date.
+             */
+            rrule: string;
+            /**
+             * Start Date
+             * @description First day of the schedule (YYYY-MM-DD).
+             */
+            start_date: string;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * HabitOverviewOut
+         * @description A habit with its days in the requested range and its streaks.
+         */
+        HabitOverviewOut: {
+            /** Best Streak */
+            best_streak: number;
+            /**
+             * Checkins
+             * @description Checked days in the range, ascending.
+             */
+            checkins: string[];
+            /** Created At */
+            created_at: string;
+            /**
+             * Current Streak
+             * @description Scheduled days kept in a row up to today (an open today does not break it).
+             */
+            current_streak: number;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string;
+            /** Position */
+            position: string;
+            /**
+             * Rrule
+             * @description RRULE without DTSTART, anchored on start_date.
+             */
+            rrule: string;
+            /**
+             * Scheduled
+             * @description Days the schedule asks for in the range.
+             */
+            scheduled: string[];
+            /**
+             * Start Date
+             * @description First day of the schedule (YYYY-MM-DD).
+             */
+            start_date: string;
+            /** Total Checkins */
+            total_checkins: number;
+            /** Updated At */
+            updated_at: string;
+        };
+        /**
+         * HabitPatch
+         * @description Change the fields present in the body.
+         */
+        HabitPatch: {
+            /** Name */
+            name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Rrule */
+            rrule?: string | null;
+            /** Start Date */
+            start_date?: string | null;
         };
         /**
          * HealthOut
@@ -1932,6 +2160,234 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_list_habits: {
+        parameters: {
+            query: {
+                /** @description First day of the range (YYYY-MM-DD). */
+                start: string;
+                /** @description Last day of the range, inclusive. */
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitOverviewOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_create_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HabitCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_delete_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitDeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_update_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HabitPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_check_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habit_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckinOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_uncheck_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habit_id: string;
+                day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckinOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_restore_habit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                habit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HabitOut"];
                 };
             };
             /** @description Problem details */

@@ -6,7 +6,8 @@ entry here and touching no other module.
 
 from planbox.core.module import Module
 from planbox.modules.calendar import module as calendar
+from planbox.modules.habits import module as habits
 from planbox.modules.knowledge import module as knowledge
 from planbox.modules.todos import module as todos
 
-ENABLED_MODULES: tuple[Module, ...] = (todos, knowledge, calendar)
+ENABLED_MODULES: tuple[Module, ...] = (todos, knowledge, calendar, habits)

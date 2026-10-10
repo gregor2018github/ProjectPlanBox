@@ -114,6 +114,30 @@
         "title": "CalendarRangeOut",
         "type": "object"
       },
+      "CheckinOut": {
+        "description": "Whether a habit is checked on a day.",
+        "properties": {
+          "checked": {
+            "title": "Checked",
+            "type": "boolean"
+          },
+          "day": {
+            "title": "Day",
+            "type": "string"
+          },
+          "habit_id": {
+            "title": "Habit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "habit_id",
+          "day",
+          "checked"
+        ],
+        "title": "CheckinOut",
+        "type": "object"
+      },
       "CollectionCreate": {
         "description": "Create a collection at the end; send a client ``id`` for idempotent, optimistic creates.",
         "properties": {
@@ -848,6 +872,268 @@
           "events"
         ],
         "title": "EventsOut",
+        "type": "object"
+      },
+      "HabitCreate": {
+        "description": "Create a habit; send a client-generated ``id`` for idempotent, optimistic creates.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Defaults to FREQ=DAILY.",
+            "title": "Rrule"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Defaults to today.",
+            "title": "Start Date"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "HabitCreate",
+        "type": "object"
+      },
+      "HabitDeletedOut": {
+        "description": "Result of a soft delete; restore by id to undo.",
+        "properties": {
+          "deleted_at": {
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "deleted_at"
+        ],
+        "title": "HabitDeletedOut",
+        "type": "object"
+      },
+      "HabitOut": {
+        "description": "A habit.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "rrule": {
+            "description": "RRULE without DTSTART, anchored on start_date.",
+            "title": "Rrule",
+            "type": "string"
+          },
+          "start_date": {
+            "description": "First day of the schedule (YYYY-MM-DD).",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "notes",
+          "rrule",
+          "start_date",
+          "position",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "HabitOut",
+        "type": "object"
+      },
+      "HabitOverviewOut": {
+        "description": "A habit with its days in the requested range and its streaks.",
+        "properties": {
+          "best_streak": {
+            "title": "Best Streak",
+            "type": "integer"
+          },
+          "checkins": {
+            "description": "Checked days in the range, ascending.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Checkins",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_streak": {
+            "description": "Scheduled days kept in a row up to today (an open today does not break it).",
+            "title": "Current Streak",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "string"
+          },
+          "rrule": {
+            "description": "RRULE without DTSTART, anchored on start_date.",
+            "title": "Rrule",
+            "type": "string"
+          },
+          "scheduled": {
+            "description": "Days the schedule asks for in the range.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Scheduled",
+            "type": "array"
+          },
+          "start_date": {
+            "description": "First day of the schedule (YYYY-MM-DD).",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "total_checkins": {
+            "title": "Total Checkins",
+            "type": "integer"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "notes",
+          "rrule",
+          "start_date",
+          "position",
+          "created_at",
+          "updated_at",
+          "checkins",
+          "scheduled",
+          "current_streak",
+          "best_streak",
+          "total_checkins"
+        ],
+        "title": "HabitOverviewOut",
+        "type": "object"
+      },
+      "HabitPatch": {
+        "description": "Change the fields present in the body.",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "rrule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rrule"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          }
+        },
+        "title": "HabitPatch",
         "type": "object"
       },
       "HealthOut": {
@@ -2443,6 +2729,349 @@
         "summary": "Restore Event",
         "tags": [
           "calendar"
+        ]
+      }
+    },
+    "/api/habits/habits": {
+      "get": {
+        "description": "All live habits in order, with their days in the range and their streaks.",
+        "operationId": "habits_list_habits",
+        "parameters": [
+          {
+            "description": "First day of the range (YYYY-MM-DD).",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "description": "First day of the range (YYYY-MM-DD).",
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day of the range, inclusive.",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "description": "Last day of the range, inclusive.",
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HabitOverviewOut"
+                  },
+                  "title": "Response Habits List Habits",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Habits",
+        "tags": [
+          "habits"
+        ]
+      },
+      "post": {
+        "description": "Creates a habit (idempotent per client id).",
+        "operationId": "habits_create_habit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Create Habit",
+        "tags": [
+          "habits"
+        ]
+      }
+    },
+    "/api/habits/habits/{habit_id}": {
+      "delete": {
+        "description": "Deletes a habit (undo with restore).",
+        "operationId": "habits_delete_habit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habit_id",
+            "required": true,
+            "schema": {
+              "title": "Habit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDeletedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Delete Habit",
+        "tags": [
+          "habits"
+        ]
+      },
+      "patch": {
+        "description": "Changes the fields present in the body.",
+        "operationId": "habits_update_habit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habit_id",
+            "required": true,
+            "schema": {
+              "title": "Habit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HabitPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Update Habit",
+        "tags": [
+          "habits"
+        ]
+      }
+    },
+    "/api/habits/habits/{habit_id}/checkins/{day}": {
+      "delete": {
+        "description": "Removes the day's check-in (idempotent).",
+        "operationId": "habits_uncheck_habit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habit_id",
+            "required": true,
+            "schema": {
+              "title": "Habit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "day",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Day",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Uncheck Habit",
+        "tags": [
+          "habits"
+        ]
+      },
+      "put": {
+        "description": "Marks the habit done on a day (idempotent; not in the future).",
+        "operationId": "habits_check_habit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habit_id",
+            "required": true,
+            "schema": {
+              "title": "Habit Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "day",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Day",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckinOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Check Habit",
+        "tags": [
+          "habits"
+        ]
+      }
+    },
+    "/api/habits/habits/{habit_id}/restore": {
+      "post": {
+        "description": "Undoes a delete, with the habit's history.",
+        "operationId": "habits_restore_habit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "habit_id",
+            "required": true,
+            "schema": {
+              "title": "Habit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Restore Habit",
+        "tags": [
+          "habits"
         ]
       }
     },
