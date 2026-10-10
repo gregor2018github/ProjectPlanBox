@@ -68,5 +68,15 @@ plan and must respect the "data stays on this PC" rule for `private_data/`.
       nested collections.
 - [ ] Syntax highlighting for snippets (needs a dependency).
 - [ ] Links on calendar events (the event dialog has no Links block yet).
-- [ ] The link picker lists cached items only (open todos and today's
-      completed ones, all entries). Phase 3 search can widen it.
+- [x] The link picker lists cached items only. Phase 3 adds server search
+      hits for everything else.
+
+## Search follow-ups (deferred from phase 3)
+
+- [ ] Index tag names (a tag rename does not bump the tagged rows'
+      `updated_at`, so it needs its own sync rule).
+- [ ] Index calendar events. Their detail is a dialog, not the `?item=`
+      panel, so opening a hit needs a per-type "open" hook first.
+- [ ] A search page with filters (type, open/done, collection) and more
+      than 20 results.
+- [ ] Highlight the matched words inside the opened item.

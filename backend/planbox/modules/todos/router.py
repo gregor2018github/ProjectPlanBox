@@ -274,6 +274,12 @@ def list_completed_items(
     return LogbookOut(todos=[_todo(r) for r in page.records], next_cursor=page.next_cursor)
 
 
+@router.get("/items/{todo_id}")
+def get_item(todo_id: str, service: Todos) -> TodoOut:
+    """One live todo, open or completed (e.g. a search hit from the logbook)."""
+    return _todo(service.get(todo_id))
+
+
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 def create_item(body: TodoCreate, service: Todos, response: Response) -> TodoOut:
     """Creates a todo or subtask (idempotent per client id)."""

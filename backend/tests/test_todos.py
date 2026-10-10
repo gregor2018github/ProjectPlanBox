@@ -187,3 +187,16 @@ def test_unknown_todo_is_not_found(client: TestClient) -> None:
     assert client.patch(f"/api/todos/items/{missing}", json={"title": "x"}).status_code == 404
     assert client.post(f"/api/todos/items/{missing}/complete").status_code == 404
     assert client.delete(f"/api/todos/items/{missing}").status_code == 404
+
+
+def test_get_one_todo_open_completed_or_gone(client: TestClient) -> None:
+    """A single todo is readable while live, completed or not; deleted ones 404."""
+    created = client.post("/api/todos/items", json={"title": "Old chore"}).json()
+    url = f"/api/todos/items/{created['id']}"
+    assert client.get(url).json()["title"] == "Old chore"
+
+    client.post(f"{url}/complete")
+    assert client.get(url).json()["completed_at"] is not None
+
+    client.delete(url)
+    assert client.get(url).status_code == 404

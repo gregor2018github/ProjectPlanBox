@@ -108,19 +108,10 @@ export function KnowledgeHost() {
         group: "Collections",
         run: go(knowledgePaths.collection(c.id)),
       })),
-      ...data.entries.map((e) => ({
-        id: `knowledge.open.${e.id}`,
-        title: e.title,
-        group: "Knowledge",
-        keywords: [KIND_LABELS[e.kind], data.collectionName(e.collection_id)],
-        run: () => {
-          actions.open(e);
-        },
-      })),
     ],
     // go reads navigate through its closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, actions, navigate],
+    [data, navigate],
   );
   useCommands(commands);
 

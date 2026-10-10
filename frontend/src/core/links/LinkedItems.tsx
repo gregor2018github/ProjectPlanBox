@@ -5,6 +5,8 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "../../ui/Button";
 import { PickerList, type PickerOption } from "../../ui/PickerList";
 import { Popover } from "../../ui/Popover";
+import { stripMarks } from "../search/marks";
+import { useSearch } from "../search/searchQueries";
 import { entityTypeOf } from "./linkables";
 import { useLinkableSources } from "./linkablesContext";
 import { otherEnd, useLinkActions, useLinks } from "./linkQueries";
@@ -21,15 +23,22 @@ export interface LinkedItemsProps {
 /**
  * The "Links" block of a detail panel: what this item links to and what
  * links to it, in any module. Items open in the detail panel; "Link…" picks
- * from everything the modules publish as linkable.
+ * from everything the modules publish as linkable, plus server search
+ * results for anything not cached (e.g. long-completed todos).
  */
 export function LinkedItems({ entity, title }: LinkedItemsProps) {
   const { data: links = [] } = useLinks(entity);
   const sources = useLinkableSources();
   const actions = useLinkActions();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { hits } = useSearch(open ? query : "");
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    if (!next) setQuery("");
+  };
 
   const linked = useMemo(() => new Set(links.map((l) => otherEnd(l, entity).ref)), [links, entity]);
   const options = useMemo<PickerOption[]>(
@@ -44,6 +53,13 @@ export function LinkedItems({ entity, title }: LinkedItemsProps) {
           })),
       ),
     [sources, entity, linked],
+  );
+  const searchOptions = useMemo<PickerOption[]>(
+    () =>
+      hits
+        .filter((hit) => hit.ref !== entity && !linked.has(hit.ref))
+        .map((hit) => ({ id: hit.ref, label: stripMarks(hit.title), hint: hit.hint })),
+    [hits, entity, linked],
   );
   const sourceOf = (ref: string) => sources.find((s) => s.entityType === entityTypeOf(ref));
 
@@ -69,6 +85,8 @@ export function LinkedItems({ entity, title }: LinkedItemsProps) {
             placeholder="Find a todo, note, link…"
             inputRef={inputRef}
             options={options}
+            extraOptions={searchOptions}
+            onQueryChange={setQuery}
             onPick={(option) => {
               actions.add(
                 { ref: entity, title, deleted: false },

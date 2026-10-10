@@ -3912,6 +3912,47 @@
           "todos"
         ]
       },
+      "get": {
+        "description": "One live todo, open or completed (e.g. a search hit from the logbook).",
+        "operationId": "todos_get_item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "todo_id",
+            "required": true,
+            "schema": {
+              "title": "Todo Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Item",
+        "tags": [
+          "todos"
+        ]
+      },
       "patch": {
         "description": "Changes the fields present in the body.",
         "operationId": "todos_update_item",

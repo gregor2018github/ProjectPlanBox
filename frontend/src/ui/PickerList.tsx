@@ -25,6 +25,13 @@ export interface PickerListProps {
   onCreate?: (query: string) => void;
   placeholder?: string;
   inputRef?: RefObject<HTMLInputElement | null>;
+  /** Called with every change of the typed text (e.g. to search the server). */
+  onQueryChange?: (query: string) => void;
+  /**
+   * Listed after the filtered options without being filtered themselves
+   * (e.g. server search results); ids already listed are skipped.
+   */
+  extraOptions?: readonly PickerOption[];
 }
 
 /**
@@ -38,22 +45,26 @@ export function PickerList({
   onCreate,
   placeholder = "Filter…",
   inputRef,
+  onQueryChange,
+  extraOptions,
 }: PickerListProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
 
   const trimmed = query.trim();
-  const filtered = useMemo(
-    () =>
+  const filtered = useMemo(() => {
+    const matching =
       trimmed === ""
         ? [...options]
         : rank(
             options.map((o) => ({ ...o, title: o.label })),
             trimmed,
-          ),
-    [options, trimmed],
-  );
+          );
+    if (extraOptions === undefined || extraOptions.length === 0) return matching;
+    const listed = new Set(matching.map((o) => o.id));
+    return [...matching, ...extraOptions.filter((o) => !listed.has(o.id))];
+  }, [options, trimmed, extraOptions]);
   const exact = options.some((o) => o.label.toLowerCase() === trimmed.toLowerCase());
   const canCreate = onCreate !== undefined && trimmed !== "" && !exact;
   const total = filtered.length + (canCreate ? 1 : 0);
@@ -96,6 +107,7 @@ export function PickerList({
         onChange={(event) => {
           setQuery(event.target.value);
           setActive(0);
+          onQueryChange?.(event.target.value);
         }}
         onKeyDown={onKeyDown}
         className="h-10 border-b border-border bg-transparent px-3 text-base outline-none placeholder:text-text-subtle"

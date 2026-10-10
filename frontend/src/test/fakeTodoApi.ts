@@ -111,7 +111,14 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
       return json(list, 201);
     }
     if (path === "/api/todos/sections") return json(state.sections);
-    if (path === "/api/todos/items" && method === "GET") return json(live().map(strip));
+    if (path === "/api/todos/items" && method === "GET") {
+      const since = url.searchParams.get("completed_since") ?? "";
+      return json(
+        live()
+          .filter((t) => t.completed_at === null || t.completed_at >= since)
+          .map(strip),
+      );
+    }
     if (path === "/api/todos/items/completed") {
       return json({
         todos: live()
@@ -155,6 +162,9 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
     const action = segments[4];
     const target = state.todos.find((t) => t.id === id);
     if (segments[2] === "items" && target) {
+      if (method === "GET" && action === undefined) {
+        return target.deleted_at ? problem(404, "No todo with this id.") : json(strip(target));
+      }
       if (method === "PATCH") {
         Object.assign(target, b, { updated_at: state.now });
         return json(strip(target));

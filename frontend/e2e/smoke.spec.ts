@@ -196,6 +196,21 @@ test("a note links to a todo, and the link shows from both sides after a reload"
   ).toBeVisible();
 });
 
+test("the palette finds a todo by a word in its notes and opens it", async ({ page, request }) => {
+  const word = `zebra${tag()}`;
+  const title = `Search target ${tag()}`;
+  await request.post("/api/todos/items", { data: { title, notes: `Mentions ${word} here` } });
+  await page.goto("/knowledge");
+
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Search commands" }).fill(word);
+  const hit = page.getByRole("option", { name: new RegExp(title) });
+  await expect(hit).toContainText("Inbox");
+  await hit.click();
+
+  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue(title);
+});
+
 test("the theme choice persists", async ({ page }) => {
   await page.goto("/todos/inbox");
   await page.getByRole("button", { name: "Dark" }).click();

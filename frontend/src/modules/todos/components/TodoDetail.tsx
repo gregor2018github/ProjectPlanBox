@@ -14,6 +14,7 @@ import { todoItemRef, useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 import { DueDatePicker } from "./DueDatePicker";
 import { InlineTitle } from "../../../ui/InlineTitle";
+import { PastTodoDetail } from "./PastTodoDetail";
 import { PlacementPicker } from "./PlacementPicker";
 import { RepeatPicker } from "./RepeatPicker";
 import { SubtaskList } from "./SubtaskList";
@@ -64,11 +65,8 @@ export function TodoDetail({ id }: TodoDetailProps) {
   );
 
   if (todo === undefined) {
-    return (
-      <p className="pt-4 text-base text-text-muted">
-        {data.loading ? "" : "This todo is not here anymore (deleted, or completed before today)."}
-      </p>
-    );
+    // Not in the cache of open and today's todos: completed earlier, or gone.
+    return data.loading ? null : <PastTodoDetail id={id} />;
   }
 
   const saveNotes = (value: string) => {

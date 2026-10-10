@@ -195,21 +195,10 @@ export function TodosHost() {
         group: "Lists",
         run: go(todoPaths.area(area.id)),
       })),
-      ...data.todos
-        .filter((t) => t.completed_at === null)
-        .map((t) => ({
-          id: `todos.open.${t.id}`,
-          title: t.title,
-          group: "Open todos",
-          keywords: [data.lookup.listName(t.list_id)],
-          run: () => {
-            actions.open(t);
-          },
-        })),
     ],
     // openQuickAdd/openSubtaskAdd/go read fresh state through closures over data and pathname.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, actions, pathname, navigate],
+    [data, pathname, navigate],
   );
   useCommands(commands);
 

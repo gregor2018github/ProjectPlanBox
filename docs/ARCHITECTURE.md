@@ -31,7 +31,7 @@ ProjectPlanBox/
 │   │   │   ├── lifecycle/    # POST /api/shutdown (only when started by the launcher)
 │   │   │   ├── tags/         # repository / service / router / schemas
 │   │   │   ├── links/        # links between any two entities (phase 2)
-│   │   │   └── search/       # (built later)
+│   │   │   └── search/       # full-text index and GET /api/search (phase 3)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
 │   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
@@ -55,7 +55,8 @@ ProjectPlanBox/
 │       ├── app/              # App (providers), router, AppShell, Sidebar, DetailPanel, pages
 │       ├── core/             # api/ (client, generated schema, queries), commands/ (registry,
 │       │                     # palette), shortcuts/ (registry, overview), links/ (LinkedItems,
-│       │                     # linkable sources), tags/, calendar/ (feeds), recurrence/ (rule
+│       │                     # linkable sources), search/ (server search, match marks), tags/,
+│       │                     # calendar/ (feeds), recurrence/ (rule
 │       │                     # text + the shared repeat editor), theme/, time, ids, module
 │       ├── ui/               # design system: Base UI wrappers (Dialog, Sheet, Tooltip, Toaster,
 │       │                     # SegmentedControl), Button, IconButton, Kbd, motion presets, and
@@ -285,7 +286,11 @@ declares its `EntityType`s:
 class EntityType:
     name: str                                   # "todos.todo"
     summarize: Callable[[Connection, Sequence[str]], Mapping[str, EntitySummary]]
-    # EntitySummary(title, deleted: bool); used to display links, tags and search hits
+    # EntitySummary(title, deleted, hint=""); used to display links, tags and search hits.
+    # hint is short context such as "Done · Work" or "Link · Recipes".
+    documents: Callable[[Connection, str | None], Iterable[SearchDocument]] | None = None
+    # SearchDocument(id, title, body, deleted, updated_at) changed at/after the instant
+    # (all for None); feeds the search index (§6.3)
 ```
 
 The core calls `summarize` through the registry and never imports the
@@ -344,18 +349,53 @@ CREATE TABLE core_links (
   `POST …/restore` give undo.
 - Within one module, relationships use real FK columns, not `core_links`.
 
-### 6.3 Search (designed now, built after the second module)
+### 6.3 Search (built in phase 3)
 
-- SQLite FTS5, which is available in the bundled SQLite:
-  `CREATE VIRTUAL TABLE core_search USING fts5(entity_type UNINDEXED,
-  entity_id UNINDEXED, title, body, tokenize='unicode61 remove_diacritics 2')`.
-- Modules call `SearchIndex.upsert(ref, title, body)` / `remove(ref)` in the
-  same transaction as their write, so the index is never stale.
-- Each `EntityType` can provide `reindex(conn)` for `scripts/reindex.py`.
-- `GET /api/search?q=` returns `EntityRef`, title and snippet. The command
-  palette shows these next to commands.
-- Until then, the palette searches todos and knowledge entries by title,
-  client-side from the query caches (each Host registers them as commands).
+```sql
+CREATE VIRTUAL TABLE core_search USING fts5(entity_type UNINDEXED,
+  entity_id UNINDEXED, title, body, tokenize='unicode61 remove_diacritics 2');
+CREATE TABLE core_search_sync (id, entity_type, synced_through, created_at,
+  updated_at, deleted_at) STRICT;  -- one live row per entity type
+```
+
+- **Pull, not push.** The original design had modules call
+  `SearchIndex.upsert()`/`remove()` in every write transaction. Todos alone
+  have about ten write paths (patch, complete, the recurrence spawn, the
+  cascading deletes of areas, lists, sections and parents, restores), and
+  one missed call means a silently stale index. Instead each `EntityType`
+  offers `documents(conn, since)`: its rows whose `updated_at` is at or
+  after `since`, deleted ones included. Every search first syncs: per type,
+  read what changed since the stored watermark, replace those documents,
+  drop the deleted ones, and move the watermark to the newest
+  `updated_at` seen. All of this happens in one transaction before the
+  query, so results are never stale, and module write paths stay
+  untouched. The only contract is the one every table already follows:
+  **every write bumps `updated_at`**, soft deletes included.
+- The sync re-reads 60 seconds before the watermark. A write that computed
+  its timestamp before a concurrent sync but committed after it is still
+  picked up. Re-indexing a document is idempotent.
+- Each document's FTS rowid is a 63-bit hash of its ref, so a change
+  replaces the row in place without scanning the unindexed columns.
+- A type without a watermark row is indexed from scratch. That makes new
+  modules and the rebuild free: `py scripts\reindex.py` empties the index
+  and retires the watermarks (needed only if the PC clock was set back).
+- `GET /api/search?q=&limit=` (max 50): every word must match as a prefix
+  (`rep out` finds "Report outline"). The input is reduced to words and
+  quoted, so FTS5 syntax typed by the user is inert. Ranking is bm25 with
+  the title weighted 8× over the body. Each hit carries `ref`, `title` and a
+  body `snippet` (matched terms between U+E000 and U+E001, which the
+  frontend renders as `<mark>`), plus the module's `hint` from `summarize`.
+  The summary is fetched at query time, so a renamed list shows at once.
+- Indexed today: todos (title, notes) and knowledge entries (title, text,
+  and the address for links). Tags and calendar events are not indexed
+  (TODO.md).
+- **Frontend.** `useSearch` (`core/search/`) debounces by 150 ms and keeps
+  the previous hits while the next load. The command palette lists up to 8
+  matching commands, then "Search results" with each hit's icon and noun
+  taken from the linkable sources (§2). Opening a hit sets `?item=` like a
+  link does. The link picker keeps its instant cached list and adds server
+  hits that are not cached, such as todos completed long ago. Those open in
+  a read-only todo panel (`GET /api/todos/items/{id}`) with Reopen.
 
 ## 7. Todos module data model (phase 1)
 
@@ -764,6 +804,9 @@ changes.
    - `index.ts` exports the manifest. Add one line to `src/modules/index.ts`.
    - To take part in links: publish a linkable source from the Host
      (`useLinkableSource`) and render `<LinkedItems>` in the detail panel.
+   - To take part in search: give the backend `EntityType` a `documents`
+     function (rows changed since an instant) and a `hint` in `summarize`.
+     Make sure every write bumps `updated_at`.
    - UI flow tests with a fake API, plus one or two Playwright smoke tests.
 
 ## 11. Continuous integration

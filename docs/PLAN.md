@@ -372,11 +372,47 @@ No new dependencies.
 link titles/previews from the web, changing an entry's kind, manual order
 inside a collection, nested collections, and links on calendar events.
 
+## Phase 3: Search. Built 2026-10-10
+
+**Scope:** a core FTS5 index fed by todos and knowledge, and palette
+integration. No new dependencies (FTS5 ships with the bundled SQLite).
+
+**Backend** (`core/search`, migration `core/0003_create_search.sql`):
+- `core_search` (FTS5, `unicode61 remove_diacritics 2`) and
+  `core_search_sync` (a watermark per entity type).
+- `EntityType` gains an optional `documents(conn, since)` feed, and
+  `EntitySummary` gains a `hint` ("Done · Work", "Link · Recipes").
+- `GET /api/search?q=&limit=`: every word is a prefix match, bm25 with the
+  title weighted 8×, marked title and snippet, deleted items excluded.
+- `GET /api/todos/items/{id}`, so search hits and links can open a todo
+  that was completed before today.
+- `scripts/reindex.py` empties the index; the next search rebuilds it.
+
+**Frontend:**
+- The palette shows matching commands, then "Search results" (icon, marked
+  title, hint, snippet). Enter or a click opens the item in the detail
+  panel. The per-entity palette commands ("Open todos", knowledge entries)
+  were removed, because search covers them, including the text and old
+  completed todos.
+- The link picker adds server hits that are not in the caches.
+- A read-only panel for todos completed before today, with Reopen.
+
+**Diverged from ARCHITECTURE §6.3 as first designed:** modules do not call
+`SearchIndex.upsert()` in their write transactions. The index instead
+**pulls** the rows changed since its watermark at the start of every search.
+It is equally fresh and cannot be broken by a forgotten call in one of the
+roughly fifteen write paths. The cost is a few cheap `updated_at >= ?`
+scans per search, and the rule that every write bumps `updated_at`, which
+every repository already follows. Details are in ARCHITECTURE §6.3.
+
+**Cut to keep it lean** (in TODO.md): indexing tag names and calendar
+events, a dedicated search page with filters, and match highlighting inside
+the opened item.
+
 ## Later phases (sketch)
 
 - **Phase 2: Knowledge collections.** Built; see above.
-- **Phase 3: Search.** Core FTS5 index fed by todos and knowledge, plus
-  palette integration.
+- **Phase 3: Search.** Built; see above.
 - **Phase 4: Calendar.** Brought forward; see above.
 - **Phase 5: Habits.** Habits with schedules (RRULE) and daily check-ins
   stored as floating dates, plus streaks.

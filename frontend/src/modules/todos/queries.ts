@@ -18,6 +18,7 @@ export const todoKeys = {
   lists: ["todos", "lists"] as const,
   sections: ["todos", "sections"] as const,
   logbook: ["todos", "logbook"] as const,
+  item: (id: string) => ["todos", "item", id] as const,
 };
 
 /** Every open todo plus today's completed ones (one cache for all views). */
@@ -88,4 +89,18 @@ export function logbookQueryOptions(client: ApiClient) {
 /** Subscribes to the logbook. */
 export function useLogbook() {
   return useInfiniteQuery(logbookQueryOptions(useApiClient()));
+}
+
+/**
+ * One todo straight from the server, for todos outside the main cache (e.g.
+ * a search hit completed long ago). Only fetches while `enabled`.
+ */
+export function useTodo(id: string, enabled: boolean) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: todoKeys.item(id),
+    queryFn: () =>
+      unwrap(client.GET("/api/todos/items/{todo_id}", { params: { path: { todo_id: id } } })),
+    enabled,
+  });
 }

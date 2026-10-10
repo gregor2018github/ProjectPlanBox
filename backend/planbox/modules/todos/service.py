@@ -470,6 +470,14 @@ class TodoService:
             next_cursor = f"{last.completed_at}|{last.id}"
         return LogbookPage(self._records(page), next_cursor)
 
+    def get(self, todo_id: str) -> TodoRecord:
+        """One live todo, open or completed.
+
+        Raises:
+            NotFound: If there is no live todo with this id.
+        """
+        return self._record(_live(self._repos.todos.get(todo_id), "todo"))
+
     # ---- writes
 
     def create(self, new: NewTodo) -> tuple[TodoRecord, bool]:

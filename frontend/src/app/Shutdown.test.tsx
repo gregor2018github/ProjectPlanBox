@@ -64,6 +64,6 @@ describe("shutting down", () => {
     expect(screen.queryByRole("button", { name: "Shut down PlanBox" })).not.toBeInTheDocument();
     await user.keyboard("{Control>}k{/Control}");
     await user.type(await screen.findByRole("combobox"), "shut down");
-    expect(screen.getByText("No matching commands.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing matches.")).toBeInTheDocument();
   });
 });

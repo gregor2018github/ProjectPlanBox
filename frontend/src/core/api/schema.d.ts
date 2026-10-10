@@ -603,7 +603,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Item
+         * @description One live todo, open or completed (e.g. a search hit from the logbook).
+         */
+        get: operations["todos_get_item"];
         put?: never;
         post?: never;
         /**
@@ -2950,6 +2954,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LogbookOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_get_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoOut"];
                 };
             };
             /** @description Problem details */

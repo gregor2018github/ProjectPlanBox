@@ -67,7 +67,7 @@ describe("app shell", () => {
     await user.keyboard("{Control>}k{/Control}");
     await user.type(await screen.findByRole("combobox"), "zzzz");
 
-    expect(screen.getByText("No matching commands.")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing matches.")).toBeInTheDocument();
   });
 
   it("collapses the desktop sidebar with [ and expands it again", async () => {

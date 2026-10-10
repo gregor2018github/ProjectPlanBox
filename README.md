@@ -16,11 +16,14 @@ will come later.
 > collections, and links between any two items (a todo and a note, say).
 > Todos can repeat (phase 6, brought forward): every N days, weeks, months
 > or years, or on chosen weekdays, and completing one adds the next.
-> Search comes next. See [docs/PLAN.md](docs/PLAN.md).
+> Search (phase 3) is built: Ctrl+K finds todos and knowledge entries by
+> any word in their title or text. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 
-- **Ctrl+K** opens the command palette (every action and every list).
+- **Ctrl+K** opens the command palette: every action and every list, and
+  a search over all todos (completed ones too) and knowledge entries. Words
+  match as prefixes, so `rep out` finds "Report outline".
   **?** shows all keyboard shortcuts.
 - **Q** is quick-add. Type, for example,
   `Pay rent fri !1 @money #Home/Bills`:
@@ -163,6 +166,7 @@ own, so you do not need to activate it first.
 | `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (Chromium against a throwaway server). After a fresh setup, run `npx playwright install chromium` in `frontend\` once. |
 | `py scripts\check.py` | The full quality gate: Ruff format and lint, pyright, an API types drift check, Prettier, ESLint, `tsc`, then all tests. Run it before every commit. `--full` adds the Playwright smoke suite. |
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
+| `py scripts\reindex.py` | Empties the search index so the next search rebuilds it (only needed if search ever looks wrong). `--dev` targets the dev database. |
 | `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
 | `py scripts\lock.py` | Regenerates `requirements.lock.txt` (every runtime package, exact versions, resolved with Python 3.12) after you change `[project].dependencies`. `check.py` fails while it is out of date. |
