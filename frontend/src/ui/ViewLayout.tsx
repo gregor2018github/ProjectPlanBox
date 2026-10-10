@@ -5,7 +5,7 @@ export interface ViewLayoutProps {
   children: ReactNode;
 }
 
-/** The centred, readable column every todos view uses. */
+/** The centred, readable column every list-style view uses. */
 export function ViewLayout({ children }: ViewLayoutProps) {
   return (
     <div className="mx-auto w-full max-w-3xl px-1 pt-6 pb-24 md:px-6 md:pt-10">{children}</div>

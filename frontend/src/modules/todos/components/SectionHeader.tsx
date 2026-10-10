@@ -5,7 +5,7 @@ import { IconButton } from "../../../ui/IconButton";
 import { Menu } from "../../../ui/Menu";
 import type { Section } from "../types";
 import type { ContainerActions } from "../useContainerActions";
-import { NameDialog } from "./NameDialog";
+import { NameDialog } from "../../../ui/NameDialog";
 
 /** Props for {@link SectionHeader}. */
 export interface SectionHeaderProps {

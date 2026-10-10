@@ -9,7 +9,7 @@ export interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-/** The title block of a todos view. */
+/** The title block of a view. */
 export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
     <header className="mb-4 flex items-start justify-between gap-4 px-3">

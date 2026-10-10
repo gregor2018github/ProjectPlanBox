@@ -11,7 +11,8 @@ import { useContainerActions } from "../useContainerActions";
 import { useTodoCalendarFeed } from "../useTodoCalendarFeed";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
-import { NameDialog } from "./NameDialog";
+import { useTodoLinkables } from "../useTodoLinkables";
+import { NameDialog } from "../../../ui/NameDialog";
 import { QuickAddDialog } from "./QuickAddDialog";
 
 interface QuickAddTarget {
@@ -29,6 +30,7 @@ export function TodosHost() {
   const actions = useTodoActions();
   const containers = useContainerActions();
   useTodoCalendarFeed(data, actions);
+  useTodoLinkables(data);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [quickAdd, setQuickAdd] = useState<QuickAddTarget | null>(null);

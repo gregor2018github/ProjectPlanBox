@@ -4,7 +4,8 @@
  */
 import type { ModuleManifest } from "../core/module";
 import { calendarModule } from "./calendar";
+import { knowledgeModule } from "./knowledge";
 import { todosModule } from "./todos";
 
 /** Every enabled module, in sidebar order. */
-export const MODULES: readonly ModuleManifest[] = [todosModule, calendarModule];
+export const MODULES: readonly ModuleManifest[] = [todosModule, knowledgeModule, calendarModule];

@@ -1,8 +1,8 @@
 import { useRef, useState, type SubmitEvent } from "react";
 
-import { Button } from "../../../ui/Button";
-import { Dialog } from "../../../ui/Dialog";
-import { Input } from "../../../ui/Input";
+import { Button } from "./Button";
+import { Dialog } from "./Dialog";
+import { Input } from "./Input";
 
 /** Props for {@link NameDialog}. */
 export interface NameDialogProps {
@@ -15,7 +15,7 @@ export interface NameDialogProps {
   onSubmit: (name: string) => void;
 }
 
-/** Asks for a name (new list, area or section, or a rename). */
+/** Asks for a name (e.g. a new list or collection, or a rename). */
 export function NameDialog({
   open,
   onOpenChange,

@@ -9,6 +9,8 @@ import { CalendarFeedRegistry } from "../core/calendar/feed";
 import { CalendarFeedsContext } from "../core/calendar/feedContext";
 import { CommandsContext } from "../core/commands/commandsContext";
 import { CommandRegistry } from "../core/commands/registry";
+import { LinkableRegistry } from "../core/links/linkables";
+import { LinkablesContext } from "../core/links/linkablesContext";
 import type { ModuleManifest } from "../core/module";
 import { createQueryClient } from "../core/queryClient";
 import { ShortcutsProvider } from "../core/shortcuts/ShortcutsProvider";
@@ -34,6 +36,7 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
   const [router] = useState(() => createAppRouter({ modules, history }));
   const [commands] = useState(() => new CommandRegistry());
   const [calendarFeeds] = useState(() => new CalendarFeedRegistry());
+  const [linkables] = useState(() => new LinkableRegistry());
 
   return (
     <ApiClientContext value={client}>
@@ -46,7 +49,9 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
                   <UndoProvider>
                     <CommandsContext value={commands}>
                       <CalendarFeedsContext value={calendarFeeds}>
-                        <RouterProvider router={router} />
+                        <LinkablesContext value={linkables}>
+                          <RouterProvider router={router} />
+                        </LinkablesContext>
                       </CalendarFeedsContext>
                     </CommandsContext>
                   </UndoProvider>

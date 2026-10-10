@@ -13,7 +13,7 @@ import { useContainerActions } from "../useContainerActions";
 import { useTodoData } from "../useTodoData";
 import { AreaNavGroup } from "./AreaNavGroup";
 import { ListLink } from "./ListLink";
-import { NameDialog } from "./NameDialog";
+import { NameDialog } from "../../../ui/NameDialog";
 import { SidebarLink } from "./SidebarLink";
 
 const COLLAPSED_KEY = "planbox.todos.collapsedAreas";

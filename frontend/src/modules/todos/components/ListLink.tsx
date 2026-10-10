@@ -8,7 +8,7 @@ import { resolveContainerDrop } from "../dropRules";
 import { todoPaths } from "../paths";
 import type { TodoList } from "../types";
 import type { ContainerActions } from "../useContainerActions";
-import { NameDialog } from "./NameDialog";
+import { NameDialog } from "../../../ui/NameDialog";
 import { SidebarLink } from "./SidebarLink";
 
 /** Props for {@link ListLink}. */

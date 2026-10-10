@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
 
-import { cx } from "../../../ui/cx";
+import { cx } from "./cx";
 
 /** Props for {@link InlineTitle}. */
 export interface InlineTitleProps {
@@ -9,6 +9,9 @@ export interface InlineTitleProps {
   onCommit: (value: string) => void;
   /** Larger text for the detail panel's main title. */
   size?: "base" | "lg";
+  placeholder?: string;
+  /** Lets the text be cleared (by default an empty edit reverts). */
+  allowEmpty?: boolean;
   className?: string | undefined;
 }
 
@@ -21,6 +24,8 @@ export function InlineTitle({
   label,
   onCommit,
   size = "base",
+  placeholder,
+  allowEmpty = false,
   className,
 }: InlineTitleProps) {
   const [draft, setDraft] = useState(value);
@@ -35,7 +40,7 @@ export function InlineTitle({
   const commit = () => {
     setEditing(false);
     const cleaned = draft.replace(/\s+/g, " ").trim();
-    if (cleaned === "") setDraft(value);
+    if (cleaned === "" && !allowEmpty) setDraft(value);
     else if (cleaned !== value) onCommit(cleaned);
   };
 
@@ -54,6 +59,7 @@ export function InlineTitle({
   return (
     <input
       aria-label={label}
+      placeholder={placeholder}
       value={draft}
       onFocus={() => {
         setEditing(true);
@@ -64,7 +70,7 @@ export function InlineTitle({
       onBlur={commit}
       onKeyDown={onKeyDown}
       className={cx(
-        "min-w-0 flex-1 rounded-sm bg-transparent text-text outline-none focus-visible:outline-2 focus-visible:outline-offset-2",
+        "min-w-0 flex-1 rounded-sm bg-transparent text-text outline-none placeholder:text-text-subtle focus-visible:outline-2 focus-visible:outline-offset-2",
         size === "lg" ? "text-lg font-semibold" : "text-base",
         className,
       )}

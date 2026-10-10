@@ -2,9 +2,9 @@ import { useMemo } from "react";
 
 import { formatDayShort, formatRelativeDay } from "../../../core/time";
 import { EmptyHint } from "../components/EmptyHint";
-import { PageHeader } from "../components/PageHeader";
+import { PageHeader } from "../../../ui/PageHeader";
 import { TodoGroup } from "../components/TodoGroup";
-import { ViewLayout } from "../components/ViewLayout";
+import { ViewLayout } from "../../../ui/ViewLayout";
 import { upcomingView } from "../selectors";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";

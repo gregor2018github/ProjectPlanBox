@@ -8,7 +8,7 @@ import { Input } from "../../../ui/Input";
 import { childrenOf } from "../selectors";
 import type { Todo } from "../types";
 import type { TodoActions } from "../useTodoActions";
-import { InlineTitle } from "./InlineTitle";
+import { InlineTitle } from "../../../ui/InlineTitle";
 
 /** Props for {@link SubtaskList}. */
 export interface SubtaskListProps {

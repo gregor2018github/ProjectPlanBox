@@ -1,10 +1,10 @@
 import { Tag as TagIcon } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { newTagVars, useCreateTag, type Tag } from "../../../core/tags/tagQueries";
-import { Button } from "../../../ui/Button";
-import { PickerList } from "../../../ui/PickerList";
-import { Popover } from "../../../ui/Popover";
+import { newTagVars, useCreateTag, type Tag } from "./tagQueries";
+import { Button } from "../../ui/Button";
+import { PickerList } from "../../ui/PickerList";
+import { Popover } from "../../ui/Popover";
 
 /** Props for {@link TagPicker}. */
 export interface TagPickerProps {
@@ -13,7 +13,7 @@ export interface TagPickerProps {
   onChange: (tagIds: string[]) => void;
 }
 
-/** Toggle tags on a todo; typing a new name and pressing Enter creates it. */
+/** Toggle tags on an item; typing a new name and pressing Enter creates it. */
 export function TagPicker({ tags, selected, onChange }: TagPickerProps) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

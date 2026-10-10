@@ -1,6 +1,8 @@
 import { CornerLeftUp, Flag, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { LinkedItems } from "../../../core/links/LinkedItems";
+import { TagPicker } from "../../../core/tags/TagPicker";
 import { Button } from "../../../ui/Button";
 import { Checkbox } from "../../../ui/Checkbox";
 import { cx } from "../../../ui/cx";
@@ -8,13 +10,12 @@ import { Menu } from "../../../ui/Menu";
 import { TextArea } from "../../../ui/TextArea";
 import { PRIORITY_LABELS, type Priority } from "../types";
 import { todoUi, useTodoUi } from "../uiStore";
-import { useTodoActions } from "../useTodoActions";
+import { todoItemRef, useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 import { DueDatePicker } from "./DueDatePicker";
-import { InlineTitle } from "./InlineTitle";
+import { InlineTitle } from "../../../ui/InlineTitle";
 import { PlacementPicker } from "./PlacementPicker";
 import { SubtaskList } from "./SubtaskList";
-import { TagPicker } from "./TagPicker";
 
 /** Props for {@link TodoDetail}. */
 export interface TodoDetailProps {
@@ -192,6 +193,8 @@ export function TodoDetail({ id }: TodoDetailProps) {
       {todo.parent_id === null && (
         <SubtaskList parent={todo} todos={data.todos} actions={actions} />
       )}
+
+      <LinkedItems entity={todoItemRef(todo.id)} title={todo.title} />
 
       <div className="flex items-center justify-between border-t border-border pt-3 text-sm text-text-muted">
         <span>
