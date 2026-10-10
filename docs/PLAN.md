@@ -283,6 +283,11 @@ manifest (`rail`), so later modules (habits) can add their own.
   and resize in 15-minute steps; in the month grid you drag items to another
   day. Everything is also reachable through the event dialog and the
   keyboard.
+- A multi-day event is one item everywhere: one bar per week row in the
+  month grid and the week/day all-day row (square ends where it continues),
+  and one agenda row with its whole range on the first day shown. Timed
+  overnight events shorter than 24 hours stay in the time grid, split at
+  midnight. Dragging a bar moves the event's start to the drop day.
 - Optimistic mutations patch every cached month and refetch afterwards,
   because only the server expands recurrence.
 - **Todos on the calendar without a module import:** core gains a *calendar

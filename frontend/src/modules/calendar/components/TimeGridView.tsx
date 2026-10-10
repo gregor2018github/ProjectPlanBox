@@ -12,12 +12,22 @@ import {
 } from "../../../core/time";
 import { cx } from "../../../ui/cx";
 import { newDraft, type EventDraft } from "../draft";
-import { layoutDay, segmentsOf, type DayItems, type PlacedSegment } from "../selectors";
+import { ALL_DAY_CELL_HEADER } from "../barLayout";
+import {
+  barInTimeGrid,
+  emptyDay,
+  layoutBars,
+  layoutDay,
+  segmentsOf,
+  type DayItems,
+  type PlacedSegment,
+} from "../selectors";
 import { HOUR_HEIGHT, minutesAt, PX_PER_MINUTE, selection, type MinuteSpan } from "../timeGrid";
 import { occurrenceTiming } from "../timing";
 import type { CalendarActions } from "../useCalendarActions";
 import { useTimeGridGestures } from "../useTimeGridGestures";
 import { AllDayCell } from "./AllDayCell";
+import { EventBar } from "./EventBar";
 import { TimeGridColumn } from "./TimeGridColumn";
 
 /** Props for {@link TimeGridView}. */
@@ -34,7 +44,7 @@ export interface TimeGridViewProps {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
-const EMPTY: DayItems = { allDay: [], timed: [], entries: [] };
+const EMPTY = emptyDay();
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SURFACE = "grid";
 
@@ -56,10 +66,18 @@ export function TimeGridView({
   const bodyRef = useRef<HTMLDivElement>(null);
   const columns = `3.5rem repeat(${String(days.length)}, minmax(0, 1fr))`;
 
+  // Overnight events shorter than a day stay in the grid; longer ones are bars in the all-day row.
   const placed = useMemo(
-    () => new Map(days.map((d) => [d, layoutDay((byDay.get(d) ?? EMPTY).timed)])),
+    () =>
+      new Map(
+        days.map((d) => {
+          const day = byDay.get(d) ?? EMPTY;
+          return [d, layoutDay([...day.timed, ...day.spanning.filter((s) => !barInTimeGrid(s))])];
+        }),
+      ),
     [days, byDay],
   );
+  const allDayBars = useMemo(() => layoutBars(days, byDay, barInTimeGrid), [days, byDay]);
   const lastDays = useMemo(() => {
     const result = new Map<IsoDate, Set<string>>();
     for (const [day, segments] of placed) {
@@ -185,18 +203,38 @@ export function TimeGridView({
           );
         })}
         <span className="self-center pr-2 text-right text-xs text-text-muted">All day</span>
-        {days.map((day) => (
-          <AllDayCell
-            key={day}
-            date={day}
-            items={byDay.get(day) ?? EMPTY}
-            surface={SURFACE}
-            actions={actions}
-            onCreate={(date) => {
-              onCreate(newDraft(date));
-            }}
-          />
-        ))}
+        <div
+          className="relative grid"
+          style={{
+            gridColumn: "2 / -1",
+            gridTemplateColumns: `repeat(${String(days.length)}, minmax(0, 1fr))`,
+          }}
+        >
+          {days.map((day) => (
+            <AllDayCell
+              key={day}
+              date={day}
+              items={byDay.get(day) ?? EMPTY}
+              barLanes={allDayBars.lanes}
+              surface={SURFACE}
+              actions={actions}
+              onCreate={(date) => {
+                onCreate(newDraft(date));
+              }}
+            />
+          ))}
+          {allDayBars.bars.map((bar) => (
+            <EventBar
+              key={bar.segment.item.key}
+              bar={bar}
+              columns={days.length}
+              top={ALL_DAY_CELL_HEADER}
+              surface={`${SURFACE}:bars`}
+              actions={actions}
+              compact
+            />
+          ))}
+        </div>
       </div>
 
       <div

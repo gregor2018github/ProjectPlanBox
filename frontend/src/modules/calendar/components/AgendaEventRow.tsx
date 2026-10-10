@@ -4,7 +4,7 @@ import { ContextMenu } from "../../../ui/ContextMenu";
 import { cx } from "../../../ui/cx";
 import { Menu } from "../../../ui/Menu";
 import { eventMenuEntries } from "../eventMenu";
-import { segmentLabel, segmentTimeLabel } from "../format";
+import { occurrenceTimeLabel, segmentLabel } from "../format";
 import type { DaySegment } from "../types";
 import type { CalendarActions } from "../useCalendarActions";
 import { useItemDrag } from "../useItemDrag";
@@ -16,7 +16,10 @@ export interface AgendaEventRowProps {
   actions: CalendarActions;
 }
 
-/** An event in the agenda: its times, title and location; drag it onto a day of the mini month. */
+/**
+ * An event in the agenda: its times (the whole range for multi-day events),
+ * title and location; drag it onto a day of the mini month.
+ */
 export function AgendaEventRow({ segment, surface, actions }: AgendaEventRowProps) {
   const { ref, isDragging } = useItemDrag(surface, segment.item, actions);
   const { event } = segment.item;
@@ -35,8 +38,8 @@ export function AgendaEventRow({ segment, surface, actions }: AgendaEventRowProp
             className="flex min-w-0 flex-1 flex-col text-left"
           >
             <span className="truncate text-base">{event.title}</span>
-            <span className="flex items-center gap-2 text-sm text-text-muted tabular-nums">
-              {segmentTimeLabel(segment)}
+            <span className="flex flex-wrap items-center gap-x-2 text-sm text-text-muted tabular-nums">
+              <span className="whitespace-nowrap">{occurrenceTimeLabel(segment)}</span>
               {event.rrule !== null && <Repeat size={12} strokeWidth={1.75} aria-hidden />}
               {event.location !== "" && (
                 <span className="flex min-w-0 items-center gap-1">

@@ -4,7 +4,14 @@
  */
 import type { CalendarFeed } from "../../core/calendar/feed";
 import { addDays, daysBetween, MINUTES_PER_DAY, zonedParts, type IsoDate } from "../../core/time";
-import type { CalendarEvent, CalendarRange, DaySegment, EntryItem, EventItem } from "./types";
+import type {
+  CalendarEvent,
+  CalendarRange,
+  DaySegment,
+  EntryItem,
+  EventItem,
+  OccurrenceRange,
+} from "./types";
 
 /** The months (as "YYYY-MM") that `[from, to]` touches. */
 export function monthsCovering(from: IsoDate, to: IsoDate): string[] {
@@ -68,12 +75,19 @@ export function segmentsOf(item: EventItem, timeZone: string): DaySegment[] {
   const o = item.occurrence;
   if (item.event.all_day) {
     const first = o.start_date ?? o.occurrence_date;
-    const days = daysBetween(first, o.end_date ?? first);
-    return Array.from({ length: days + 1 }, (_, i) => ({
+    const last = o.end_date ?? first;
+    const range: OccurrenceRange = {
+      startDate: first,
+      start: 0,
+      endDate: last,
+      end: MINUTES_PER_DAY,
+    };
+    return Array.from({ length: daysBetween(first, last) + 1 }, (_, i) => ({
       item,
       date: addDays(first, i),
       start: 0,
       end: MINUTES_PER_DAY,
+      range,
     }));
   }
   const start = zonedParts(o.start_at ?? "", timeZone);
@@ -82,21 +96,68 @@ export function segmentsOf(item: EventItem, timeZone: string): DaySegment[] {
   if (end.minutes === 0 && end.date > start.date) {
     end = { date: addDays(end.date, -1), minutes: MINUTES_PER_DAY };
   }
+  const range: OccurrenceRange = {
+    startDate: start.date,
+    start: start.minutes,
+    endDate: end.date,
+    end: end.minutes,
+  };
   const days = daysBetween(start.date, end.date);
   return Array.from({ length: days + 1 }, (_, i) => ({
     item,
     date: addDays(start.date, i),
     start: i === 0 ? start.minutes : 0,
     end: i === days ? end.minutes : MINUTES_PER_DAY,
+    range,
   }));
+}
+
+/** Whether a segment belongs to an occurrence that covers more than one day. */
+export function isMultiDay(segment: DaySegment): boolean {
+  return segment.range.startDate !== segment.range.endDate;
+}
+
+const MS_PER_DAY = MINUTES_PER_DAY * 60_000;
+
+/**
+ * Whether a multi-day occurrence belongs in the time grid's all-day row (as
+ * one bar): all-day events and timed ones lasting at least 24 hours. Shorter
+ * overnight events stay in the grid, split at midnight.
+ */
+export function barInTimeGrid(segment: DaySegment): boolean {
+  const { event, occurrence } = segment.item;
+  if (event.all_day) return true;
+  return Date.parse(occurrence.end_at ?? "") - Date.parse(occurrence.start_at ?? "") >= MS_PER_DAY;
 }
 
 /** What one day shows, in display order. */
 export interface DayItems {
-  /** All-day events and timed events lasting the whole day. */
+  /** Days of occurrences that cover several days; views draw each as one item. */
+  spanning: DaySegment[];
+  /** Single-day all-day events and timed events lasting the whole day. */
   allDay: DaySegment[];
   timed: DaySegment[];
   entries: EntryItem[];
+}
+
+/** A day with nothing on it. */
+export function emptyDay(): DayItems {
+  return { spanning: [], allDay: [], timed: [], entries: [] };
+}
+
+/** How many items a day lists (events and feed entries). */
+export function dayCount(day: DayItems): number {
+  return day.spanning.length + day.allDay.length + day.timed.length + day.entries.length;
+}
+
+/** Earlier starts first, then longer occurrences, then by title. */
+function compareSpans(a: DaySegment, b: DaySegment): number {
+  return (
+    a.range.startDate.localeCompare(b.range.startDate) ||
+    b.range.endDate.localeCompare(a.range.endDate) ||
+    a.item.event.title.localeCompare(b.item.event.title) ||
+    a.item.key.localeCompare(b.item.key)
+  );
 }
 
 /** Puts events and feed entries on the given days. */
@@ -106,19 +167,19 @@ export function itemsByDay(
   entries: readonly EntryItem[],
   timeZone: string,
 ): Map<IsoDate, DayItems> {
-  const result = new Map<IsoDate, DayItems>(
-    days.map((d) => [d, { allDay: [], timed: [], entries: [] }]),
-  );
+  const result = new Map<IsoDate, DayItems>(days.map((d) => [d, emptyDay()]));
   for (const item of events) {
     for (const segment of segmentsOf(item, timeZone)) {
       const day = result.get(segment.date);
       if (day === undefined) continue;
       const whole = segment.start === 0 && segment.end === MINUTES_PER_DAY;
-      (item.event.all_day || whole ? day.allDay : day.timed).push(segment);
+      if (isMultiDay(segment)) day.spanning.push(segment);
+      else (item.event.all_day || whole ? day.allDay : day.timed).push(segment);
     }
   }
   for (const entry of entries) result.get(entry.entry.date)?.entries.push(entry);
   for (const day of result.values()) {
+    day.spanning.sort(compareSpans);
     day.allDay.sort(
       (a, b) =>
         (a.item.occurrence.start_date ?? "").localeCompare(b.item.occurrence.start_date ?? "") ||
@@ -176,6 +237,78 @@ export function layoutDay(segments: readonly DaySegment[]): PlacedSegment[] {
   }
   close();
   return placed;
+}
+
+/** A multi-day occurrence drawn as one bar across a row of consecutive days. */
+export interface SpanBar {
+  /** Its segment on the first day of the row it covers. */
+  segment: DaySegment;
+  /** Columns of its first and last day in the row (0-based, inclusive). */
+  from: number;
+  to: number;
+  /** Its line within the row; bars on different lines never overlap. */
+  lane: number;
+  /** Whether it started before the row / goes on after it. */
+  continuesBefore: boolean;
+  continuesAfter: boolean;
+}
+
+/**
+ * Lays out the multi-day occurrences of a row of days (a week) as bars,
+ * each on the first lane that is free across all its days.
+ */
+export function layoutBars(
+  row: readonly IsoDate[],
+  byDay: ReadonlyMap<IsoDate, DayItems>,
+  include: (segment: DaySegment) => boolean = () => true,
+): { bars: SpanBar[]; lanes: number } {
+  const spans = new Map<string, { segment: DaySegment; from: number; to: number }>();
+  row.forEach((date, column) => {
+    for (const segment of byDay.get(date)?.spanning ?? []) {
+      if (!include(segment)) continue;
+      const span = spans.get(segment.item.key);
+      if (span === undefined) spans.set(segment.item.key, { segment, from: column, to: column });
+      else span.to = column;
+    }
+  });
+  const sorted = [...spans.values()].sort(
+    (a, b) => a.from - b.from || b.to - a.to || compareSpans(a.segment, b.segment),
+  );
+  const laneEnds: number[] = [];
+  const bars = sorted.map(({ segment, from, to }) => {
+    let lane = laneEnds.findIndex((end) => end < from);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = to;
+    return {
+      segment,
+      from,
+      to,
+      lane,
+      continuesBefore: segment.range.startDate < segment.date,
+      continuesAfter: (row[to] ?? "") < segment.range.endDate,
+    };
+  });
+  return { bars, lanes: laneEnds.length };
+}
+
+/**
+ * The agenda's view of consecutive days: a multi-day occurrence is listed
+ * once, on the first of `days` it touches.
+ */
+export function agendaDays(
+  days: readonly IsoDate[],
+  byDay: ReadonlyMap<IsoDate, DayItems>,
+): Map<IsoDate, DayItems> {
+  const listed = new Set<string>();
+  const result = new Map<IsoDate, DayItems>();
+  for (const date of days) {
+    const day = byDay.get(date);
+    if (day === undefined) continue;
+    const spanning = day.spanning.filter((s) => !listed.has(s.item.key));
+    for (const s of spanning) listed.add(s.item.key);
+    result.set(date, { ...day, spanning });
+  }
+  return result;
 }
 
 /** `count` consecutive days from `first`. */

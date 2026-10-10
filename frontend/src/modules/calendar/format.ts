@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import {
   addDays,
   formatDayLong,
+  formatDayShort,
   formatMinutes,
   MINUTES_PER_DAY,
   type IsoDate,
@@ -17,9 +18,29 @@ export function segmentTimeLabel(segment: DaySegment): string {
   return `${formatMinutes(segment.start)}–${formatMinutes(segment.end)}`;
 }
 
-/** "Standup, Monday, 12 October, 09:00–09:15" for screen readers. */
+/**
+ * When a whole occurrence runs: like {@link segmentTimeLabel} for one day;
+ * "Mon 15 Feb – Thu 18 Feb" or "Mon 15 Feb 06:00 – Thu 18 Feb 22:00" for several.
+ */
+export function occurrenceTimeLabel(segment: DaySegment): string {
+  const { range } = segment;
+  if (range.startDate === range.endDate) return segmentTimeLabel(segment);
+  const first = formatDayShort(range.startDate);
+  const last = formatDayShort(range.endDate);
+  if (segment.item.event.all_day) return `${first} – ${last}`;
+  return `${first} ${formatMinutes(range.start)} – ${last} ${formatMinutes(range.end)}`;
+}
+
+/**
+ * "Standup, Monday, 12 October, 09:00–09:15" for screen readers; a multi-day
+ * occurrence reads its whole range instead.
+ */
 export function segmentLabel(segment: DaySegment): string {
-  return `${segment.item.event.title}, ${formatDayLong(segment.date)}, ${segmentTimeLabel(segment)}`;
+  const { range, item } = segment;
+  if (range.startDate !== range.endDate) {
+    return `${item.event.title}, ${occurrenceTimeLabel(segment)}`;
+  }
+  return `${item.event.title}, ${formatDayLong(segment.date)}, ${segmentTimeLabel(segment)}`;
 }
 
 /** Whether an occurrence belongs to a repeating series. */

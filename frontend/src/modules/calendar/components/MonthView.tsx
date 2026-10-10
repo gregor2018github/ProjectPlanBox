@@ -1,6 +1,8 @@
 import type { IsoDate } from "../../../core/time";
-import type { DayItems } from "../selectors";
+import { MAX_BAR_LANES, MONTH_CELL_HEADER } from "../barLayout";
+import { emptyDay, layoutBars, type DayItems } from "../selectors";
 import type { CalendarActions } from "../useCalendarActions";
+import { EventBar } from "./EventBar";
 import { MonthDayCell } from "./MonthDayCell";
 
 /** Props for {@link MonthView}. */
@@ -17,9 +19,13 @@ export interface MonthViewProps {
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const EMPTY: DayItems = { allDay: [], timed: [], entries: [] };
+const EMPTY = emptyDay();
+const SURFACE = "month";
 
-/** Six Monday-first weeks; drop todos and events on any day. */
+/**
+ * Six Monday-first weeks; drop todos and events on any day. Multi-day
+ * events run as one bar across their days in each week.
+ */
 export function MonthView({
   days,
   month,
@@ -49,24 +55,45 @@ export function MonthView({
           </span>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
-        {weeks.map((week) => (
-          <div key={week[0]} role="row" className="contents">
-            {week.map((day) => (
-              <MonthDayCell
-                key={day}
-                date={day}
-                inMonth={day.slice(0, 7) === month.slice(0, 7)}
-                isToday={day === today}
-                items={byDay.get(day) ?? EMPTY}
-                surface="month"
-                actions={actions}
-                onOpenDay={onOpenDay}
-                onCreate={onCreate}
-              />
-            ))}
-          </div>
-        ))}
+      <div className="grid min-h-0 flex-1 grid-rows-6">
+        {weeks.map((week) => {
+          const { bars, lanes } = layoutBars(week, byDay);
+          const shown = Math.min(lanes, MAX_BAR_LANES);
+          return (
+            <div key={week[0]} role="row" className="relative grid min-h-0 grid-cols-7">
+              {week.map((day, column) => (
+                <MonthDayCell
+                  key={day}
+                  date={day}
+                  inMonth={day.slice(0, 7) === month.slice(0, 7)}
+                  isToday={day === today}
+                  items={byDay.get(day) ?? EMPTY}
+                  barLanes={shown}
+                  hiddenBars={
+                    bars.filter((b) => b.lane >= shown && b.from <= column && column <= b.to).length
+                  }
+                  surface={SURFACE}
+                  actions={actions}
+                  onOpenDay={onOpenDay}
+                  onCreate={onCreate}
+                />
+              ))}
+              {bars
+                .filter((bar) => bar.lane < shown)
+                .map((bar) => (
+                  <div key={bar.segment.item.key} className="contents coarse:hidden">
+                    <EventBar
+                      bar={bar}
+                      columns={7}
+                      top={MONTH_CELL_HEADER}
+                      surface={`${SURFACE}:${week[0] ?? ""}`}
+                      actions={actions}
+                    />
+                  </div>
+                ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

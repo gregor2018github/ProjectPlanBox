@@ -56,4 +56,14 @@ export interface DaySegment {
   /** Minutes since local midnight, clipped to the day. */
   start: number;
   end: number;
+  /** The whole occurrence this segment belongs to (shared by all its segments). */
+  range: OccurrenceRange;
+}
+
+/** The local days and minutes an occurrence runs from and to (`end` on `endDate`, up to 1440). */
+export interface OccurrenceRange {
+  startDate: IsoDate;
+  start: number;
+  endDate: IsoDate;
+  end: number;
 }

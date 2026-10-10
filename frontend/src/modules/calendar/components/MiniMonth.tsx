@@ -24,7 +24,10 @@ const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 function countOf(items: DayItems | undefined): number {
   if (items === undefined) return 0;
   return (
-    items.allDay.length + items.timed.length + items.entries.filter((e) => !e.entry.done).length
+    items.spanning.length +
+    items.allDay.length +
+    items.timed.length +
+    items.entries.filter((e) => !e.entry.done).length
   );
 }
 

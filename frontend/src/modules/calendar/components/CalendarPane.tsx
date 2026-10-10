@@ -15,7 +15,7 @@ import { Button } from "../../../ui/Button";
 import { IconButton } from "../../../ui/IconButton";
 import { newTimedDraft } from "../draft";
 import { CALENDAR_PATH } from "../paths";
-import { daysFrom } from "../selectors";
+import { agendaDays, dayCount, daysFrom } from "../selectors";
 import { useCalendarActions } from "../useCalendarActions";
 import { useCalendarDays } from "../useCalendarDays";
 import { useNow } from "../useNow";
@@ -47,13 +47,9 @@ export function CalendarPane({ onClose }: RailPaneProps) {
   }, [gridStart, selected]);
   const { byDay } = useCalendarDays(days, timeZone);
 
-  const agenda = daysFrom(selected, AGENDA_DAYS).filter((day) => {
-    const items = byDay.get(day);
-    return (
-      day === selected ||
-      (items !== undefined && items.allDay.length + items.timed.length + items.entries.length > 0)
-    );
-  });
+  // A multi-day event is listed once, on the first agenda day it touches.
+  const agendaItems = agendaDays(daysFrom(selected, AGENDA_DAYS), byDay);
+  const agenda = [...agendaItems].filter(([day, items]) => day === selected || dayCount(items) > 0);
 
   return (
     <div className="flex h-full flex-col">
@@ -100,21 +96,16 @@ export function CalendarPane({ onClose }: RailPaneProps) {
           onSelect={setPicked}
         />
         <div className="mt-3 flex flex-col gap-2 border-t border-border pt-1">
-          {agenda.map((day) => {
-            const items = byDay.get(day);
-            return (
-              items && (
-                <AgendaDay
-                  key={day}
-                  date={day}
-                  today={today ?? now.date}
-                  items={items}
-                  surface={SURFACE}
-                  actions={actions}
-                />
-              )
-            );
-          })}
+          {agenda.map(([day, items]) => (
+            <AgendaDay
+              key={day}
+              date={day}
+              today={today ?? now.date}
+              items={items}
+              surface={SURFACE}
+              actions={actions}
+            />
+          ))}
         </div>
       </div>
     </div>

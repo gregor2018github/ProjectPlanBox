@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { CalendarFeed } from "../../core/calendar/feed";
 import {
+  agendaDays,
+  barInTimeGrid,
+  daysFrom,
   entryItems,
   itemsByDay,
+  layoutBars,
   layoutDay,
   mergeRanges,
   monthRange,
@@ -65,7 +69,7 @@ describe("segmentsOf", () => {
 describe("itemsByDay", () => {
   it("sorts events into all-day and timed rows and adds feed entries", () => {
     const timed = itemOf(makeEvent({ title: "Meeting" }));
-    const allDay = itemOf(makeAllDay("2026-10-07", "2026-10-09", { title: "Trip" }));
+    const allDay = itemOf(makeAllDay("2026-10-08", "2026-10-08", { title: "Trip" }));
     const feed: CalendarFeed = {
       id: "todos",
       label: "Todos",
@@ -90,6 +94,7 @@ describe("layoutDay", () => {
     date: "2026-10-08",
     start,
     end,
+    range: { startDate: "2026-10-08", start, endDate: "2026-10-08", end },
   });
 
   it("puts overlapping events side by side and resets lanes after a gap", () => {
@@ -105,5 +110,74 @@ describe("layoutDay", () => {
       [600, 0, 2],
       [700, 0, 1],
     ]);
+  });
+});
+
+describe("multi-day events", () => {
+  // Mon 12 Oct 06:00 to Thu 15 Oct 22:00, Amsterdam (UTC+2).
+  const trip = itemOf(
+    makeEvent({
+      title: "Trip",
+      start_at: "2026-10-12T04:00:00.000Z",
+      end_at: "2026-10-15T20:00:00.000Z",
+    }),
+  );
+  const week = daysFrom("2026-10-12", 7);
+
+  it("puts every day of a multi-day occurrence in `spanning`, with its whole range", () => {
+    const byDay = itemsByDay(week, [trip], [], TZ);
+    for (const day of ["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]) {
+      expect(byDay.get(day)?.spanning.map((s) => s.item.key)).toEqual([trip.key]);
+      expect(byDay.get(day)?.allDay).toEqual([]);
+      expect(byDay.get(day)?.timed).toEqual([]);
+    }
+    expect(byDay.get("2026-10-12")?.spanning[0]?.range).toEqual({
+      startDate: "2026-10-12",
+      start: 6 * 60,
+      endDate: "2026-10-15",
+      end: 22 * 60,
+    });
+  });
+
+  it("lays it out as one bar per week row, marking where it continues", () => {
+    const allDay = itemOf(makeAllDay("2026-10-14", "2026-10-20", { title: "Holiday" }));
+    const byDay = itemsByDay(week, [trip, allDay], [], TZ);
+    const { bars, lanes } = layoutBars(week, byDay);
+    expect(lanes).toBe(2);
+    expect(bars.map((b) => [b.segment.item.event.title, b.from, b.to, b.lane])).toEqual([
+      ["Trip", 0, 3, 0],
+      ["Holiday", 2, 6, 1],
+    ]);
+    expect(bars[1]).toMatchObject({ continuesBefore: false, continuesAfter: true });
+
+    const next = daysFrom("2026-10-19", 7);
+    const later = layoutBars(next, itemsByDay(next, [trip, allDay], [], TZ));
+    expect(later.bars.map((b) => [b.from, b.to, b.lane, b.continuesBefore])).toEqual([
+      [0, 1, 0, true],
+    ]);
+  });
+
+  it("reuses a lane once the earlier bar has ended", () => {
+    const a = itemOf(makeAllDay("2026-10-12", "2026-10-13"));
+    const b = itemOf(makeAllDay("2026-10-14", "2026-10-16"));
+    const { bars, lanes } = layoutBars(week, itemsByDay(week, [a, b], [], TZ));
+    expect(lanes).toBe(1);
+    expect(bars.map((bar) => bar.lane)).toEqual([0, 0]);
+  });
+
+  it("keeps short overnight events in the time grid and long ones in the all-day row", () => {
+    const overnight = itemOf(
+      makeEvent({ start_at: "2026-10-08T20:00:00.000Z", end_at: "2026-10-09T08:00:00.000Z" }),
+    );
+    const [night] = segmentsOf(overnight, TZ);
+    const [long] = segmentsOf(trip, TZ);
+    expect(night && barInTimeGrid(night)).toBe(false);
+    expect(long && barInTimeGrid(long)).toBe(true);
+  });
+
+  it("lists it once in the agenda, on the first day shown", () => {
+    const days = daysFrom("2026-10-13", 4);
+    const agenda = agendaDays(days, itemsByDay(days, [trip], [], TZ));
+    expect(days.map((d) => agenda.get(d)?.spanning.length)).toEqual([1, 0, 0, 0]);
   });
 });

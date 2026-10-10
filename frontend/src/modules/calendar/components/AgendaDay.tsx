@@ -1,6 +1,6 @@
 import { formatRelativeDay, formatDayShort, type IsoDate } from "../../../core/time";
 import { cx } from "../../../ui/cx";
-import type { DayItems } from "../selectors";
+import { dayCount, type DayItems } from "../selectors";
 import type { CalendarActions } from "../useCalendarActions";
 import { useDayDrop } from "../useDayDrop";
 import { AgendaEventRow } from "./AgendaEventRow";
@@ -20,7 +20,7 @@ export function AgendaDay({ date, today, items, surface, actions }: AgendaDayPro
   const { ref, isDropTarget } = useDayDrop(surface, date);
   const relative = formatRelativeDay(date, today);
   const short = formatDayShort(date);
-  const empty = items.allDay.length + items.timed.length + items.entries.length === 0;
+  const empty = dayCount(items) === 0;
   return (
     <section
       ref={ref}
@@ -35,7 +35,7 @@ export function AgendaDay({ date, today, items, surface, actions }: AgendaDayPro
         {relative !== short && <span className="text-text-muted">{short}</span>}
       </h3>
       {empty && <p className="px-2 pb-1 text-sm text-text-muted">Nothing planned.</p>}
-      {[...items.allDay, ...items.timed].map((segment) => (
+      {[...items.spanning, ...items.allDay, ...items.timed].map((segment) => (
         <AgendaEventRow
           key={segment.item.key}
           segment={segment}

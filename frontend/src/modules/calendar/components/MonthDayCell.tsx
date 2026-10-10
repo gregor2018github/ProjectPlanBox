@@ -1,6 +1,7 @@
 import { formatDayLong, type IsoDate } from "../../../core/time";
 import { cx } from "../../../ui/cx";
-import type { DayItems } from "../selectors";
+import { reservedHeight } from "../barLayout";
+import { dayCount, type DayItems } from "../selectors";
 import type { CalendarActions } from "../useCalendarActions";
 import { useDayDrop } from "../useDayDrop";
 import { EntryChip } from "./EntryChip";
@@ -12,6 +13,10 @@ export interface MonthDayCellProps {
   inMonth: boolean;
   isToday: boolean;
   items: DayItems;
+  /** Lanes of multi-day bars the week lays over this cell, under its date. */
+  barLanes: number;
+  /** Multi-day bars covering this day that did not fit in the shown lanes. */
+  hiddenBars: number;
   surface: string;
   actions: CalendarActions;
   onOpenDay: (date: IsoDate) => void;
@@ -31,6 +36,8 @@ export function MonthDayCell({
   inMonth,
   isToday,
   items,
+  barLanes,
+  hiddenBars,
   surface,
   actions,
   onOpenDay,
@@ -48,8 +55,12 @@ export function MonthDayCell({
       <EntryChip key={entry.key} item={entry} surface={surface} actions={actions} />
     )),
   ];
-  const hidden = chips.length > VISIBLE + 1 ? chips.length - VISIBLE : 0;
-  const count = chips.length;
+  // Bars take the first lanes; the cell's own chips share what is left.
+  const room = Math.max(VISIBLE - barLanes, 0);
+  const overflow = chips.length + hiddenBars > room + 1;
+  const visible = overflow ? chips.slice(0, room) : chips;
+  const hidden = chips.length - visible.length + hiddenBars;
+  const count = dayCount(items);
 
   return (
     <div
@@ -80,8 +91,15 @@ export function MonthDayCell({
       >
         {Number(date.slice(8))}
       </button>
+      {barLanes > 0 && (
+        <span
+          aria-hidden
+          style={{ height: reservedHeight(barLanes) }}
+          className="shrink-0 coarse:hidden"
+        />
+      )}
       <div className="flex min-h-0 flex-col gap-0.5 coarse:hidden">
-        {hidden > 0 ? chips.slice(0, VISIBLE) : chips}
+        {visible}
         {hidden > 0 && (
           <button
             type="button"
