@@ -222,7 +222,8 @@ with 4 px padding is 8 px).
 
 Font stack: `"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
 "Roboto", sans-serif`. Mono: `"Cascadia Code", ui-monospace, Consolas,
-monospace`. Weights are 400, 500 and 600 only. Use
+monospace`. Display (wordmark only): `"Segoe UI Variable Display"`, then the
+same fallbacks. Weights are 400, 500 and 600 only. Use
 `font-variant-numeric: tabular-nums` for dates, counts and times.
 
 | Token | Size / line height | Use |
@@ -233,6 +234,7 @@ monospace`. Weights are 400, 500 and 600 only. Use
 | `--text-lg` | 16 / 24 px | Detail panel title, dialog title |
 | `--text-xl` | 20 / 28 px | View titles ("Today") |
 | `--text-2xl` | 24 / 32 px | Rare: empty-state headline |
+| `--text-display` | 36 / 40 px | Wordmark on the startup splash only |
 
 On coarse pointers, inputs use 16 px so mobile browsers do not zoom.
 
@@ -281,7 +283,13 @@ live in `tokens.css`. Do not inline magic numbers.
    row. Today keeps it, struck through, until the next day.
 5. No decorative motion: nothing loops or bounces for attention, and there is
    no page-load choreography. Staggering, if used, is ≤ 20 ms per item and
-   capped at 6 items.
+   capped at 6 items. **One owner-requested exception:** the startup splash
+   (`app/StartupSplash.tsx`, timeline in `splashTimeline`). The box and
+   wordmark fade up, the tick is drawn like a pen stroke, the logo holds for
+   0.5 s, and the splash fades out (about 2.1 s in total). To honour rule 1,
+   the app mounts underneath at once, any key or click skips the splash, it
+   plays once per tab (sessionStorage), and it is not shown with reduced
+   motion.
 6. **Reduced motion:** `<MotionConfig reducedMotion="user">` at the root.
    CSS uses `@media (prefers-reduced-motion: reduce)` to set the duration
    tokens to `0.01ms` except opacity fades (≤ 100 ms). Movement is replaced
