@@ -1,6 +1,7 @@
 /** The knowledge module's manifest: routes, sidebar, host and detail panel. */
 import type { ModuleManifest } from "../../core/module";
 import { EntryDetail } from "./components/EntryDetail";
+import { KnowledgeHome } from "./components/KnowledgeHome";
 import { KnowledgeHost } from "./components/KnowledgeHost";
 import { KnowledgeInsights } from "./components/KnowledgeInsights";
 import { KnowledgeSidebarSection } from "./components/KnowledgeSidebarSection";
@@ -16,4 +17,6 @@ export const knowledgeModule: ModuleManifest = {
   Host: KnowledgeHost,
   detail: { [ENTRY_TYPE]: EntryDetail },
   InsightsSection: KnowledgeInsights,
+  HomeSection: KnowledgeHome,
+  homeOrder: 4,
 };

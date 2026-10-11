@@ -9,8 +9,8 @@ will come later.
 > **Status:** phases 0–6 are built: todos (with repeats), knowledge
 > collections and links between items, search (Ctrl+K), calendar (`C` or the
 > right-edge icon; `G C` for the full page) and habits (`H`; `G B` for the
-> page), plus an Insights page with statistics across all of them
-> (`G S`). Next are the mobile PWA (phase 7) and data safety and sync (phase
+> page), plus a Home overview (`G H`) and an Insights page with
+> statistics across all of them (`G S`). Next are the mobile PWA (phase 7) and data safety and sync (phase
 > 8). See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
@@ -54,6 +54,10 @@ will come later.
   Unsorted); **G K** opens Knowledge. Filter a view by kind or by words and
   tags. Drag entries onto a collection in the sidebar, and drag collections
   to reorder them. In a list of entries, **↑/↓** move and **Delete** deletes.
+- **Home** (sidebar, or **G H**) is the overview: overdue and due-today
+  todos to tick off, with counts for the next 7 days and the Inbox; the
+  week's events; today's habits; recently changed knowledge entries; and
+  the last 7 days across everything. Each card's title opens the full view.
 - **Insights** (sidebar, or **G S**) shows statistics: a year of activity
   across every module as a heat map, active-day streaks and when you open
   the app; for todos the weekly flow of added and completed, lead times

@@ -3,6 +3,7 @@ import { CalendarDays } from "lucide-react";
 
 import type { ModuleManifest } from "../../core/module";
 import { CalendarHost } from "./components/CalendarHost";
+import { CalendarHome } from "./components/CalendarHome";
 import { CalendarPane } from "./components/CalendarPane";
 import { calendarRoutes } from "./routes";
 
@@ -13,4 +14,6 @@ export const calendarModule: ModuleManifest = {
   routes: calendarRoutes,
   Host: CalendarHost,
   rail: { label: "Calendar", icon: CalendarDays, shortcut: "C", Pane: CalendarPane },
+  HomeSection: CalendarHome,
+  homeOrder: 2,
 };

@@ -3,6 +3,7 @@ import { Flame } from "lucide-react";
 
 import type { ModuleManifest } from "../../core/module";
 import { HabitDetail } from "./components/HabitDetail";
+import { HabitHome } from "./components/HabitHome";
 import { HabitInsights } from "./components/HabitInsights";
 import { HabitsHost } from "./components/HabitsHost";
 import { HabitsPane } from "./components/HabitsPane";
@@ -20,4 +21,6 @@ export const habitsModule: ModuleManifest = {
   detail: { [HABIT_TYPE]: HabitDetail },
   rail: { label: "Habits", icon: Flame, shortcut: "H", Pane: HabitsPane },
   InsightsSection: HabitInsights,
+  HomeSection: HabitHome,
+  homeOrder: 3,
 };

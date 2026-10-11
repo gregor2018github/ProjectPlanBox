@@ -21,8 +21,7 @@ async function addInline(page: Page, title: string): Promise<void> {
 
 test("quick-add parses the text and lands in Today, persisted", async ({ page }) => {
   const title = `Pay rent ${tag()}`;
-  await page.goto("/");
-  await expect(page).toHaveURL(/\/todos\/today$/);
+  await page.goto("/todos/today");
 
   await page.keyboard.press("q");
   await page.getByRole("textbox", { name: "New todo" }).fill(`${title} today !1`);
@@ -32,6 +31,18 @@ test("quick-add parses the text and lands in Today, persisted", async ({ page })
   await expect(today).toContainText(title);
   await page.reload();
   await expect(page.getByRole("list", { name: "Due today" })).toContainText(title);
+});
+
+test("Home gives an overview and leads to Today", async ({ page }) => {
+  await page.goto("/");
+  const todos = page.getByRole("region", { name: "Todos" });
+  await expect(todos).toBeVisible();
+  await expect(page.getByRole("region", { name: "Calendar" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Habits" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Knowledge" })).toBeVisible();
+
+  await todos.getByRole("link", { name: "Todos" }).click();
+  await expect(page).toHaveURL(/\/todos\/today$/);
 });
 
 test("complete, then undo with Ctrl+Z", async ({ page }) => {

@@ -19,6 +19,7 @@ this file records what was planned, decided and pinned.
 | 6. Recurring todos | Built 2026-10-10 (brought forward) |
 | Insights (statistics page) | Built 2026-10-11 (owner request) |
 | Area colours | Built 2026-10-11 (owner request) |
+| Home overview | Built 2026-10-11 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
@@ -172,6 +173,20 @@ eight suggested colours. Decisions (ARCHITECTURE §7, STYLE_GUIDE B1, Tints):
 - Fixed on the way: `tokens.test.ts` matched the header comment instead of
   the `[data-theme="dark"]` rule, so the dark contrast checks had been
   re-testing the light values. They now test the dark theme, and it passes.
+
+### Home overview (owner request, 2026-10-11)
+
+Home (`/`, `G H`) was a date on an empty page and "/" redirected to Today.
+It is now an overview with one card per module plus the last 7 days
+(ARCHITECTURE §6.4, after Insights). Decisions:
+- **Each module owns its card**, like Insights: a `HomeSection` in the
+  manifest, ordered by `homeOrder` (todos, calendar, habits, knowledge).
+  The manifest's `homePath` redirect is gone.
+- **Actionable, not a report.** Cards reuse the module's own rows, so todos
+  can be completed, habits ticked, and events and entries opened in place.
+  Numbers and charts stay on Insights; Home shows only what matters now.
+- **No new endpoints.** Every card reads caches its module already loads;
+  the week card shares the Insights activity query.
 
 ## Dependencies
 

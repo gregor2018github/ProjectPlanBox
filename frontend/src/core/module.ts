@@ -28,8 +28,6 @@ export interface ModuleManifest {
   id: string;
   /** Human-readable name. */
   label: string;
-  /** Where "/" sends the user (the first module with one wins). */
-  homePath?: string;
   /** The module's routes, attached under the root route. */
   routes: (parent: AnyRoute) => AnyRoute[];
   /** Rendered in the sidebar navigation. */
@@ -42,4 +40,8 @@ export interface ModuleManifest {
   rail?: RailItem;
   /** The module's block on the Insights page (statistics, charts, tables). */
   InsightsSection?: ComponentType;
+  /** The module's card on Home: what matters now, linking to the full views. */
+  HomeSection?: ComponentType;
+  /** Where the Home card sits, lowest first; cards without one follow in sidebar order. */
+  homeOrder?: number;
 }

@@ -134,13 +134,14 @@ class Module:
 interface ModuleManifest {
   id: string;                                  // matches the backend module id
   label: string;
-  homePath?: string;                           // where "/" redirects (first module wins)
   routes: (parent: AnyRoute) => AnyRoute[];    // attached under the root route
   SidebarSection?: ComponentType;              // the module renders its own nav (lists, counts)
   Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
   detail?: Record<string, ComponentType<{ id: string }>>; // per entity type, for ?item=
   rail?: { label; icon; shortcut?; Pane };     // an icon in the right-hand rail that toggles a side pane
   InsightsSection?: ComponentType;             // the module's block on the Insights page
+  HomeSection?: ComponentType;                 // the module's card on Home (what matters now)
+  homeOrder?: number;                          // card order on Home, lowest first
 }
 ```
 
@@ -447,6 +448,19 @@ CREATE TABLE core_app_opens (id, created_at, updated_at, deleted_at) STRICT;
   `InsightSection`). Each chart's readout names the column or cell under
   the pointer, the tapped one or the one picked with the arrow keys, so no
   value is hover-only; column charts also carry a screen-reader table.
+
+**Home** (`/`, `app/HomePage.tsx`) is the overview: a greeting and today's
+date, then each manifest's `HomeSection` (by `homeOrder`, the rest in
+sidebar order) in a two-column grid of `core/home/HomeCard`s, then the
+shell's own "Last 7 days" card (`app/WeekCard.tsx`, completed and added per
+day from the Insights activity cache, plus the active-day streak). A card's
+title links to the module's full view. Cards read the caches their module
+already holds and reuse its rows, so they stay live and actionable: todos
+(overdue and due today, completable in place, capped at 8 with a link to
+Today; counts for next 7 days and Inbox), calendar (events of the next 7
+days; days accept dropped todos), habits (today's check-ins) and knowledge
+(5 most recently changed entries, unsorted count). Dated todos are left
+out of the calendar card, since the todos card already shows them.
 
 ## 7. Todos module data model (phase 1)
 

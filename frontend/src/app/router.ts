@@ -2,7 +2,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  redirect,
   retainSearchParams,
   type RouterHistory,
 } from "@tanstack/react-router";
@@ -37,17 +36,10 @@ export function createAppRouter(options: {
     // The tag filter follows the user from view to view.
     search: { middlewares: [retainSearchParams<RootSearch>(["tags"])] },
   });
-  const homePath = options.modules.find((m) => m.homePath !== undefined)?.homePath;
   const homeRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
     component: HomePage,
-    ...(homePath !== undefined && {
-      beforeLoad: () => {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack Router's redirect protocol
-        throw redirect({ to: homePath });
-      },
-    }),
   });
   const insightsRoute = createRoute({
     getParentRoute: () => rootRoute,
