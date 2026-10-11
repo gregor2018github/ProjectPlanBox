@@ -32,8 +32,7 @@ describe("area colours", () => {
     });
     open("/todos/inbox", api);
 
-    await user.click(await screen.findByRole("button", { name: "New list or area" }));
-    await user.click(await screen.findByRole("menuitem", { name: "New area" }));
+    await user.click(await screen.findByRole("button", { name: "New area" }));
     await user.type(screen.getByRole("textbox", { name: "Name" }), "Garden{Enter}");
 
     await waitFor(() => {

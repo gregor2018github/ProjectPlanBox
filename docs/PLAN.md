@@ -21,6 +21,7 @@ this file records what was planned, decided and pinned.
 | Area colours | Built 2026-10-11 (owner request) |
 | Home overview | Built 2026-10-11 (owner request) |
 | Quote footer | Built 2026-10-11 (owner request) |
+| Create buttons | Built 2026-10-11 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
@@ -174,6 +175,21 @@ eight suggested colours. Decisions (ARCHITECTURE §7, STYLE_GUIDE B1, Tints):
 - Fixed on the way: `tokens.test.ts` matched the header comment instead of
   the `[data-theme="dark"]` rule, so the dark contrast checks had been
   re-testing the light values. They now test the dark theme, and it passes.
+
+### Create buttons (owner request, 2026-10-11)
+
+Creating lists, areas and todos was hard to find (one combined "+" menu by
+"Lists", context menus, Q). Now every sidebar heading has its own **+**
+(Todos → quick add, Lists → list, Knowledge → entry), a folder **+** makes
+the container (area, collection), and each area row has a **+** for a list
+in it. Area pages get **New list** and an **Add todo** row per list; list
+pages a **New section** button. Decisions:
+- The todos create dialogs live only in the Host and open through
+  `todos/createStore.ts` (like `newEntryStore`), so the sidebar and the area
+  page no longer keep their own copies. A new area now opens its page, as a
+  new list already did.
+- The area row's **+** shows on hover and focus and always on touch (the
+  hover rule); it is also in the area's context menu.
 
 ### Home overview (owner request, 2026-10-11)
 

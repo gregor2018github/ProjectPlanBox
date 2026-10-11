@@ -1,11 +1,11 @@
-import { Archive, CalendarDays, FolderPlus, Inbox, ListPlus, Plus, Sun } from "lucide-react";
+import { Archive, CalendarDays, FolderPlus, Inbox, Plus, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { readStorage, writeStorage } from "../../../core/storage";
 import { cx } from "../../../ui/cx";
 import { useDropTarget } from "../../../ui/dnd";
 import { IconButton } from "../../../ui/IconButton";
-import { Menu } from "../../../ui/Menu";
+import { todoCreate } from "../createStore";
 import { todoPaths } from "../paths";
 import { counts, listTree } from "../selectors";
 import { INBOX } from "../types";
@@ -13,7 +13,6 @@ import { useContainerActions } from "../useContainerActions";
 import { useTodoData } from "../useTodoData";
 import { AreaNavGroup } from "./AreaNavGroup";
 import { ListLink } from "./ListLink";
-import { NameDialog } from "../../../ui/NameDialog";
 import { SidebarLink } from "./SidebarLink";
 
 const COLLAPSED_KEY = "planbox.todos.collapsedAreas";
@@ -34,7 +33,6 @@ export function TodosSidebarSection() {
   const data = useTodoData();
   const containers = useContainerActions();
   const [collapsed, setCollapsed] = useState(readCollapsed);
-  const [dialog, setDialog] = useState<"list" | "area" | null>(null);
   const badge = useMemo(() => counts(data.todos, data.today), [data.todos, data.today]);
   const tree = useMemo(() => listTree(data.areas, data.lists), [data.areas, data.lists]);
 
@@ -56,6 +54,10 @@ export function TodosSidebarSection() {
 
   return (
     <>
+      <div className="mt-4 flex items-center justify-between pl-2">
+        <span className="text-xs font-medium text-text-muted">Todos</span>
+        <IconButton label="New todo" icon={Plus} shortcut="Q" onClick={todoCreate.todo} />
+      </div>
       <SidebarLink
         to={todoPaths.inbox}
         label="Inbox"
@@ -81,27 +83,16 @@ export function TodosSidebarSection() {
         )}
       >
         <span className="text-xs font-medium text-text-muted">Lists</span>
-        <Menu
-          entries={[
-            {
-              id: "list",
-              label: "New list",
-              icon: ListPlus,
-              onSelect: () => {
-                setDialog("list");
-              },
-            },
-            {
-              id: "area",
-              label: "New area",
-              icon: FolderPlus,
-              onSelect: () => {
-                setDialog("area");
-              },
-            },
-          ]}
-          trigger={<IconButton label="New list or area" icon={Plus} />}
-        />
+        <div className="flex items-center">
+          <IconButton
+            label="New list"
+            icon={Plus}
+            onClick={() => {
+              todoCreate.list();
+            }}
+          />
+          <IconButton label="New area" icon={FolderPlus} onClick={todoCreate.area} />
+        </div>
       </div>
       <div className="flex flex-col gap-0.5">
         {tree.loose.map((list, index) => (
@@ -128,29 +119,6 @@ export function TodosSidebarSection() {
           containers={containers}
         />
       ))}
-
-      <NameDialog
-        open={dialog === "list"}
-        onOpenChange={(open) => {
-          setDialog(open ? "list" : null);
-        }}
-        title="New list"
-        submitLabel="Add list"
-        onSubmit={(name) => {
-          containers.createList(name, null);
-        }}
-      />
-      <NameDialog
-        open={dialog === "area"}
-        onOpenChange={(open) => {
-          setDialog(open ? "area" : null);
-        }}
-        title="New area"
-        submitLabel="Add area"
-        onSubmit={(name) => {
-          containers.createArea(name);
-        }}
-      />
     </>
   );
 }

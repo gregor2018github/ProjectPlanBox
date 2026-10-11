@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Settings2, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Settings2, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ContextMenu } from "../../../ui/ContextMenu";
+import { IconButton } from "../../../ui/IconButton";
 import { cx } from "../../../ui/cx";
 import { useDropTarget } from "../../../ui/dnd";
 import { tintProps } from "../../../ui/tint";
 import { TintDot } from "../../../ui/TintDot";
+import { todoCreate } from "../createStore";
 import { todoPaths } from "../paths";
 import type { Area, TodoList } from "../types";
 import type { ContainerActions } from "../useContainerActions";
@@ -24,8 +26,8 @@ export interface AreaNavGroupProps {
 }
 
 /**
- * An area in the sidebar: a collapsible heading (drop lists on it; right-click
- * for settings) with its lists, tinted in the area's colour.
+ * An area in the sidebar: a collapsible heading (drop lists on it; "+" adds a
+ * list to it; right-click for settings) with its lists, tinted in the area's colour.
  */
 export function AreaNavGroup({
   area,
@@ -48,6 +50,14 @@ export function AreaNavGroup({
       <ContextMenu
         entries={[
           {
+            id: "list",
+            label: "New list in this area",
+            icon: Plus,
+            onSelect: () => {
+              todoCreate.list(area.id);
+            },
+          },
+          {
             id: "settings",
             label: "Area settings…",
             icon: Settings2,
@@ -69,7 +79,7 @@ export function AreaNavGroup({
         <div
           ref={ref}
           className={cx(
-            "flex h-8 items-center gap-1 rounded-md coarse:h-11",
+            "group flex h-8 items-center gap-1 rounded-md coarse:h-11",
             isDropTarget && "bg-accent-subtle ring-2 ring-accent",
           )}
         >
@@ -97,6 +107,14 @@ export function AreaNavGroup({
             <TintDot hue={area.hue} />
             <span className="truncate">{area.name}</span>
           </Link>
+          <IconButton
+            label={`New list in ${area.name}`}
+            icon={Plus}
+            onClick={() => {
+              todoCreate.list(area.id);
+            }}
+            className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 coarse:opacity-100"
+          />
         </div>
       </ContextMenu>
       {!collapsed && (

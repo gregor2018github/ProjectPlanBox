@@ -3,15 +3,16 @@ import { MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { byPosition } from "../../../core/ordering";
+import { Button } from "../../../ui/Button";
 import { IconButton } from "../../../ui/IconButton";
 import { Menu } from "../../../ui/Menu";
-import { EmptyHint } from "../components/EmptyHint";
-import { NameDialog } from "../../../ui/NameDialog";
+import { NewTodoInline } from "../components/NewTodoInline";
 import { PageHeader } from "../../../ui/PageHeader";
 import { TintDot } from "../../../ui/TintDot";
 import { AreaSettingsDialog } from "../components/AreaSettingsDialog";
 import { TodoGroup } from "../components/TodoGroup";
 import { ViewLayout } from "../../../ui/ViewLayout";
+import { todoCreate } from "../createStore";
 import { paramOf, todoPaths } from "../paths";
 import { listView } from "../selectors";
 import { useContainerActions } from "../useContainerActions";
@@ -19,14 +20,14 @@ import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 import { useTodoKeyboard } from "../useTodoKeyboard";
 
-/** An area: each of its lists with their open todos. */
+/** An area: each of its lists with their open todos and an "Add todo" row. */
 export function AreaPage() {
   const areaId = paramOf(useParams({ strict: false }), "areaId") ?? "";
   const data = useTodoData();
   const actions = useTodoActions();
   const containers = useContainerActions();
   const navigate = useNavigate();
-  const [dialog, setDialog] = useState<"settings" | "list" | null>(null);
+  const [settings, setSettings] = useState(false);
 
   const area = data.areas.find((a) => a.id === areaId);
   const lists = useMemo(
@@ -44,6 +45,10 @@ export function AreaPage() {
   const visible = useMemo(() => groups.flatMap((g) => g.todos), [groups]);
   useTodoKeyboard(visible, actions, { reorder: false });
 
+  const newList = () => {
+    todoCreate.list(areaId);
+  };
+
   if (area === undefined) {
     return (
       <ViewLayout>
@@ -60,41 +65,47 @@ export function AreaPage() {
         title={area.name}
         leading={<TintDot hue={area.hue} size="md" />}
         actions={
-          <Menu
-            entries={[
-              {
-                id: "list",
-                label: "New list in this area",
-                icon: Plus,
-                onSelect: () => {
-                  setDialog("list");
+          <div className="flex items-center gap-1">
+            <Button variant="secondary" size="sm" onClick={newList}>
+              <Plus size={16} strokeWidth={1.75} aria-hidden />
+              New list
+            </Button>
+            <Menu
+              entries={[
+                {
+                  id: "settings",
+                  label: "Area settings…",
+                  icon: Settings2,
+                  onSelect: () => {
+                    setSettings(true);
+                  },
                 },
-              },
-              {
-                id: "settings",
-                label: "Area settings…",
-                icon: Settings2,
-                onSelect: () => {
-                  setDialog("settings");
+                { kind: "separator", id: "sep" },
+                {
+                  id: "delete",
+                  label: "Delete area",
+                  icon: Trash2,
+                  danger: true,
+                  onSelect: () => {
+                    containers.remove("area", area.id, area.name);
+                    void navigate({ to: todoPaths.inbox });
+                  },
                 },
-              },
-              { kind: "separator", id: "sep" },
-              {
-                id: "delete",
-                label: "Delete area",
-                icon: Trash2,
-                danger: true,
-                onSelect: () => {
-                  containers.remove("area", area.id, area.name);
-                  void navigate({ to: todoPaths.inbox });
-                },
-              },
-            ]}
-            trigger={<IconButton label="Area actions" icon={MoreHorizontal} />}
-          />
+              ]}
+              trigger={<IconButton label="Area actions" icon={MoreHorizontal} />}
+            />
+          </div>
         }
       />
-      {!data.loading && lists.length === 0 && <EmptyHint text="No lists in this area yet." />}
+      {!data.loading && lists.length === 0 && (
+        <div className="flex flex-col items-start gap-3 px-3 py-6">
+          <p className="text-base text-text-muted">No lists in this area yet.</p>
+          <Button variant="primary" onClick={newList}>
+            <Plus size={16} strokeWidth={1.75} aria-hidden />
+            New list
+          </Button>
+        </div>
+      )}
       {groups.map(({ list, todos }) => (
         <section key={list.id} className="mb-6">
           <h2 className="px-3 pb-1">
@@ -105,31 +116,19 @@ export function AreaPage() {
               {list.name}
             </Link>
           </h2>
-          {todos.length === 0 ? (
-            <p className="px-3 text-sm text-text-muted">Nothing open.</p>
-          ) : (
-            <TodoGroup todos={todos} data={data} actions={actions} label={list.name} />
-          )}
+          <TodoGroup todos={todos} data={data} actions={actions} label={list.name} />
+          <NewTodoInline
+            placement={{ list_id: list.id, section_id: null, parent_id: null }}
+            data={data}
+            actions={actions}
+          />
         </section>
       ))}
       <AreaSettingsDialog
         area={area}
-        open={dialog === "settings"}
-        onOpenChange={(open) => {
-          setDialog(open ? "settings" : null);
-        }}
+        open={settings}
+        onOpenChange={setSettings}
         containers={containers}
-      />
-      <NameDialog
-        open={dialog === "list"}
-        onOpenChange={(open) => {
-          setDialog(open ? "list" : null);
-        }}
-        title="New list"
-        submitLabel="Add list"
-        onSubmit={(name) => {
-          containers.createList(name, area.id);
-        }}
       />
     </ViewLayout>
   );

@@ -1,8 +1,9 @@
-import { Inbox, Library, Plus } from "lucide-react";
+import { FolderPlus, Inbox, Library, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { IconButton } from "../../../ui/IconButton";
 import { NameDialog } from "../../../ui/NameDialog";
+import { newEntryDialog } from "../newEntryStore";
 import { knowledgePaths } from "../paths";
 import { entryCounts } from "../selectors";
 import { useKnowledgeActions } from "../useKnowledgeActions";
@@ -22,13 +23,23 @@ export function KnowledgeSidebarSection() {
     <>
       <div className="mt-4 flex items-center justify-between pl-2">
         <span className="text-xs font-medium text-text-muted">Knowledge</span>
-        <IconButton
-          label="New collection"
-          icon={Plus}
-          onClick={() => {
-            setCreating(true);
-          }}
-        />
+        <div className="flex items-center">
+          <IconButton
+            label="New note, link or snippet"
+            icon={Plus}
+            shortcut="E"
+            onClick={() => {
+              newEntryDialog.open();
+            }}
+          />
+          <IconButton
+            label="New collection"
+            icon={FolderPlus}
+            onClick={() => {
+              setCreating(true);
+            }}
+          />
+        </div>
       </div>
       <KnowledgeNavLink
         to={knowledgePaths.all}

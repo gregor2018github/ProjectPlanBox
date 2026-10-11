@@ -66,38 +66,39 @@ export function ListPage() {
         title={list.name}
         subtitle={area?.name}
         actions={
-          <Menu
-            entries={[
-              {
-                id: "section",
-                label: "New section",
-                icon: ListPlus,
-                onSelect: () => {
-                  setDialog("section");
+          <div className="flex items-center gap-1">
+            <IconButton
+              label="New section"
+              icon={ListPlus}
+              onClick={() => {
+                setDialog("section");
+              }}
+            />
+            <Menu
+              entries={[
+                {
+                  id: "rename",
+                  label: "Rename list",
+                  icon: Pencil,
+                  onSelect: () => {
+                    setDialog("rename");
+                  },
                 },
-              },
-              {
-                id: "rename",
-                label: "Rename list",
-                icon: Pencil,
-                onSelect: () => {
-                  setDialog("rename");
+                { kind: "separator", id: "sep" },
+                {
+                  id: "delete",
+                  label: "Delete list",
+                  icon: Trash2,
+                  danger: true,
+                  onSelect: () => {
+                    containers.remove("list", list.id, list.name);
+                    void navigate({ to: todoPaths.inbox });
+                  },
                 },
-              },
-              { kind: "separator", id: "sep" },
-              {
-                id: "delete",
-                label: "Delete list",
-                icon: Trash2,
-                danger: true,
-                onSelect: () => {
-                  containers.remove("list", list.id, list.name);
-                  void navigate({ to: todoPaths.inbox });
-                },
-              },
-            ]}
-            trigger={<IconButton label="List actions" icon={MoreHorizontal} />}
-          />
+              ]}
+              trigger={<IconButton label="List actions" icon={MoreHorizontal} />}
+            />
+          </div>
         }
       />
       {!data.loading && empty && <EmptyHint text="This list is empty." />}

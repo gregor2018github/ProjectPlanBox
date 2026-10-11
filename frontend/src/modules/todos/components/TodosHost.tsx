@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useCommands } from "../../../core/commands/commandsContext";
 import type { Command } from "../../../core/commands/registry";
 import { useShortcut } from "../../../core/shortcuts/useShortcut";
+import { todoCreate, useCreateRequest } from "../createStore";
 import { todoPaths } from "../paths";
 import { INBOX, type Placement } from "../types";
 import { todoUi } from "../uiStore";
@@ -35,8 +36,8 @@ export function TodosHost() {
   useSelectionFollowsDetail();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [quickAdd, setQuickAdd] = useState<QuickAddTarget | null>(null);
-  const [dialog, setDialog] = useState<"list" | "area" | null>(null);
+  const [subtaskAdd, setSubtaskAdd] = useState<QuickAddTarget | null>(null);
+  const request = useCreateRequest();
 
   /** The default target follows the current view: the open list, or Today's date. */
   const contextualTarget = (): QuickAddTarget => {
@@ -54,7 +55,14 @@ export function TodosHost() {
   };
 
   const openQuickAdd = () => {
-    setQuickAdd(contextualTarget());
+    setSubtaskAdd(null);
+    todoCreate.todo();
+  };
+  // A plain quick add follows the view it was opened from.
+  const quickAdd = subtaskAdd ?? (request?.kind === "todo" ? contextualTarget() : null);
+  const closeQuickAdd = () => {
+    setSubtaskAdd(null);
+    if (todoCreate.get()?.kind === "todo") todoCreate.close();
   };
   const openSubtaskAdd = () => {
     const selected = data.allTodos.find((t) => t.id === todoUi.get().selectedId);
@@ -63,7 +71,7 @@ export function TodosHost() {
       openQuickAdd();
       return;
     }
-    setQuickAdd({
+    setSubtaskAdd({
       placement: {
         list_id: selected.list_id,
         section_id: selected.section_id,
@@ -144,7 +152,7 @@ export function TodosHost() {
         group: "Todos",
         keywords: ["project", "create"],
         run: () => {
-          setDialog("list");
+          todoCreate.list();
         },
       },
       {
@@ -153,7 +161,7 @@ export function TodosHost() {
         group: "Todos",
         keywords: ["folder", "group", "create"],
         run: () => {
-          setDialog("area");
+          todoCreate.area();
         },
       },
       {
@@ -204,12 +212,17 @@ export function TodosHost() {
   );
   useCommands(commands);
 
+  const listAreaName =
+    request?.kind === "list" && request.areaId !== null
+      ? data.areas.find((a) => a.id === request.areaId)?.name
+      : undefined;
+
   return (
     <>
       <QuickAddDialog
         open={quickAdd !== null}
         onOpenChange={(open) => {
-          if (!open) setQuickAdd(null);
+          if (!open) closeQuickAdd();
         }}
         data={data}
         actions={actions}
@@ -218,26 +231,27 @@ export function TodosHost() {
         targetLabel={quickAdd?.label ?? "Inbox"}
       />
       <NameDialog
-        open={dialog === "list"}
+        open={request?.kind === "list"}
         onOpenChange={(open) => {
-          setDialog(open ? "list" : null);
+          if (!open) todoCreate.close();
         }}
-        title="New list"
+        title={listAreaName === undefined ? "New list" : `New list in ${listAreaName}`}
         submitLabel="Add list"
         onSubmit={(name) => {
-          const id = containers.createList(name, null);
+          const id = containers.createList(name, request?.kind === "list" ? request.areaId : null);
           void navigate({ to: todoPaths.list(id) });
         }}
       />
       <NameDialog
-        open={dialog === "area"}
+        open={request?.kind === "area"}
         onOpenChange={(open) => {
-          setDialog(open ? "area" : null);
+          if (!open) todoCreate.close();
         }}
         title="New area"
         submitLabel="Add area"
         onSubmit={(name) => {
-          containers.createArea(name);
+          const id = containers.createArea(name);
+          void navigate({ to: todoPaths.area(id) });
         }}
       />
     </>

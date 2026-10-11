@@ -349,6 +349,9 @@ live in `tokens.css`. Do not inline magic numbers.
   baseline, values sit in a readout line or at the bar's tip, labels use
   text tokens. A legend appears for two or more series. Every chart is
   readable without hover: its readout follows pointer, tap and arrow keys.
+- **Creating:** a sidebar heading carries a **+** for its main item and,
+  where there is one, a folder-plus for its container (area, collection).
+  A view header offers a secondary "New …" button for what lives inside it.
 - **Empty states:** one short sentence, plus a primary action with its
   shortcut hint. No illustrations.
 - **Icons:** Lucide at 16 px (inline) and 18 px (toolbar), stroke width 1.75,

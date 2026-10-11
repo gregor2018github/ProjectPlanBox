@@ -19,6 +19,12 @@ will come later.
   a search over all todos (completed ones too), knowledge entries and
   habits. Words match as prefixes, so `rep out` finds "Report outline".
   **?** shows all keyboard shortcuts.
+- The **+** buttons create things: by the sidebar's **Todos** heading (a
+  todo, same as **Q**), **Lists** (a list; the folder button makes an area),
+  next to each area (a list in that area), **Knowledge** (an entry; the
+  folder button makes a collection) and **Habits**. An area's page has
+  **New list** and an **Add todo** row under each list; a list's page has a
+  **New section** button.
 - **Q** is quick-add. Type, for example,
   `Pay rent fri !1 @money #Home/Bills`:
   - a date: `today`, `tomorrow`, `fri`, `next week`, `in 3 days`, `24.12`
