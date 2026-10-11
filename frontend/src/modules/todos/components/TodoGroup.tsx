@@ -86,14 +86,29 @@ export function TodoGroup({
     data: { kind: "todo-destination", placement: container ?? null },
     disabled: container === undefined || rows.length > 0,
   });
-  const rowProps = { actions, lookup: data.lookup, today: data.today, showPlace, hideDue };
+  // Tags get an aligned column when any visible row (or open subtask) has one.
+  const tagColumn = rows.some(
+    (t) =>
+      t.tag_ids.length > 0 ||
+      (expandable &&
+        expanded.has(t.id) &&
+        childrenOf(data.todos, t.id).some((c) => c.tag_ids.length > 0)),
+  );
+  const rowProps = {
+    actions,
+    lookup: data.lookup,
+    today: data.today,
+    showPlace,
+    hideDue,
+    tagColumn,
+  };
 
   return (
     <ul
       ref={dropRef}
       aria-label={label}
       className={cx(
-        "flex flex-col rounded-md",
+        "@container flex flex-col rounded-md",
         container !== undefined && rows.length === 0 && "min-h-2",
         isDropTarget && "min-h-10 bg-accent-subtle",
       )}

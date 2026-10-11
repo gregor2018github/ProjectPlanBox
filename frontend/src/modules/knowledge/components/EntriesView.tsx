@@ -65,6 +65,7 @@ export function EntriesView({ scope, title, headerActions }: EntriesViewProps) {
       }),
     [inScope, kind, query, data.tagName],
   );
+  const tagColumn = shown.some((entry) => entry.tag_ids.length > 0);
 
   const onListKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const buttons = [
@@ -131,7 +132,7 @@ export function EntriesView({ scope, title, headerActions }: EntriesViewProps) {
             ref={listRef}
             aria-label={title}
             onKeyDown={onListKeyDown}
-            className="flex flex-col gap-0.5"
+            className="@container flex flex-col gap-0.5"
           >
             <AnimatePresence initial={false}>
               {shown.map((entry) => (
@@ -141,6 +142,7 @@ export function EntriesView({ scope, title, headerActions }: EntriesViewProps) {
                     data={data}
                     actions={actions}
                     showCollection={scope.kind === "all"}
+                    tagColumn={tagColumn}
                     isOpen={openItem === entryRef(entry.id)}
                   />
                 </EntryListItem>

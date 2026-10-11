@@ -335,8 +335,14 @@ live in `tokens.css`. Do not inline magic numbers.
   for toolbars) and `danger` (used in confirmations only).
 - **Rows** (todo, later notes, …) have no borders between them. Hover shows
   `--color-hover` with `radius-md`. Selected shows `--color-selected`.
-  Metadata is `text-sm text-muted` on the same line on desktop and wraps to a
-  second line on narrow screens.
+  Metadata is `text-sm text-muted`. Facts about the item (due date, flags,
+  progress, link host) follow the title. Tags, and the list in views that
+  span lists, are fixed-width (`w-40`) columns at the row's right edge, so
+  they start at the same x on every row. A list turns the tag column on only
+  when one of its rows has tags. The columns switch on with a container
+  query (`@container` on the list, `@2xl:` on the row), so a narrow list (a
+  phone, a Home card, a list beside the detail panel) wraps them onto a
+  second line under the title instead.
 - **Charts** (Insights) use the `ui/` chart components only. The story
   series is the accent, a context series is `chart-muted`, magnitude is the
   heat ramp; no other colours, and never a second y-axis. Bars grow from a

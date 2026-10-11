@@ -35,7 +35,7 @@ export function KnowledgeHome() {
       {recent.length > 0 ? (
         <>
           <h3 className="px-1 text-sm font-medium text-text-muted">Recently changed</h3>
-          <ul aria-label="Recently changed entries" className="flex flex-col">
+          <ul aria-label="Recently changed entries" className="@container flex flex-col">
             {recent.map((entry) => (
               <li key={entry.id}>
                 <EntryRow
@@ -43,6 +43,7 @@ export function KnowledgeHome() {
                   data={data}
                   actions={actions}
                   showCollection
+                  tagColumn={recent.some((e) => e.tag_ids.length > 0)}
                   isOpen={openItem === entryRef(entry.id)}
                 />
               </li>

@@ -2,7 +2,6 @@ import { ChevronRight, CornerDownRight, FileText, Flag, ListChecks, Repeat } fro
 
 import { formatRelativeDay, type IsoDate } from "../../../core/time";
 import { cx } from "../../../ui/cx";
-import { TintDot } from "../../../ui/TintDot";
 import type { Todo } from "../types";
 import type { TodoLookup } from "../useTodoData";
 
@@ -11,7 +10,6 @@ export interface TodoMetaProps {
   todo: Todo;
   today: IsoDate | null;
   lookup: TodoLookup;
-  showPlace?: boolean | undefined;
   hideDue?: boolean | undefined;
   /** Shows the parent's title (views that list subtasks on their own). */
   showParent?: boolean | undefined;
@@ -19,21 +17,15 @@ export interface TodoMetaProps {
   progress?: { done: number; total: number; expanded: boolean; onToggle: () => void } | null;
 }
 
-/** The small, muted facts after a todo's title. */
-export function TodoMeta({
-  todo,
-  today,
-  lookup,
-  showPlace,
-  hideDue,
-  showParent,
-  progress,
-}: TodoMetaProps) {
+/**
+ * The small, muted facts right after a todo's title (due date, flags,
+ * subtask progress). Tags and the list sit in aligned columns of their own
+ * (see TodoRow).
+ */
+export function TodoMeta({ todo, today, lookup, hideDue, showParent, progress }: TodoMetaProps) {
   const overdue =
     today !== null && todo.due_date !== null && todo.due_date < today && todo.completed_at === null;
   const parentTitle = showParent === true ? lookup.todoTitle(todo.parent_id) : null;
-  const section = lookup.sectionName(todo.section_id);
-  const placeHue = showPlace === true ? lookup.listHue(todo.list_id) : null;
 
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-text-muted tabular-nums">
@@ -80,22 +72,10 @@ export function TodoMeta({
         </span>
       )}
       {todo.notes.trim() !== "" && <FileText size={14} strokeWidth={1.75} aria-label="Has notes" />}
-      {todo.tag_ids.map((id) => (
-        <span key={id}>@{lookup.tagName(id)}</span>
-      ))}
       {parentTitle !== null && (
         <span className="inline-flex min-w-0 items-center gap-1">
           <CornerDownRight size={14} strokeWidth={1.75} aria-hidden />
           <span className="truncate">{parentTitle}</span>
-        </span>
-      )}
-      {showPlace === true && (
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          {placeHue !== null && <TintDot hue={placeHue} />}
-          <span className="truncate">
-            {lookup.listName(todo.list_id)}
-            {section !== null && ` / ${section}`}
-          </span>
         </span>
       )}
     </span>

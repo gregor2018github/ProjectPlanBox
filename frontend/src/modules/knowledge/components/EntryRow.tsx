@@ -17,6 +17,11 @@ export interface EntryRowProps {
   actions: KnowledgeActions;
   /** Shows the collection name (in views spanning collections). */
   showCollection: boolean;
+  /**
+   * Gives tags a column of their own, so they start at the same x on every
+   * row of the list. The list turns it on when any of its entries has tags.
+   */
+  tagColumn: boolean;
   /** True while this entry is open in the detail panel. */
   isOpen: boolean;
 }
@@ -24,10 +29,20 @@ export interface EntryRowProps {
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
 /**
- * One entry: kind icon, title, a one-line preview and metadata. Click (or
- * Enter) opens it in the detail panel; every action is in the ⋯ and context menus.
+ * One entry: kind icon, title, a one-line preview, metadata and tags. In a
+ * wide list (container query on the list) the tags are a fixed-width column
+ * at the right edge, lined up across rows; in a narrow one they wrap under
+ * the metadata. Click (or Enter) opens it in the detail panel; every action
+ * is in the ⋯ and context menus.
  */
-export function EntryRow({ entry, data, actions, showCollection, isOpen }: EntryRowProps) {
+export function EntryRow({
+  entry,
+  data,
+  actions,
+  showCollection,
+  tagColumn,
+  isOpen,
+}: EntryRowProps) {
   const Icon = KIND_ICONS[entry.kind];
   const menu = entryMenuEntries(entry, actions);
   const preview = entry.body.replace(/\s+/g, " ").trim();
@@ -35,7 +50,6 @@ export function EntryRow({ entry, data, actions, showCollection, isOpen }: Entry
     entry.kind === "link" ? hostOf(entry.url) : null,
     entry.kind === "snippet" ? entry.language : null,
     showCollection ? data.collectionName(entry.collection_id) : null,
-    ...entry.tag_ids.map((id) => `#${data.tagName(id)}`),
     dateFormat.format(new Date(entry.updated_at)),
   ].filter((part): part is string => part !== null && part !== "");
 
@@ -60,20 +74,38 @@ export function EntryRow({ entry, data, actions, showCollection, isOpen }: Entry
           onClick={() => {
             actions.open(entry);
           }}
-          className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-sm text-left"
+          className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-sm text-left @2xl:flex-nowrap"
         >
-          <span className="min-w-0 break-words">{entry.title}</span>
-          {preview !== "" && (
+          <span className="flex min-w-0 basis-full flex-col gap-0.5 @2xl:flex-1 @2xl:basis-0">
+            <span className="min-w-0 break-words">{entry.title}</span>
+            {preview !== "" && (
+              <span
+                className={cx(
+                  "truncate text-sm text-text-muted",
+                  entry.kind === "snippet" && "font-mono",
+                )}
+              >
+                {preview}
+              </span>
+            )}
+            <span className="truncate text-sm text-text-muted tabular-nums">
+              {meta.join(" · ")}
+            </span>
+          </span>
+          {tagColumn && (
             <span
               className={cx(
-                "truncate text-sm text-text-muted",
-                entry.kind === "snippet" && "font-mono",
+                "min-w-0 flex-wrap content-start gap-x-2 text-sm text-text-muted @2xl:w-40 @2xl:shrink-0",
+                entry.tag_ids.length === 0 ? "hidden @2xl:flex" : "flex",
               )}
             >
-              {preview}
+              {entry.tag_ids.map((id) => (
+                <span key={id} className="min-w-0 truncate">
+                  #{data.tagName(id)}
+                </span>
+              ))}
             </span>
           )}
-          <span className="truncate text-sm text-text-muted tabular-nums">{meta.join(" · ")}</span>
         </button>
         <Menu
           entries={menu}
