@@ -8,6 +8,7 @@ import { todoPaths } from "../paths";
 import { INBOX, type Placement } from "../types";
 import { todoUi } from "../uiStore";
 import { useContainerActions } from "../useContainerActions";
+import { useSelectionFollowsDetail } from "../useSelectionFollowsDetail";
 import { useTodoCalendarFeed } from "../useTodoCalendarFeed";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
@@ -31,6 +32,7 @@ export function TodosHost() {
   const containers = useContainerActions();
   useTodoCalendarFeed(data, actions);
   useTodoLinkables(data);
+  useSelectionFollowsDetail();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [quickAdd, setQuickAdd] = useState<QuickAddTarget | null>(null);

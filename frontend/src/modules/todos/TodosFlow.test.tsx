@@ -194,6 +194,13 @@ describe("todos", () => {
     await waitFor(() => {
       expect(screen.queryByRole("complementary", { name: "Details" })).toBeNull();
     });
+    // ...and clears the row's highlight with it.
+    expect(todoUi.get().selectedId).toBeNull();
+    expect(
+      within(screen.getByRole("list", { name: "Completed today" }))
+        .getByText("Call mum")
+        .closest("[aria-current]"),
+    ).toBeNull();
   });
 
   it("keeps Completed collapsed by default and remembers opening it per view", async () => {
