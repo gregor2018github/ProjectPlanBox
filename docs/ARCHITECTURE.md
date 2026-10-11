@@ -817,6 +817,10 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
   - 768–1279 px: the detail panel overlays.
   - Under 768 px: the sidebar becomes a drawer and the detail panel a
     full-screen sheet.
+- A quote footer (`app/QuoteFooter.tsx`) sits under every view: one
+  historical quotation in italics, picked at random on each page load and
+  never the previous load's. The list (`app/quoteList.ts`) is copied
+  verbatim from the sourced sections of English and German Wikiquote.
 - Global hosts live in `core`: command palette (Ctrl+K), quick-add (Q),
   toasts/undo, keyboard shortcut registry, theme. Modules contribute through
   the manifest.

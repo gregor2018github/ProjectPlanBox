@@ -12,6 +12,7 @@ import { Toaster } from "../ui/Toaster";
 import { DetailPanel } from "./DetailPanel";
 import { isBackgroundClick } from "./isBackgroundClick";
 import { useModules } from "./modulesContext";
+import { QuoteFooter } from "./QuoteFooter";
 import { RailItemHost } from "./RailItemHost";
 import { RailPane } from "./RailPane";
 import { RightRail } from "./RightRail";
@@ -152,6 +153,7 @@ export function AppShell() {
           >
             <Outlet />
           </div>
+          <QuoteFooter />
         </main>
         <DetailPanel item={item} onClose={closeDetail} />
         <RailPane module={openPane} onClose={closeRail} />

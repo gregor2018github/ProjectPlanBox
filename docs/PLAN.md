@@ -20,6 +20,7 @@ this file records what was planned, decided and pinned.
 | Insights (statistics page) | Built 2026-10-11 (owner request) |
 | Area colours | Built 2026-10-11 (owner request) |
 | Home overview | Built 2026-10-11 (owner request) |
+| Quote footer | Built 2026-10-11 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
