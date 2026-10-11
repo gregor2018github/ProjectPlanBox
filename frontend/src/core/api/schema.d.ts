@@ -208,6 +208,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/insights/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Activity
+         * @description What was created, completed and deleted per day across all modules, and app opens.
+         */
+        get: operations["core_get_activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/insights/opens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Open
+         * @description Records that the app was opened (idempotent per client id).
+         */
+        post: operations["core_record_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/knowledge/collections": {
         parameters: {
             query?: never;
@@ -1012,6 +1052,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stats
+         * @description Statistics over every todo: flows, lead times, buckets, priorities, streaks.
+         */
+        get: operations["todos_get_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/todos/today-order": {
         parameters: {
             query?: never;
@@ -1036,6 +1096,45 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActivityOut
+         * @description Activity across every module, per local day in the configured zone.
+         */
+        ActivityOut: {
+            /** Days */
+            days: components["schemas"]["DayActivityOut"][];
+            /**
+             * End
+             * Format: date
+             */
+            end: string;
+            opens: components["schemas"]["OpenStatsOut"];
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /** Types */
+            types: components["schemas"]["TypeActivityOut"][];
+        };
+        /**
+         * AppOpenCreate
+         * @description Record that the app was opened; send a client ``id`` so a retry counts once.
+         */
+        AppOpenCreate: {
+            /** Id */
+            id?: string | null;
+        };
+        /**
+         * AppOpenOut
+         * @description A recorded app open.
+         */
+        AppOpenOut: {
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+        };
         /**
          * AreaCreate
          * @description Create an area at the end.
@@ -1137,6 +1236,25 @@ export interface components {
         CollectionRename: {
             /** Name */
             name: string;
+        };
+        /**
+         * DayActivityOut
+         * @description Counts for one local day (days without any activity are left out).
+         */
+        DayActivityOut: {
+            /** Completed */
+            completed: number;
+            /** Created */
+            created: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Deleted */
+            deleted: number;
+            /** Opens */
+            opens: number;
         };
         /**
          * DeletedOut
@@ -1672,6 +1790,31 @@ export interface components {
             start_date: string | null;
         };
         /**
+         * OpenStatsOut
+         * @description App opens in the range by local hour and weekday, plus all-time facts.
+         */
+        OpenStatsOut: {
+            /** All Time */
+            all_time: number;
+            /**
+             * By Hour
+             * @description 24 counts, local hour 0..23.
+             */
+            by_hour: number[];
+            /**
+             * By Weekday
+             * @description 7 counts, Monday first.
+             */
+            by_weekday: number[];
+            /**
+             * First At
+             * @description The first recorded app open, if any.
+             */
+            first_at: string | null;
+            /** In Range */
+            in_range: number;
+        };
+        /**
          * Problem
          * @description An RFC 9457 problem document.
          *
@@ -1812,6 +1955,247 @@ export interface components {
              * @constant
              */
             status: "stopping";
+        };
+        /**
+         * StatsAreaOut
+         * @description One area; ``id`` null groups lists outside any area and the Inbox.
+         */
+        StatsAreaOut: {
+            /** Completed */
+            completed: number;
+            /** Id */
+            id: string | null;
+            /** Name */
+            name: string;
+            /** Open */
+            open: number;
+        };
+        /**
+         * StatsBestDayOut
+         * @description The day with the most completions.
+         */
+        StatsBestDayOut: {
+            /** Count */
+            count: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+        };
+        /**
+         * StatsBucketOut
+         * @description A labelled count.
+         */
+        StatsBucketOut: {
+            /** Count */
+            count: number;
+            /** Label */
+            label: string;
+        };
+        /**
+         * StatsDueOut
+         * @description How completed todos with a due date met it.
+         */
+        StatsDueOut: {
+            /** Late */
+            late: number;
+            /** Mean Days Late */
+            mean_days_late: number | null;
+            /** On Time */
+            on_time: number;
+            /** With Due Date */
+            with_due_date: number;
+        };
+        /**
+         * StatsLeadTimeOut
+         * @description Days from added to completed, for one-off todos.
+         */
+        StatsLeadTimeOut: {
+            /** Buckets */
+            buckets: components["schemas"]["StatsBucketOut"][];
+            /** By Priority */
+            by_priority: components["schemas"]["StatsPriorityLeadOut"][];
+            /** Count */
+            count: number;
+            /** Mean Days */
+            mean_days: number | null;
+            /** Median Days */
+            median_days: number | null;
+            /** P90 Days */
+            p90_days: number | null;
+        };
+        /**
+         * StatsListOut
+         * @description One list as a bucket of work; ``id`` null is the Inbox.
+         */
+        StatsListOut: {
+            /** Area Name */
+            area_name: string | null;
+            /** Completed */
+            completed: number;
+            /** Completed 30 */
+            completed_30: number;
+            /** Id */
+            id: string | null;
+            /** Name */
+            name: string;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+        };
+        /**
+         * StatsOldTodoOut
+         * @description One of the longest-waiting open todos.
+         */
+        StatsOldTodoOut: {
+            /** Age Days */
+            age_days: number;
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Place
+             * @description List name or 'Inbox'.
+             */
+            place: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * StatsOpenAgeOut
+         * @description How long open todos have been waiting.
+         */
+        StatsOpenAgeOut: {
+            /** Buckets */
+            buckets: components["schemas"]["StatsBucketOut"][];
+            /** Median Days */
+            median_days: number | null;
+        };
+        /**
+         * StatsPriorityLeadOut
+         * @description Median lead time for one priority (0 none, 1 low, 2 medium, 3 high).
+         */
+        StatsPriorityLeadOut: {
+            /** Count */
+            count: number;
+            /** Median Days */
+            median_days: number | null;
+            /** Priority */
+            priority: number;
+        };
+        /**
+         * StatsPriorityOut
+         * @description Todos with one priority.
+         */
+        StatsPriorityOut: {
+            /** Completed */
+            completed: number;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** Priority */
+            priority: number;
+        };
+        /**
+         * StatsRecentOut
+         * @description Rolling windows of whole local days ending today.
+         */
+        StatsRecentOut: {
+            /** Added 30 */
+            added_30: number;
+            /** Added 7 */
+            added_7: number;
+            /** Added Prev 7 */
+            added_prev_7: number;
+            /** Completed 30 */
+            completed_30: number;
+            /** Completed 7 */
+            completed_7: number;
+            /** Completed Prev 7 */
+            completed_prev_7: number;
+        };
+        /**
+         * StatsStreaksOut
+         * @description Days in a row with at least one completion.
+         */
+        StatsStreaksOut: {
+            /** Active Days */
+            active_days: number;
+            best_day: components["schemas"]["StatsBestDayOut"] | null;
+            /** Current */
+            current: number;
+            /** Longest */
+            longest: number;
+        };
+        /**
+         * StatsTagOut
+         * @description Todos carrying one tag.
+         */
+        StatsTagOut: {
+            /** Completed */
+            completed: number;
+            /** Open */
+            open: number;
+            /** Tag Id */
+            tag_id: string;
+        };
+        /**
+         * StatsTotalsOut
+         * @description Where things stand right now (live todos, subtasks included).
+         */
+        StatsTotalsOut: {
+            /**
+             * Added
+             * @description Every todo ever added (deleted ones too).
+             */
+            added: number;
+            /**
+             * Completed
+             * @description Completed todos that still exist.
+             */
+            completed: number;
+            /** Deleted */
+            deleted: number;
+            /**
+             * Due Next 7
+             * @description Due after today, within the next 7 days.
+             */
+            due_next_7: number;
+            /** Due Today */
+            due_today: number;
+            /** Inbox */
+            inbox: number;
+            /** No Due Date */
+            no_due_date: number;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** Repeating */
+            repeating: number;
+            /** Subtasks Open */
+            subtasks_open: number;
+        };
+        /**
+         * StatsWeekOut
+         * @description One Monday-based week.
+         */
+        StatsWeekOut: {
+            /** Added */
+            added: number;
+            /** Completed */
+            completed: number;
+            /** Deleted */
+            deleted: number;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
         };
         /**
          * TagCreate
@@ -1997,12 +2381,69 @@ export interface components {
             title?: string | null;
         };
         /**
+         * TodoStatsOut
+         * @description Statistics over every todo, for the Insights page.
+         */
+        TodoStatsOut: {
+            /** Areas */
+            areas: components["schemas"]["StatsAreaOut"][];
+            due: components["schemas"]["StatsDueOut"];
+            lead_time: components["schemas"]["StatsLeadTimeOut"];
+            /**
+             * Lists
+             * @description Most open first.
+             */
+            lists: components["schemas"]["StatsListOut"][];
+            /** Oldest Open */
+            oldest_open: components["schemas"]["StatsOldTodoOut"][];
+            open_age: components["schemas"]["StatsOpenAgeOut"];
+            /** Priorities */
+            priorities: components["schemas"]["StatsPriorityOut"][];
+            /**
+             * Punchcard
+             * @description Completions per local weekday (Monday first) and hour: 7 rows of 24.
+             */
+            punchcard: number[][];
+            recent: components["schemas"]["StatsRecentOut"];
+            streaks: components["schemas"]["StatsStreaksOut"];
+            /** Tags */
+            tags: components["schemas"]["StatsTagOut"][];
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            totals: components["schemas"]["StatsTotalsOut"];
+            /**
+             * Weeks
+             * @description The last 26 weeks, oldest first.
+             */
+            weeks: components["schemas"]["StatsWeekOut"][];
+        };
+        /**
          * TodosOut
          * @description Every todo a request changed (e.g. a parent and its subtasks).
          */
         TodosOut: {
             /** Todos */
             todos: components["schemas"]["TodoOut"][];
+        };
+        /**
+         * TypeActivityOut
+         * @description Totals of one entity type over the range.
+         */
+        TypeActivityOut: {
+            /** Completed */
+            completed: number;
+            /** Created */
+            created: number;
+            /** Deleted */
+            deleted: number;
+            /**
+             * Entity Type
+             * @description For example todos.todo.
+             */
+            entity_type: string;
         };
     };
     responses: never;
@@ -2487,6 +2928,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_get_activity: {
+        parameters: {
+            query: {
+                /** @description First day (YYYY-MM-DD). */
+                start: string;
+                /** @description Last day, inclusive (at most 400 days). */
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_record_open: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppOpenCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppOpenOut"];
                 };
             };
             /** @description Problem details */
@@ -4190,6 +4698,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_get_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoStatsOut"];
                 };
             };
             /** @description Problem details */

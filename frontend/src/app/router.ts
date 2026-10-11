@@ -10,6 +10,8 @@ import {
 import type { ModuleManifest } from "../core/module";
 import { AppShell } from "./AppShell";
 import { HomePage } from "./HomePage";
+import { InsightsPage } from "./InsightsPage";
+import { INSIGHTS_PATH } from "./paths";
 import { NotFoundPage } from "./NotFoundPage";
 
 /** Search params every route understands. */
@@ -47,8 +49,14 @@ export function createAppRouter(options: {
       },
     }),
   });
+  const insightsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: INSIGHTS_PATH,
+    component: InsightsPage,
+  });
   const routeTree = rootRoute.addChildren([
     homeRoute,
+    insightsRoute,
     ...options.modules.flatMap((module) => module.routes(rootRoute)),
   ]);
   return createRouter({

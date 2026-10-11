@@ -5,6 +5,7 @@ import { useCommands } from "../core/commands/commandsContext";
 import type { Command } from "../core/commands/registry";
 import { useShortcut } from "../core/shortcuts/useShortcut";
 import { useTheme } from "../core/theme/useTheme";
+import { INSIGHTS_PATH } from "./paths";
 
 /** The shell actions that commands and shortcuts trigger. */
 export interface ShellActions {
@@ -52,6 +53,13 @@ export function useShellCommands(actions: ShellActions): void {
     group: "Navigation",
     run: () => void navigate({ to: "/" }),
   });
+  useShortcut({
+    id: "shell.insights",
+    keys: "G S",
+    description: "Go to Insights (statistics)",
+    group: "Navigation",
+    run: () => void navigate({ to: INSIGHTS_PATH }),
+  });
   useShortcut(
     closeDetail
       ? {
@@ -87,6 +95,14 @@ export function useShellCommands(actions: ShellActions): void {
         group: "Navigation",
         shortcut: "G H",
         run: () => void navigate({ to: "/" }),
+      },
+      {
+        id: "shell.insights",
+        title: "Go to Insights",
+        group: "Navigation",
+        keywords: ["statistics", "stats", "charts", "overview", "analytics"],
+        shortcut: "G S",
+        run: () => void navigate({ to: INSIGHTS_PATH }),
       },
       {
         id: "theme.system",

@@ -4,9 +4,19 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
-from planbox.core.entities import EntitySummary, EntityType, SearchDocument
+from planbox.core.entities import (
+    ActivityEvent,
+    EntitySummary,
+    EntityType,
+    SearchDocument,
+    lifecycle_events,
+)
 from planbox.core.module import Module
-from planbox.modules.knowledge.repository import entry_search_rows, summarize_entries
+from planbox.modules.knowledge.repository import (
+    entry_activity_rows,
+    entry_search_rows,
+    summarize_entries,
+)
 from planbox.modules.knowledge.router import router
 from planbox.modules.knowledge.service import ENTITY_TYPE
 
@@ -22,9 +32,13 @@ def _documents(conn: sqlite3.Connection, since: str | None) -> list[SearchDocume
     return [SearchDocument(*row) for row in entry_search_rows(conn, since)]
 
 
+def _activity(conn: sqlite3.Connection, since: str) -> list[ActivityEvent]:
+    return lifecycle_events(entry_activity_rows(conn, since))
+
+
 module = Module(
     id="knowledge",
     router=router,
     migrations_dir=Path(__file__).parent / "migrations",
-    entity_types=(EntityType(ENTITY_TYPE, _summarize, _documents),),
+    entity_types=(EntityType(ENTITY_TYPE, _summarize, _documents, _activity),),
 )

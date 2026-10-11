@@ -37,6 +37,13 @@
   --color-success: oklch(0.6 0.14 155);
   --color-focus: var(--color-accent);
   --color-overlay: oklch(0.2 0.01 260 / 0.32);
+  /* Charts (Insights): a neutral second series and a one-hue heat ramp, empty to full. */
+  --color-chart-muted: oklch(0.8 0.012 260);
+  --color-heat-0: oklch(0.94 0.004 260);
+  --color-heat-1: oklch(0.87 0.06 264);
+  --color-heat-2: oklch(0.76 0.11 264);
+  --color-heat-3: oklch(0.63 0.16 264);
+  --color-heat-4: oklch(0.52 0.19 264);
 
   /* Typography */
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
@@ -61,6 +68,7 @@
   --text-display--line-height: 2.5rem;
 
   /* Radius */
+  --radius-xs: 3px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -109,6 +117,12 @@
   --color-warning: oklch(0.8 0.14 75);
   --color-success: oklch(0.72 0.14 155);
   --color-overlay: oklch(0 0 0 / 0.5);
+  --color-chart-muted: oklch(0.45 0.012 260);
+  --color-heat-0: oklch(0.255 0.007 260);
+  --color-heat-1: oklch(0.35 0.07 264);
+  --color-heat-2: oklch(0.46 0.1 264);
+  --color-heat-3: oklch(0.58 0.13 264);
+  --color-heat-4: oklch(0.72 0.15 264);
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.1);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.16), 0 2px 4px -2px oklch(0 0 0 / 0.1);
   --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.32), 0 4px 8px -4px oklch(0 0 0 / 0.13);

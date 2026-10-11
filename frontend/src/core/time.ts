@@ -128,3 +128,11 @@ export function addMonths(date: IsoDate, months: number): IsoDate {
 export function formatMonth(date: IsoDate): string {
   return format(parseISO(date), "MMMM yyyy");
 }
+
+/** Formats a month as "Oct". */
+export function formatMonthShort(date: IsoDate): string {
+  return format(parseISO(date), "MMM");
+}
+
+/** Short weekday names, Monday first. */
+export const WEEKDAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;

@@ -16,6 +16,7 @@ from planbox.core.db import connect, init_database
 from planbox.core.db.migrations import Migration, MigrationSource, migrate
 from planbox.core.entities import EntityRegistry
 from planbox.core.errors import NotFound, Problem, install_error_handlers
+from planbox.core.insights.router import router as insights_router
 from planbox.core.lifecycle.router import router as lifecycle_router
 from planbox.core.lifecycle.service import ShutdownHook
 from planbox.core.links.router import router as links_router
@@ -121,6 +122,7 @@ def create_app(
     app.include_router(tags_router, prefix="/api")
     app.include_router(links_router, prefix="/api")
     app.include_router(search_router, prefix="/api")
+    app.include_router(insights_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

@@ -10,7 +10,9 @@ from fastapi import APIRouter
 from planbox.core.entities import EntityType
 
 MODULE_ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
-RESERVED_IDS = frozenset({"core", "api", "assets", "health", "meta", "tags", "links", "search"})
+RESERVED_IDS = frozenset(
+    {"core", "api", "assets", "health", "meta", "tags", "links", "search", "insights"}
+)
 
 
 @dataclass(frozen=True, slots=True)

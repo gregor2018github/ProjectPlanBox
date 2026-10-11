@@ -4,9 +4,20 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
-from planbox.core.entities import EntitySummary, EntityType, SearchDocument
+from planbox.core.entities import (
+    ActivityEvent,
+    EntitySummary,
+    EntityType,
+    SearchDocument,
+    lifecycle_events,
+)
 from planbox.core.module import Module
-from planbox.modules.habits.repository import habit_search_rows, summarize_habits
+from planbox.modules.habits.repository import (
+    checkin_instants,
+    habit_activity_rows,
+    habit_search_rows,
+    summarize_habits,
+)
 from planbox.modules.habits.router import router
 from planbox.modules.habits.service import ENTITY_TYPE
 
@@ -22,9 +33,16 @@ def _documents(conn: sqlite3.Connection, since: str | None) -> list[SearchDocume
     return [SearchDocument(*row) for row in habit_search_rows(conn, since)]
 
 
+def _activity(conn: sqlite3.Connection, since: str) -> list[ActivityEvent]:
+    """Habits created and deleted, and every check-in as a completion."""
+    events = lifecycle_events(habit_activity_rows(conn, since))
+    events.extend(ActivityEvent("completed", at) for at in checkin_instants(conn, since))
+    return events
+
+
 module = Module(
     id="habits",
     router=router,
     migrations_dir=Path(__file__).parent / "migrations",
-    entity_types=(EntityType(ENTITY_TYPE, _summarize, _documents),),
+    entity_types=(EntityType(ENTITY_TYPE, _summarize, _documents, _activity),),
 )

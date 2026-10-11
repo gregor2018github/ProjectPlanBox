@@ -1,6 +1,84 @@
 {
   "components": {
     "schemas": {
+      "ActivityOut": {
+        "description": "Activity across every module, per local day in the configured zone.",
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayActivityOut"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "opens": {
+            "$ref": "#/components/schemas/OpenStatsOut"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/TypeActivityOut"
+            },
+            "title": "Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "days",
+          "types",
+          "opens"
+        ],
+        "title": "ActivityOut",
+        "type": "object"
+      },
+      "AppOpenCreate": {
+        "description": "Record that the app was opened; send a client ``id`` so a retry counts once.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          }
+        },
+        "title": "AppOpenCreate",
+        "type": "object"
+      },
+      "AppOpenOut": {
+        "description": "A recorded app open.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at"
+        ],
+        "title": "AppOpenOut",
+        "type": "object"
+      },
       "AreaCreate": {
         "description": "Create an area at the end.",
         "properties": {
@@ -238,6 +316,41 @@
           "name"
         ],
         "title": "CollectionRename",
+        "type": "object"
+      },
+      "DayActivityOut": {
+        "description": "Counts for one local day (days without any activity are left out).",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "opens": {
+            "title": "Opens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "created",
+          "completed",
+          "deleted",
+          "opens"
+        ],
+        "title": "DayActivityOut",
         "type": "object"
       },
       "DeletedOut": {
@@ -1586,6 +1699,56 @@
         "title": "OccurrenceOut",
         "type": "object"
       },
+      "OpenStatsOut": {
+        "description": "App opens in the range by local hour and weekday, plus all-time facts.",
+        "properties": {
+          "all_time": {
+            "title": "All Time",
+            "type": "integer"
+          },
+          "by_hour": {
+            "description": "24 counts, local hour 0..23.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "By Hour",
+            "type": "array"
+          },
+          "by_weekday": {
+            "description": "7 counts, Monday first.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "By Weekday",
+            "type": "array"
+          },
+          "first_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The first recorded app open, if any.",
+            "title": "First At"
+          },
+          "in_range": {
+            "title": "In Range",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "in_range",
+          "all_time",
+          "first_at",
+          "by_hour",
+          "by_weekday"
+        ],
+        "title": "OpenStatsOut",
+        "type": "object"
+      },
       "Problem": {
         "description": "An RFC 9457 problem document.\n\nAttributes:\n    type: URI reference identifying the problem type (``about:blank`` here).\n    title: Short, human-readable summary of the problem type.\n    status: The HTTP status code.\n    detail: Explanation specific to this occurrence.\n    code: Stable machine-readable code, e.g. ``not_found``.\n    errors: Field-level details for validation problems.",
         "properties": {
@@ -1837,6 +2000,560 @@
           "status"
         ],
         "title": "ShutdownOut",
+        "type": "object"
+      },
+      "StatsAreaOut": {
+        "description": "One area; ``id`` null groups lists outside any area and the Inbox.",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "open",
+          "completed"
+        ],
+        "title": "StatsAreaOut",
+        "type": "object"
+      },
+      "StatsBestDayOut": {
+        "description": "The day with the most completions.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "StatsBestDayOut",
+        "type": "object"
+      },
+      "StatsBucketOut": {
+        "description": "A labelled count.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "StatsBucketOut",
+        "type": "object"
+      },
+      "StatsDueOut": {
+        "description": "How completed todos with a due date met it.",
+        "properties": {
+          "late": {
+            "title": "Late",
+            "type": "integer"
+          },
+          "mean_days_late": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Days Late"
+          },
+          "on_time": {
+            "title": "On Time",
+            "type": "integer"
+          },
+          "with_due_date": {
+            "title": "With Due Date",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "with_due_date",
+          "on_time",
+          "late",
+          "mean_days_late"
+        ],
+        "title": "StatsDueOut",
+        "type": "object"
+      },
+      "StatsLeadTimeOut": {
+        "description": "Days from added to completed, for one-off todos.",
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/StatsBucketOut"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "by_priority": {
+            "items": {
+              "$ref": "#/components/schemas/StatsPriorityLeadOut"
+            },
+            "title": "By Priority",
+            "type": "array"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "mean_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Days"
+          },
+          "median_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Days"
+          },
+          "p90_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P90 Days"
+          }
+        },
+        "required": [
+          "count",
+          "mean_days",
+          "median_days",
+          "p90_days",
+          "buckets",
+          "by_priority"
+        ],
+        "title": "StatsLeadTimeOut",
+        "type": "object"
+      },
+      "StatsListOut": {
+        "description": "One list as a bucket of work; ``id`` null is the Inbox.",
+        "properties": {
+          "area_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area Name"
+          },
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "completed_30": {
+            "title": "Completed 30",
+            "type": "integer"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "area_name",
+          "open",
+          "overdue",
+          "completed",
+          "completed_30"
+        ],
+        "title": "StatsListOut",
+        "type": "object"
+      },
+      "StatsOldTodoOut": {
+        "description": "One of the longest-waiting open todos.",
+        "properties": {
+          "age_days": {
+            "title": "Age Days",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "place": {
+            "description": "List name or 'Inbox'.",
+            "title": "Place",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "created_at",
+          "age_days",
+          "place"
+        ],
+        "title": "StatsOldTodoOut",
+        "type": "object"
+      },
+      "StatsOpenAgeOut": {
+        "description": "How long open todos have been waiting.",
+        "properties": {
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/StatsBucketOut"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "median_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Days"
+          }
+        },
+        "required": [
+          "median_days",
+          "buckets"
+        ],
+        "title": "StatsOpenAgeOut",
+        "type": "object"
+      },
+      "StatsPriorityLeadOut": {
+        "description": "Median lead time for one priority (0 none, 1 low, 2 medium, 3 high).",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "median_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Days"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "priority",
+          "count",
+          "median_days"
+        ],
+        "title": "StatsPriorityLeadOut",
+        "type": "object"
+      },
+      "StatsPriorityOut": {
+        "description": "Todos with one priority.",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "integer"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "priority",
+          "open",
+          "completed",
+          "overdue"
+        ],
+        "title": "StatsPriorityOut",
+        "type": "object"
+      },
+      "StatsRecentOut": {
+        "description": "Rolling windows of whole local days ending today.",
+        "properties": {
+          "added_30": {
+            "title": "Added 30",
+            "type": "integer"
+          },
+          "added_7": {
+            "title": "Added 7",
+            "type": "integer"
+          },
+          "added_prev_7": {
+            "title": "Added Prev 7",
+            "type": "integer"
+          },
+          "completed_30": {
+            "title": "Completed 30",
+            "type": "integer"
+          },
+          "completed_7": {
+            "title": "Completed 7",
+            "type": "integer"
+          },
+          "completed_prev_7": {
+            "title": "Completed Prev 7",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added_7",
+          "completed_7",
+          "added_prev_7",
+          "completed_prev_7",
+          "added_30",
+          "completed_30"
+        ],
+        "title": "StatsRecentOut",
+        "type": "object"
+      },
+      "StatsStreaksOut": {
+        "description": "Days in a row with at least one completion.",
+        "properties": {
+          "active_days": {
+            "title": "Active Days",
+            "type": "integer"
+          },
+          "best_day": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatsBestDayOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current": {
+            "title": "Current",
+            "type": "integer"
+          },
+          "longest": {
+            "title": "Longest",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "current",
+          "longest",
+          "active_days",
+          "best_day"
+        ],
+        "title": "StatsStreaksOut",
+        "type": "object"
+      },
+      "StatsTagOut": {
+        "description": "Todos carrying one tag.",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "tag_id": {
+            "title": "Tag Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_id",
+          "open",
+          "completed"
+        ],
+        "title": "StatsTagOut",
+        "type": "object"
+      },
+      "StatsTotalsOut": {
+        "description": "Where things stand right now (live todos, subtasks included).",
+        "properties": {
+          "added": {
+            "description": "Every todo ever added (deleted ones too).",
+            "title": "Added",
+            "type": "integer"
+          },
+          "completed": {
+            "description": "Completed todos that still exist.",
+            "title": "Completed",
+            "type": "integer"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "due_next_7": {
+            "description": "Due after today, within the next 7 days.",
+            "title": "Due Next 7",
+            "type": "integer"
+          },
+          "due_today": {
+            "title": "Due Today",
+            "type": "integer"
+          },
+          "inbox": {
+            "title": "Inbox",
+            "type": "integer"
+          },
+          "no_due_date": {
+            "title": "No Due Date",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "integer"
+          },
+          "repeating": {
+            "title": "Repeating",
+            "type": "integer"
+          },
+          "subtasks_open": {
+            "title": "Subtasks Open",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "open",
+          "overdue",
+          "due_today",
+          "due_next_7",
+          "no_due_date",
+          "inbox",
+          "repeating",
+          "subtasks_open",
+          "completed",
+          "added",
+          "deleted"
+        ],
+        "title": "StatsTotalsOut",
+        "type": "object"
+      },
+      "StatsWeekOut": {
+        "description": "One Monday-based week.",
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "added",
+          "completed",
+          "deleted"
+        ],
+        "title": "StatsWeekOut",
         "type": "object"
       },
       "TagCreate": {
@@ -2399,6 +3116,107 @@
         "title": "TodoPatch",
         "type": "object"
       },
+      "TodoStatsOut": {
+        "description": "Statistics over every todo, for the Insights page.",
+        "properties": {
+          "areas": {
+            "items": {
+              "$ref": "#/components/schemas/StatsAreaOut"
+            },
+            "title": "Areas",
+            "type": "array"
+          },
+          "due": {
+            "$ref": "#/components/schemas/StatsDueOut"
+          },
+          "lead_time": {
+            "$ref": "#/components/schemas/StatsLeadTimeOut"
+          },
+          "lists": {
+            "description": "Most open first.",
+            "items": {
+              "$ref": "#/components/schemas/StatsListOut"
+            },
+            "title": "Lists",
+            "type": "array"
+          },
+          "oldest_open": {
+            "items": {
+              "$ref": "#/components/schemas/StatsOldTodoOut"
+            },
+            "title": "Oldest Open",
+            "type": "array"
+          },
+          "open_age": {
+            "$ref": "#/components/schemas/StatsOpenAgeOut"
+          },
+          "priorities": {
+            "items": {
+              "$ref": "#/components/schemas/StatsPriorityOut"
+            },
+            "title": "Priorities",
+            "type": "array"
+          },
+          "punchcard": {
+            "description": "Completions per local weekday (Monday first) and hour: 7 rows of 24.",
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Punchcard",
+            "type": "array"
+          },
+          "recent": {
+            "$ref": "#/components/schemas/StatsRecentOut"
+          },
+          "streaks": {
+            "$ref": "#/components/schemas/StatsStreaksOut"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/StatsTagOut"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/StatsTotalsOut"
+          },
+          "weeks": {
+            "description": "The last 26 weeks, oldest first.",
+            "items": {
+              "$ref": "#/components/schemas/StatsWeekOut"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "today",
+          "totals",
+          "recent",
+          "weeks",
+          "lead_time",
+          "open_age",
+          "oldest_open",
+          "priorities",
+          "lists",
+          "areas",
+          "tags",
+          "punchcard",
+          "due",
+          "streaks"
+        ],
+        "title": "TodoStatsOut",
+        "type": "object"
+      },
       "TodosOut": {
         "description": "Every todo a request changed (e.g. a parent and its subtasks).",
         "properties": {
@@ -2414,6 +3232,36 @@
           "todos"
         ],
         "title": "TodosOut",
+        "type": "object"
+      },
+      "TypeActivityOut": {
+        "description": "Totals of one entity type over the range.",
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "entity_type": {
+            "description": "For example todos.todo.",
+            "title": "Entity Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_type",
+          "created",
+          "completed",
+          "deleted"
+        ],
+        "title": "TypeActivityOut",
         "type": "object"
       }
     }
@@ -3155,6 +4003,106 @@
           }
         },
         "summary": "Get Health",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/insights/activity": {
+      "get": {
+        "description": "What was created, completed and deleted per day across all modules, and app opens.",
+        "operationId": "core_get_activity",
+        "parameters": [
+          {
+            "description": "First day (YYYY-MM-DD).",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "description": "First day (YYYY-MM-DD).",
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Last day, inclusive (at most 400 days).",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "description": "Last day, inclusive (at most 400 days).",
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Activity",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/insights/opens": {
+      "post": {
+        "description": "Records that the app was opened (idempotent per client id).",
+        "operationId": "core_record_open",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppOpenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppOpenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Record Open",
         "tags": [
           "core"
         ]
@@ -5531,6 +6479,38 @@
           }
         },
         "summary": "Restore Section",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/stats": {
+      "get": {
+        "description": "Statistics over every todo: flows, lead times, buckets, priorities, streaks.",
+        "operationId": "todos_get_stats",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoStatsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Stats",
         "tags": [
           "todos"
         ]

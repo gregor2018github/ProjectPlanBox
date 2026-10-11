@@ -1,6 +1,7 @@
 /** The todos module's manifest: routes, sidebar, host and detail panel. */
 import type { ModuleManifest } from "../../core/module";
 import { TodoDetail } from "./components/TodoDetail";
+import { TodoInsights } from "./components/TodoInsights";
 import { TodosHost } from "./components/TodosHost";
 import { TodosSidebarSection } from "./components/TodosSidebarSection";
 import { todoPaths } from "./paths";
@@ -15,4 +16,5 @@ export const todosModule: ModuleManifest = {
   SidebarSection: TodosSidebarSection,
   Host: TodosHost,
   detail: { "todos.todo": TodoDetail },
+  InsightsSection: TodoInsights,
 };

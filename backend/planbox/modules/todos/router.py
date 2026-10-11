@@ -1,5 +1,6 @@
 """HTTP routes for the todos module, mounted at ``/api/todos``."""
 
+import dataclasses
 from datetime import date, datetime
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -31,6 +32,7 @@ from planbox.modules.todos.schemas import (
     TodoOut,
     TodoPatch,
     TodosOut,
+    TodoStatsOut,
 )
 from planbox.modules.todos.service import (
     AreaService,
@@ -286,6 +288,12 @@ def forecast(
 ) -> list[ForecastOut]:
     """The later dates of open repeating todos in a date range (for the calendar)."""
     return [ForecastOut(todo_id=f.todo_id, date=f.date) for f in service.forecast(start, end)]
+
+
+@router.get("/stats")
+def get_stats(service: Todos) -> TodoStatsOut:
+    """Statistics over every todo: flows, lead times, buckets, priorities, streaks."""
+    return TodoStatsOut.model_validate(dataclasses.asdict(service.stats()))
 
 
 @router.get("/items/{todo_id}")

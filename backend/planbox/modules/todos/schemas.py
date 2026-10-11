@@ -207,3 +207,169 @@ class DeletedOut(BaseModel):
     lists: int
     sections: int
     todos: int
+
+
+# ---------------------------------------------------------------- statistics
+
+
+class StatsTotalsOut(BaseModel):
+    """Where things stand right now (live todos, subtasks included)."""
+
+    open: int
+    overdue: int
+    due_today: int
+    due_next_7: int = Field(description="Due after today, within the next 7 days.")
+    no_due_date: int
+    inbox: int
+    repeating: int
+    subtasks_open: int
+    completed: int = Field(description="Completed todos that still exist.")
+    added: int = Field(description="Every todo ever added (deleted ones too).")
+    deleted: int
+
+
+class StatsRecentOut(BaseModel):
+    """Rolling windows of whole local days ending today."""
+
+    added_7: int
+    completed_7: int
+    added_prev_7: int
+    completed_prev_7: int
+    added_30: int
+    completed_30: int
+
+
+class StatsWeekOut(BaseModel):
+    """One Monday-based week."""
+
+    start: date
+    added: int
+    completed: int
+    deleted: int
+
+
+class StatsBucketOut(BaseModel):
+    """A labelled count."""
+
+    label: str
+    count: int
+
+
+class StatsPriorityLeadOut(BaseModel):
+    """Median lead time for one priority (0 none, 1 low, 2 medium, 3 high)."""
+
+    priority: int
+    count: int
+    median_days: float | None
+
+
+class StatsLeadTimeOut(BaseModel):
+    """Days from added to completed, for one-off todos."""
+
+    count: int
+    mean_days: float | None
+    median_days: float | None
+    p90_days: float | None
+    buckets: list[StatsBucketOut]
+    by_priority: list[StatsPriorityLeadOut]
+
+
+class StatsOpenAgeOut(BaseModel):
+    """How long open todos have been waiting."""
+
+    median_days: float | None
+    buckets: list[StatsBucketOut]
+
+
+class StatsOldTodoOut(BaseModel):
+    """One of the longest-waiting open todos."""
+
+    id: str
+    title: str
+    created_at: str
+    age_days: int
+    place: str = Field(description="List name or 'Inbox'.")
+
+
+class StatsPriorityOut(BaseModel):
+    """Todos with one priority."""
+
+    priority: int
+    open: int
+    completed: int
+    overdue: int
+
+
+class StatsListOut(BaseModel):
+    """One list as a bucket of work; ``id`` null is the Inbox."""
+
+    id: str | None
+    name: str
+    area_name: str | None
+    open: int
+    overdue: int
+    completed: int
+    completed_30: int
+
+
+class StatsAreaOut(BaseModel):
+    """One area; ``id`` null groups lists outside any area and the Inbox."""
+
+    id: str | None
+    name: str
+    open: int
+    completed: int
+
+
+class StatsTagOut(BaseModel):
+    """Todos carrying one tag."""
+
+    tag_id: str
+    open: int
+    completed: int
+
+
+class StatsDueOut(BaseModel):
+    """How completed todos with a due date met it."""
+
+    with_due_date: int
+    on_time: int
+    late: int
+    mean_days_late: float | None
+
+
+class StatsBestDayOut(BaseModel):
+    """The day with the most completions."""
+
+    date: date
+    count: int
+
+
+class StatsStreaksOut(BaseModel):
+    """Days in a row with at least one completion."""
+
+    current: int
+    longest: int
+    active_days: int
+    best_day: StatsBestDayOut | None
+
+
+class TodoStatsOut(BaseModel):
+    """Statistics over every todo, for the Insights page."""
+
+    today: date
+    totals: StatsTotalsOut
+    recent: StatsRecentOut
+    weeks: list[StatsWeekOut] = Field(description="The last 26 weeks, oldest first.")
+    lead_time: StatsLeadTimeOut
+    open_age: StatsOpenAgeOut
+    oldest_open: list[StatsOldTodoOut]
+    priorities: list[StatsPriorityOut]
+    lists: list[StatsListOut] = Field(description="Most open first.")
+    areas: list[StatsAreaOut]
+    tags: list[StatsTagOut]
+    punchcard: list[list[int]] = Field(
+        description="Completions per local weekday (Monday first) and hour: 7 rows of 24."
+    )
+    due: StatsDueOut
+    streaks: StatsStreaksOut

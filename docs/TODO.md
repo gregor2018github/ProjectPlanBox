@@ -36,6 +36,16 @@ rule.
 - [ ] Reminders and notifications (calendar events and habits).
 - [ ] Split the frontend bundle per module.
 
+## Insights
+
+- [ ] A calendar section (hours booked per week, busiest days). The
+      calendar caches per month and expands repeats on the server, so it
+      needs its own stats endpoint.
+- [ ] A date-range filter (the overview is fixed to 12 months, todo flows
+      to 26 weeks, habits to the cached 26 weeks).
+- [ ] Due-date changes are not recorded, so "postponed how often" cannot be
+      shown yet; it would need a change log.
+
 ## Todos
 
 - [ ] Open Logbook rows in the detail panel. The single-todo GET and the

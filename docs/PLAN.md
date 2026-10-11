@@ -17,6 +17,7 @@ this file records what was planned, decided and pinned.
 | 4. Calendar | Built 2026-10-10 (brought forward) |
 | 5. Habits | Built 2026-10-10 |
 | 6. Recurring todos | Built 2026-10-10 (brought forward) |
+| Insights (statistics page) | Built 2026-10-11 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
@@ -132,6 +133,27 @@ Follow-ups built 2026-10-10 (rules in ARCHITECTURE §7, Recurrence):
 - Skip one date (`…/skip`; detail panel, row menu, **S**; Ctrl+Z).
 - A repeat set without a due date now starts on the rule's first date from
   today, not on today.
+
+### Insights (owner request, 2026-10-11)
+
+A statistics page (`/insights`, sidebar, `G S`) with numbers, charts and
+tables across every module. Decisions:
+- **Each module owns its numbers.** The page renders the core overview,
+  then each manifest's `InsightsSection`. Todos need a server endpoint
+  (`GET /api/todos/stats`), since the client only holds open and today's
+  todos; knowledge and habits compute from the caches they already load.
+- **Cross-module activity through the registry**, like search: an
+  `EntityType` may offer `activity(conn, since)` (created, completed and
+  deleted instants), and `GET /api/insights/activity` buckets them by local
+  day. History is therefore retroactive from the existing timestamps.
+- **"Logins" are app opens.** PlanBox has no accounts, so each page load
+  records one row in `core_app_opens` (core migration `0004`). There is no
+  history before this feature, which the page says.
+- **No chart library.** Columns, bars and heat grids are small token-styled
+  components in `ui/`; a dependency would bring its own colours, motion and
+  bundle weight for four simple forms.
+- "Added" leaves out the next occurrence a repeating todo creates itself,
+  and lead times leave repeating todos out (their wait is the schedule).
 
 ## Dependencies
 

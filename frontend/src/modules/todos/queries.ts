@@ -23,6 +23,7 @@ export const todoKeys = {
   logbook: ["todos", "logbook"] as const,
   item: (id: string) => ["todos", "item", id] as const,
   forecasts: ["todos", "forecast"] as const,
+  stats: ["todos", "stats"] as const,
   forecast: (range: CalendarRange) => ["todos", "forecast", range.start, range.end] as const,
 };
 
@@ -137,5 +138,15 @@ export function useTodo(id: string, enabled: boolean) {
     queryFn: () =>
       unwrap(client.GET("/api/todos/items/{todo_id}", { params: { path: { todo_id: id } } })),
     enabled,
+  });
+}
+
+/** Statistics over every todo for the Insights page; fetched fresh on each visit. */
+export function useTodoStats() {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: todoKeys.stats,
+    queryFn: () => unwrap(client.GET("/api/todos/stats")),
+    staleTime: 0,
   });
 }

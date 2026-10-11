@@ -188,3 +188,13 @@ def summarize_events(conn: sqlite3.Connection, ids: Sequence[str]) -> dict[str, 
         for r in rows:
             result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None)
     return result
+
+
+def event_activity_rows(conn: sqlite3.Connection, since: str) -> list[tuple[str, str | None]]:
+    """``(created_at, deleted_at)`` of events created or deleted at/after ``since``."""
+    rows = conn.execute(
+        "SELECT created_at, deleted_at FROM calendar_events "
+        "WHERE created_at >= :since OR deleted_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [(str(r["created_at"]), r["deleted_at"]) for r in rows]

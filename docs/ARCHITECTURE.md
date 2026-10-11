@@ -31,7 +31,8 @@ ProjectPlanBox/
 │   │   │   ├── lifecycle/    # POST /api/shutdown (only when started by the launcher)
 │   │   │   ├── tags/         # repository / service / router / schemas
 │   │   │   ├── links/        # links between any two entities (phase 2)
-│   │   │   └── search/       # full-text index and GET /api/search (phase 3)
+│   │   │   ├── search/       # full-text index and GET /api/search (phase 3)
+│   │   │   └── insights/     # app opens and cross-module activity (Insights page)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
 │   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
@@ -139,6 +140,7 @@ interface ModuleManifest {
   Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
   detail?: Record<string, ComponentType<{ id: string }>>; // per entity type, for ?item=
   rail?: { label; icon; shortcut?; Pane };     // an icon in the right-hand rail that toggles a side pane
+  InsightsSection?: ComponentType;             // the module's block on the Insights page
 }
 ```
 
@@ -297,6 +299,9 @@ class EntityType:
     documents: Callable[[Connection, str | None], Iterable[SearchDocument]] | None = None
     # SearchDocument(id, title, body, deleted, updated_at) changed at/after the instant
     # (all for None); feeds the search index (§6.3)
+    activity: Callable[[Connection, str], Iterable[ActivityEvent]] | None = None
+    # ActivityEvent(action, at): created / completed / deleted at/after the instant;
+    # feeds the Insights overview (§6.4)
 ```
 
 The core calls `summarize` through the registry and never imports the
@@ -411,6 +416,37 @@ CREATE TABLE core_search_sync (id, entity_type, synced_through, created_at,
   link does. The link picker keeps its instant cached list and adds server
   hits that are not cached, such as todos completed long ago. Those open in
   a read-only todo panel (`GET /api/todos/items/{id}`) with Reopen.
+
+### 6.4 Insights (owner request, 2026-10-11)
+
+```sql
+CREATE TABLE core_app_opens (id, created_at, updated_at, deleted_at) STRICT;
+-- one row per page load; indexed by created_at for live rows
+```
+
+- `POST /api/insights/opens {id?}` records an app open (idempotent per
+  client id). The shell's `useRecordAppOpen` sends one id per page load
+  and ignores failures. PlanBox has no logins, so this is the "sessions"
+  number.
+- `GET /api/insights/activity?start=&end=` (at most 400 days) asks every
+  entity type's `activity` source for events since the range's start and
+  buckets them by local day in the configured zone: `days` (only days with
+  something, each with created/completed/deleted/opens), per-type totals,
+  and opens by local hour and weekday plus all-time count and first open.
+  Sources: todos (added, except a repeat's self-made next occurrence;
+  completed; deleted), knowledge entries and calendar events (created,
+  deleted), habits (created, deleted, and every live check-in as a
+  completion at the moment it was ticked).
+- **Frontend:** `app/InsightsPage.tsx` (`/insights`) renders the core
+  `ActivitySection` (year heat grid, active-day streaks, activity by module
+  and weekday, opens by hour), then each manifest's `InsightsSection`.
+  Module sections: todos read `GET /api/todos/stats` (below); knowledge and
+  habits derive their numbers with pure, tested selectors (`insights.ts`)
+  from the caches they already hold. Charts are `ui/` components
+  (`ColumnChart`, `BarList`, `HeatGrid`, `StatTile`, `InsightCard`,
+  `InsightSection`). Each chart's readout names the column or cell under
+  the pointer, the tapped one or the one picked with the arrow keys, so no
+  value is hover-only; column charts also carry a screen-reader table.
 
 ## 7. Todos module data model (phase 1)
 
@@ -551,6 +587,7 @@ that can be enforced in SQL are also CHECK constraints.
 | PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, repeat_from, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
 | POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks. For a repeating todo, `complete` also returns the inserted next occurrence; `reopen` deletes it again (the client refetches). |
 | POST | `/api/todos/items/{id}/skip` | Moves an open repeating todo to its next date without completing it (see Recurrence). Returns the todo. |
+| GET | `/api/todos/stats` | Statistics for the Insights page (`stats.py`, pure): totals, rolling 7/30-day windows, 26 weekly flows, lead times (one-off todos; buckets, median, p90, per priority), open ages and the oldest open todos, per-priority/list/area/tag counts, a weekday × hour punch card, due-date keeping and completion streaks. Flows count deleted rows too; snapshots count live rows. |
 | GET | `/api/todos/forecast?start=&end=` | `[{todo_id, date}]`: later dates of open repeating todos in the range (inclusive, at most 400 days), for the calendar. |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
 | POST | `/api/todos/today-order` | `{ids}`: one Today group, top to bottom. Returns the todos whose `today_position` changed. |

@@ -78,3 +78,22 @@ describe.each([
     }
   }
 });
+
+describe.each([
+  ["light", light],
+  ["dark", dark],
+])("%s heat ramp", (_, theme) => {
+  const ramp = [0, 1, 2, 3, 4].map((step) => theme.get(`heat-${step}`));
+
+  it("steps away from the surface, empty to full", () => {
+    const surface = theme.get("surface")!;
+    const distances = ramp.map((c) => contrast(c!, surface));
+    for (let i = 1; i < distances.length; i += 1) {
+      expect(distances[i]).toBeGreaterThan(distances[i - 1]!);
+    }
+  });
+
+  it("full is a visible mark on the card surface (3:1)", () => {
+    expect(contrast(ramp[4]!, theme.get("surface")!)).toBeGreaterThanOrEqual(3);
+  });
+});

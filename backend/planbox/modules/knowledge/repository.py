@@ -228,3 +228,13 @@ def entry_search_rows(
         )
         for r in rows
     ]
+
+
+def entry_activity_rows(conn: sqlite3.Connection, since: str) -> list[tuple[str, str | None]]:
+    """``(created_at, deleted_at)`` of entries created or deleted at/after ``since``."""
+    rows = conn.execute(
+        "SELECT created_at, deleted_at FROM knowledge_entries "
+        "WHERE created_at >= :since OR deleted_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [(str(r["created_at"]), r["deleted_at"]) for r in rows]

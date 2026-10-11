@@ -247,6 +247,11 @@ class TodoRepository:
         ).fetchall()
         return [Todo(**dict(r)) for r in rows]
 
+    def list_all(self) -> list[Todo]:
+        """Every todo, deleted ones included (for statistics)."""
+        rows = self._conn.execute(f"SELECT {_TODO} FROM todos ORDER BY id").fetchall()  # noqa: S608
+        return [Todo(**dict(r)) for r in rows]
+
     def list_completed(self, before: tuple[str, str] | None, limit: int) -> list[Todo]:
         """Live completed todos, newest first, strictly before the (completed_at, id) cursor."""
         if before is None:
@@ -477,5 +482,23 @@ def todo_search_rows(
             r["deleted_at"] is not None,
             str(r["updated_at"]),
         )
+        for r in rows
+    ]
+
+
+def todo_activity_rows(
+    conn: sqlite3.Connection, since: str
+) -> list[tuple[str, str | None, str | None, bool]]:
+    """``(created_at, completed_at, deleted_at, spawned)`` of todos touched at/after ``since``.
+
+    ``spawned`` is true for the next occurrence a repeating todo created itself.
+    """
+    rows = conn.execute(
+        "SELECT created_at, completed_at, deleted_at, recurs_from_id FROM todos "
+        "WHERE created_at >= :since OR completed_at >= :since OR deleted_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [
+        (str(r["created_at"]), r["completed_at"], r["deleted_at"], r["recurs_from_id"] is not None)
         for r in rows
     ]

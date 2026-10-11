@@ -16,6 +16,9 @@ export type Forecast = components["schemas"]["ForecastOut"];
 /** Where a repeating todo's next date counts from. */
 export type RepeatFrom = Todo["repeat_from"];
 
+/** Statistics over every todo (the Insights page). */
+export type TodoStats = components["schemas"]["TodoStatsOut"];
+
 /** A heading inside a list. */
 export type Section = components["schemas"]["SectionOut"];
 

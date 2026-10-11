@@ -177,6 +177,8 @@ in `index.html` applies it before first paint. `system` follows
 | `--color-warning` | `oklch(0.62 0.14 62)` | `oklch(0.80 0.14 75)` | Medium priority (marks only, ≥ 3:1) |
 | `--color-success` | `oklch(0.60 0.14 155)` | `oklch(0.72 0.14 155)` | Rare: confirmations only |
 | `--color-focus` | `= accent` | `= accent` | 2 px focus ring, 2 px offset |
+| `--color-chart-muted` | `oklch(0.8 0.012 260)` | `oklch(0.45 0.012 260)` | The context series of a chart (e.g. "added" next to "completed") |
+| `--color-heat-0` … `-4` | `oklch(0.94 …)` → `= accent` | `oklch(0.255 …)` → `oklch(0.72 0.15 264)` | One-hue ramp for heat grids and bar tracks, empty to full |
 
 **One-accent rule:** only `--color-accent` is used decoratively. The
 semantic colours carry *meaning* (overdue, priority, destruction) and appear
@@ -209,6 +211,7 @@ need a reason in review.
 
 | Token | Value | Use |
 |---|---|---|
+| `--radius-xs` | 3 px | Heat-grid cells, chart bars and legend swatches |
 | `--radius-sm` | 6 px | Checkboxes, chips, kbd hints |
 | `--radius-md` | 8 px | Buttons, inputs, list rows (hover/selected background) |
 | `--radius-lg` | 12 px | Popovers, menus, cards, toasts |
@@ -321,6 +324,12 @@ live in `tokens.css`. Do not inline magic numbers.
   `--color-hover` with `radius-md`. Selected shows `--color-selected`.
   Metadata is `text-sm text-muted` on the same line on desktop and wraps to a
   second line on narrow screens.
+- **Charts** (Insights) use the `ui/` chart components only. The story
+  series is the accent, a context series is `chart-muted`, magnitude is the
+  heat ramp; no other colours, and never a second y-axis. Bars grow from a
+  baseline, values sit in a readout line or at the bar's tip, labels use
+  text tokens. A legend appears for two or more series. Every chart is
+  readable without hover: its readout follows pointer, tap and arrow keys.
 - **Empty states:** one short sentence, plus a primary action with its
   shortcut hint. No illustrations.
 - **Icons:** Lucide at 16 px (inline) and 18 px (toolbar), stroke width 1.75,

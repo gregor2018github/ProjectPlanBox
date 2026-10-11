@@ -2,6 +2,7 @@
 import type { ModuleManifest } from "../../core/module";
 import { EntryDetail } from "./components/EntryDetail";
 import { KnowledgeHost } from "./components/KnowledgeHost";
+import { KnowledgeInsights } from "./components/KnowledgeInsights";
 import { KnowledgeSidebarSection } from "./components/KnowledgeSidebarSection";
 import { knowledgeRoutes } from "./routes";
 import { ENTRY_TYPE } from "./types";
@@ -14,4 +15,5 @@ export const knowledgeModule: ModuleManifest = {
   SidebarSection: KnowledgeSidebarSection,
   Host: KnowledgeHost,
   detail: { [ENTRY_TYPE]: EntryDetail },
+  InsightsSection: KnowledgeInsights,
 };

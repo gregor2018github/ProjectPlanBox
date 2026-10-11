@@ -44,6 +44,7 @@ from planbox.modules.todos.repository import (
     SectionRepository,
     TodoRepository,
 )
+from planbox.modules.todos.stats import TodoStats, compute_stats
 
 ENTITY_TYPE = "todos.todo"
 MAX_NAME = 200
@@ -483,6 +484,19 @@ class TodoService:
             last = page[-1]
             next_cursor = f"{last.completed_at}|{last.id}"
         return LogbookPage(self._records(page), next_cursor)
+
+    def stats(self) -> TodoStats:
+        """Statistics over every todo, for the Insights page (see ``stats.py``)."""
+        todos = self._repos.todos.list_all()
+        live_ids = [t.id for t in todos if t.deleted_at is None]
+        return compute_stats(
+            todos,
+            lists=self._repos.lists.list_live(),
+            areas=self._repos.areas.list_live(),
+            tag_ids=self._tags.tags_for(ENTITY_TYPE, live_ids),
+            now=self._clock.now(),
+            zone=self._zone,
+        )
 
     def get(self, todo_id: str) -> TodoRecord:
         """One live todo, open or completed.

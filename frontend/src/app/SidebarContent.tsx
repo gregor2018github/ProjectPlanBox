@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { House, PanelLeftClose, Power, Search } from "lucide-react";
+import { ChartColumn, House, PanelLeftClose, Power, Search } from "lucide-react";
 
 import { IconButton } from "../ui/IconButton";
 import { Kbd } from "../ui/Kbd";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { useModules } from "./modulesContext";
+import { INSIGHTS_PATH } from "./paths";
 import { ThemeSwitch } from "./ThemeSwitch";
 
 /** Props for {@link SidebarContent}. */
@@ -57,6 +58,13 @@ export function SidebarContent({
         >
           <House size={16} strokeWidth={1.75} aria-hidden className="text-text-muted" />
           Home
+        </Link>
+        <Link
+          to={INSIGHTS_PATH}
+          className="flex h-8 items-center gap-2 rounded-md px-2 text-base text-text transition-colors duration-(--duration-fast) ease-out hover:bg-hover data-[status=active]:bg-selected data-[status=active]:font-medium coarse:h-11"
+        >
+          <ChartColumn size={16} strokeWidth={1.75} aria-hidden className="text-text-muted" />
+          Insights
         </Link>
         {modules.map(
           (module) => module.SidebarSection && <module.SidebarSection key={module.id} />,

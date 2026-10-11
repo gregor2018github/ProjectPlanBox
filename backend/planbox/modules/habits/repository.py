@@ -153,3 +153,22 @@ def habit_search_rows(
         )
         for r in rows
     ]
+
+
+def habit_activity_rows(conn: sqlite3.Connection, since: str) -> list[tuple[str, str | None]]:
+    """``(created_at, deleted_at)`` of habits created or deleted at/after ``since``."""
+    rows = conn.execute(
+        "SELECT created_at, deleted_at FROM habits "
+        "WHERE created_at >= :since OR deleted_at >= :since",
+        {"since": since},
+    ).fetchall()
+    return [(str(r["created_at"]), r["deleted_at"]) for r in rows]
+
+
+def checkin_instants(conn: sqlite3.Connection, since: str) -> list[str]:
+    """When each live check-in was made, at/after ``since`` (not the day it counts for)."""
+    rows = conn.execute(
+        "SELECT created_at FROM habits_checkins WHERE deleted_at IS NULL AND created_at >= ?",
+        (since,),
+    ).fetchall()
+    return [str(r["created_at"]) for r in rows]

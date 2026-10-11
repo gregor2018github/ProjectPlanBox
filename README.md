@@ -9,7 +9,8 @@ will come later.
 > **Status:** phases 0–6 are built: todos (with repeats), knowledge
 > collections and links between items, search (Ctrl+K), calendar (`C` or the
 > right-edge icon; `G C` for the full page) and habits (`H`; `G B` for the
-> page). Next are the mobile PWA (phase 7) and data safety and sync (phase
+> page), plus an Insights page with statistics across all of them
+> (`G S`). Next are the mobile PWA (phase 7) and data safety and sync (phase
 > 8). See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
@@ -50,6 +51,16 @@ will come later.
   Unsorted); **G K** opens Knowledge. Filter a view by kind or by words and
   tags. Drag entries onto a collection in the sidebar, and drag collections
   to reorder them. In a list of entries, **↑/↓** move and **Delete** deletes.
+- **Insights** (sidebar, or **G S**) shows statistics: a year of activity
+  across every module as a heat map, active-day streaks and when you open
+  the app; for todos the weekly flow of added and completed, lead times
+  (overall and per priority), the biggest lists, areas and tags, how long
+  open todos have waited (the oldest ones open in the detail panel),
+  priorities, a weekday × hour punch card of completions, how often due
+  dates are met, streaks and records; for knowledge growth per month,
+  collections, tags, saved sites and snippet languages; for habits
+  consistency per habit and weekday and check-ins per week. Every chart
+  has a readout line: point at, tap or arrow-key through it.
 - Every todo and entry has a **Links** block in its detail panel: "Link…"
   connects it to any other todo or entry, and the link shows on both sides.
 

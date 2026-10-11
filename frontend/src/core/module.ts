@@ -40,4 +40,6 @@ export interface ModuleManifest {
   detail?: Readonly<Record<string, ComponentType<{ id: string }>>>;
   /** An icon in the right-hand rail that toggles a side pane (e.g. the calendar). */
   rail?: RailItem;
+  /** The module's block on the Insights page (statistics, charts, tables). */
+  InsightsSection?: ComponentType;
 }
