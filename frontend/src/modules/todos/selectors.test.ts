@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { counts, inboxView, listTree, listView, todayView, upcomingView } from "./selectors";
+import {
+  counts,
+  filterTodosByTags,
+  inboxView,
+  listTree,
+  listView,
+  todayView,
+  upcomingView,
+} from "./selectors";
 import { makeSection, makeTodo } from "./testData";
 
 const TODAY = "2026-10-08";
@@ -116,5 +124,21 @@ describe("listTree", () => {
 
     expect(tree.loose).toEqual([loose]);
     expect(tree.areas).toEqual([{ area, lists: [inArea] }]);
+  });
+});
+
+describe("filterTodosByTags", () => {
+  it("keeps matches with their subtasks and the parents of matching subtasks", () => {
+    const tagged = makeTodo({ tag_ids: ["work"] });
+    const childOfTagged = makeTodo({ parent_id: tagged.id });
+    const parent = makeTodo();
+    const taggedChild = makeTodo({ parent_id: parent.id, tag_ids: ["work"] });
+    const sibling = makeTodo({ parent_id: parent.id });
+    const other = makeTodo({ tag_ids: ["home"] });
+    const all = [tagged, childOfTagged, parent, taggedChild, sibling, other];
+
+    expect(filterTodosByTags(all, ["work"])).toEqual([tagged, childOfTagged, parent, taggedChild]);
+    expect(filterTodosByTags(all, ["work", "home"])).toEqual([]);
+    expect(filterTodosByTags(all, [])).toEqual(all);
   });
 });

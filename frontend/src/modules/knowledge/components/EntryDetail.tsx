@@ -31,7 +31,7 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 export function EntryDetail({ id }: EntryDetailProps) {
   const data = useKnowledgeData();
   const actions = useKnowledgeActions();
-  const entry = data.entries.find((e) => e.id === id);
+  const entry = data.allEntries.find((e) => e.id === id);
 
   if (entry === undefined) {
     return (

@@ -12,7 +12,7 @@ export function useTodoLinkables(data: TodoData): void {
       entityType: "todos.todo",
       noun: "Todo",
       icon: CheckSquare,
-      items: data.todos.map((t) => ({
+      items: data.allTodos.map((t) => ({
         ref: todoItemRef(t.id),
         title: t.title,
         hint: `Todo · ${data.lookup.listName(t.list_id)}`,

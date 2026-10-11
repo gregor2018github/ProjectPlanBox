@@ -3,6 +3,7 @@ import {
   createRoute,
   createRouter,
   redirect,
+  retainSearchParams,
   type RouterHistory,
 } from "@tanstack/react-router";
 
@@ -15,6 +16,8 @@ import { NotFoundPage } from "./NotFoundPage";
 export interface RootSearch {
   /** The entity shown in the detail panel, e.g. "todos.todo:<id>". */
   item?: string;
+  /** The global tag filter: comma-separated tag ids (see core/tags/tagFilter). */
+  tags?: string;
 }
 
 /** Builds the router from the shell's routes plus every module's routes. */
@@ -25,8 +28,12 @@ export function createAppRouter(options: {
   const rootRoute = createRootRoute({
     component: AppShell,
     notFoundComponent: NotFoundPage,
-    validateSearch: (search: Record<string, unknown>): RootSearch =>
-      typeof search.item === "string" ? { item: search.item } : {},
+    validateSearch: (search: Record<string, unknown>): RootSearch => ({
+      ...(typeof search.item === "string" && { item: search.item }),
+      ...(typeof search.tags === "string" && search.tags !== "" && { tags: search.tags }),
+    }),
+    // The tag filter follows the user from view to view.
+    search: { middlewares: [retainSearchParams<RootSearch>(["tags"])] },
   });
   const homePath = options.modules.find((m) => m.homePath !== undefined)?.homePath;
   const homeRoute = createRoute({

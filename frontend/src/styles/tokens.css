@@ -70,6 +70,8 @@
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.06);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.1), 0 2px 4px -2px oklch(0 0 0 / 0.06);
   --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.2), 0 4px 8px -4px oklch(0 0 0 / 0.08);
+  /* Accent halo for an active state that must stay noticeable (tag filter). */
+  --shadow-glow: 0 0 0 1px oklch(0.52 0.19 264 / 0.55), 0 0 18px -2px oklch(0.52 0.19 264 / 0.45);
 
   /* Motion: easings (durations live in :root below) */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -110,6 +112,7 @@
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.1);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.16), 0 2px 4px -2px oklch(0 0 0 / 0.1);
   --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.32), 0 4px 8px -4px oklch(0 0 0 / 0.13);
+  --shadow-glow: 0 0 0 1px oklch(0.7 0.15 264 / 0.6), 0 0 20px -2px oklch(0.7 0.15 264 / 0.4);
 }
 
 @media (prefers-reduced-motion: reduce) {

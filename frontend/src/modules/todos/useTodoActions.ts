@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { useTagFilter } from "../../core/tags/tagFilter";
 import { newTagVars, useCreateTag } from "../../core/tags/tagQueries";
 import { addDays, formatRelativeDay, isoWeekday } from "../../core/time";
 import { useToday } from "../../core/useToday";
@@ -52,6 +53,7 @@ export function useTodoActions() {
   const deleteTodo = useDeleteTodo();
   const restoreTodo = useRestoreTodo();
   const { show } = useToast();
+  const { tagIds: filterTagIds } = useTagFilter();
 
   return useMemo(() => {
     const cache = () => queryClient.getQueryData<Todo[]>(todoKeys.items) ?? [];
@@ -87,7 +89,10 @@ export function useTodoActions() {
     };
 
     return {
-      /** Creates a todo; returns its id immediately (optimistic). */
+      /**
+       * Creates a todo; returns its id immediately (optimistic). It also gets
+       * the active filter tags, so it does not vanish from the filtered view.
+       */
       create(input: NewTodoInput): string {
         const id = newId();
         const { new_tags = [], ...rest } = input;
@@ -95,7 +100,9 @@ export function useTodoActions() {
         const vars: CreateTodoVars = {
           ...rest,
           id,
-          tag_ids: [...(rest.tag_ids ?? []), ...tagVars.map((t) => t.id)],
+          tag_ids: [
+            ...new Set([...(rest.tag_ids ?? []), ...filterTagIds, ...tagVars.map((t) => t.id)]),
+          ],
         };
         if (tagVars.length === 0) {
           createTodo.mutate(vars);
@@ -311,6 +318,7 @@ export function useTodoActions() {
     deleteTodo,
     restoreTodo,
     show,
+    filterTagIds,
   ]);
 }
 

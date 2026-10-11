@@ -330,6 +330,15 @@ CREATE INDEX core_taggings_entity ON core_taggings (entity_type, entity_id) WHER
 - Trade-off: `core_taggings` has no FK to the tagged row. This is the price
   of cross-module tags. The service validates refs on write, and orphans are
   harmless and swept by a maintenance command.
+- **Global tag filter** (frontend only): the `tags` search param on the root
+  route holds comma-separated tag ids, and `retainSearchParams` keeps it
+  across navigation. `core/tags/tagFilter.ts` reads it (ignoring deleted
+  tags), and the shell's `TagFilterBar` edits it. Modules apply it in their
+  data hooks: `useTodoData().todos` and `useKnowledgeData().entries` are
+  filtered, while `allTodos`/`allEntries` stay complete for the detail
+  panel, linking and shortcuts. An item matches when it has every filter
+  tag. Todos also keep a matching todo's subtasks and a matching subtask's
+  parent. New todos and entries get the filter's tags.
 
 ### 6.2 Links (built in phase 2)
 

@@ -18,6 +18,7 @@ import { ShutdownDialog } from "./ShutdownDialog";
 import { Sidebar } from "./Sidebar";
 import { SidebarContent } from "./SidebarContent";
 import { StoppedScreen } from "./StoppedScreen";
+import { TagFilterBar } from "./TagFilterBar";
 import { TopBar } from "./TopBar";
 import { useShellCommands } from "./useShellCommands";
 import { useRailPane } from "./useRailPane";
@@ -137,6 +138,7 @@ export function AppShell() {
               onToggleRail={toggleRail}
             />
           )}
+          <TagFilterBar />
           <div
             className="min-h-0 flex-1 overflow-y-auto"
             onClick={(event) => {

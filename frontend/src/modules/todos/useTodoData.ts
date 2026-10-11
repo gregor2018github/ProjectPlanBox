@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 
+import { useTagFilter } from "../../core/tags/tagFilter";
 import { useTags, type Tag } from "../../core/tags/tagQueries";
 import type { IsoDate } from "../../core/time";
 import { useToday } from "../../core/useToday";
 import type { ParseContext } from "./quickAddParser";
 import { useAreas, useLists, useSections, useTodos } from "./queries";
+import { filterTodosByTags } from "./selectors";
 import type { Area, Section, Todo, TodoList } from "./types";
 
 /** Name lookups rows need (list, section, tag and parent titles). */
@@ -17,7 +19,10 @@ export interface TodoLookup {
 
 /** Everything a todos view reads, from the shared caches. */
 export interface TodoData {
+  /** The todos the global tag filter leaves visible; what views list. */
   todos: Todo[];
+  /** Every todo, regardless of the tag filter (detail panel, linking, shortcuts). */
+  allTodos: Todo[];
   areas: Area[];
   lists: TodoList[];
   sections: Section[];
@@ -39,14 +44,17 @@ export function useTodoData(): TodoData {
   const sections = useSections();
   const tags = useTags();
   const today = useToday();
+  const { tagIds: filterTagIds } = useTagFilter();
 
   return useMemo(() => {
     const listById = new Map((lists.data ?? EMPTY).map((l: TodoList) => [l.id, l]));
     const sectionById = new Map((sections.data ?? EMPTY).map((s: Section) => [s.id, s]));
     const tagById = new Map((tags.data ?? EMPTY).map((t: Tag) => [t.id, t]));
     const todoById = new Map((todos.data ?? EMPTY).map((t: Todo) => [t.id, t]));
+    const allTodos = todos.data ?? EMPTY;
     const data: TodoData = {
-      todos: todos.data ?? EMPTY,
+      todos: filterTagIds.length === 0 ? allTodos : filterTodosByTags(allTodos, filterTagIds),
+      allTodos,
       areas: areas.data ?? EMPTY,
       lists: lists.data ?? EMPTY,
       sections: sections.data ?? EMPTY,
@@ -70,5 +78,14 @@ export function useTodoData(): TodoData {
             },
     };
     return data;
-  }, [todos.data, todos.isPending, areas.data, lists.data, sections.data, tags.data, today]);
+  }, [
+    todos.data,
+    todos.isPending,
+    areas.data,
+    lists.data,
+    sections.data,
+    tags.data,
+    today,
+    filterTagIds,
+  ]);
 }

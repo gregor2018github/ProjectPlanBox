@@ -31,7 +31,7 @@ const NOTES_SAVE_DELAY_MS = 600;
 export function TodoDetail({ id }: TodoDetailProps) {
   const data = useTodoData();
   const actions = useTodoActions();
-  const todo = data.todos.find((t) => t.id === id);
+  const todo = data.allTodos.find((t) => t.id === id);
   const [dueOpenLocal, setDueOpenLocal] = useState(false);
   const [placeOpenLocal, setPlaceOpenLocal] = useState(false);
   // A shortcut (D or V) may ask for a picker; it stays open until closed here.
@@ -83,7 +83,7 @@ export function TodoDetail({ id }: TodoDetailProps) {
         <button
           type="button"
           onClick={() => {
-            const parent = data.todos.find((t) => t.id === todo.parent_id);
+            const parent = data.allTodos.find((t) => t.id === todo.parent_id);
             if (parent) actions.open(parent);
           }}
           className="inline-flex items-center gap-1 self-start text-sm text-text-muted hover:text-text"
@@ -211,7 +211,7 @@ export function TodoDetail({ id }: TodoDetailProps) {
       />
 
       {todo.parent_id === null && (
-        <SubtaskList parent={todo} todos={data.todos} actions={actions} />
+        <SubtaskList parent={todo} todos={data.allTodos} actions={actions} />
       )}
 
       <LinkedItems entity={todoItemRef(todo.id)} title={todo.title} />

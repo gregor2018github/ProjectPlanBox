@@ -3,6 +3,7 @@
  * and memoisable; every view stays right after any optimistic update.
  */
 import { byPosition } from "../../core/ordering";
+import { matchesTagFilter } from "../../core/tags/tagFilter";
 import type { IsoDate } from "../../core/time";
 import type { Area, Section, Todo, TodoList } from "./types";
 
@@ -12,6 +13,27 @@ const isTopLevel = (t: Todo) => t.parent_id === null;
 /** Higher priority first, then manual order. */
 function byPriorityThenPosition(a: Todo, b: Todo): number {
   return b.priority - a.priority || byPosition(a, b);
+}
+
+/**
+ * The todos the global tag filter leaves visible: those carrying every
+ * filter tag, plus the subtasks of such a todo and the parent of such a
+ * subtask, so a match is never shown without its context.
+ */
+export function filterTodosByTags(todos: readonly Todo[], tagIds: readonly string[]): Todo[] {
+  if (tagIds.length === 0) return [...todos];
+  const matching = new Set(
+    todos.filter((t) => matchesTagFilter(t.tag_ids, tagIds)).map((t) => t.id),
+  );
+  const parentsOfMatches = new Set(
+    todos.filter((t) => t.parent_id !== null && matching.has(t.id)).map((t) => t.parent_id),
+  );
+  return todos.filter(
+    (t) =>
+      matching.has(t.id) ||
+      parentsOfMatches.has(t.id) ||
+      (t.parent_id !== null && matching.has(t.parent_id)),
+  );
 }
 
 /** Open top-level todos plus those completed today, split. */

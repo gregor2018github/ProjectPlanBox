@@ -248,6 +248,7 @@ flat and separated by background tone, not lines.
 | `--shadow-sm` | `0 1px 2px oklch(0 0 0 / 0.06)` | Dragged row, raised button |
 | `--shadow-md` | `0 4px 12px -2px oklch(0 0 0 / 0.10), 0 2px 4px -2px oklch(0 0 0 / 0.06)` | Popover, menu, tooltip, toast |
 | `--shadow-lg` | `0 16px 40px -8px oklch(0 0 0 / 0.20), 0 4px 8px -4px oklch(0 0 0 / 0.08)` | Dialog, command palette, sheets |
+| `--shadow-glow` | `0 0 0 1px` + `0 0 18px -2px`, both in the accent at about 0.5 alpha | An active state that must stay noticeable (the tag filter pane). Not elevation. |
 
 Dark theme: the same shadows at about 1.6× alpha, plus a 1 px
 `oklch(1 0 0 / 0.06)` inner border on raised surfaces, because shadows hardly

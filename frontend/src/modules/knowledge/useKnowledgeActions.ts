@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { newId } from "../../core/ids";
+import { useTagFilter } from "../../core/tags/tagFilter";
 import { useUndo } from "../../core/undo/undoContext";
 import { useToast } from "../../ui/useToast";
 import type { CreateEntryVars, EntryPatch } from "./apply";
@@ -38,13 +39,18 @@ export function useKnowledgeActions() {
   const moveCollection = useMoveCollection();
   const deleteCollection = useDeleteCollection();
   const restoreCollection = useRestoreCollection();
+  const { tagIds: filterTagIds } = useTagFilter();
 
   return useMemo(
     () => ({
-      /** Creates an entry; returns its id immediately (optimistic). */
+      /**
+       * Creates an entry; returns its id immediately (optimistic). It also gets
+       * the active filter tags, so it does not vanish from the filtered view.
+       */
       create(input: Omit<CreateEntryVars, "id">): string {
         const id = newId();
-        createEntry.mutate({ ...input, id });
+        const tag_ids = [...new Set([...(input.tag_ids ?? []), ...filterTagIds])];
+        createEntry.mutate({ ...input, id, tag_ids });
         return id;
       },
 
@@ -141,6 +147,7 @@ export function useKnowledgeActions() {
       moveCollection,
       deleteCollection,
       restoreCollection,
+      filterTagIds,
     ],
   );
 }

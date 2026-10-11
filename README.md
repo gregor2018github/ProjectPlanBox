@@ -37,6 +37,13 @@ will come later.
   one date of a repeating todo, **V** moves the todo to another list,
   **1/2/3/0** set the priority, **Delete** deletes.
 - **Ctrl+Z** undoes the last delete, completion or move.
+- The pane above every view filters by tag: click it or press **F**, type
+  a tag and press Enter. Only todos and knowledge entries with every chosen
+  tag stay visible (a matching subtask keeps its parent, and a matching
+  todo keeps its subtasks). The pane glows while a filter is on, the filter
+  follows you from view to view, and **Clear filters** (or **Shift+F**)
+  shows everything again. Items you add while filtering get the filter's
+  tags.
 - Drag todos to reorder them, or drop them on a list in the sidebar. Drag
   lists between areas, and drag sections by their grip.
 - **E** adds a note, link or snippet (to the collection on screen, else to

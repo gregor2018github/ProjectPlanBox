@@ -55,7 +55,7 @@ export function TodosHost() {
     setQuickAdd(contextualTarget());
   };
   const openSubtaskAdd = () => {
-    const selected = data.todos.find((t) => t.id === todoUi.get().selectedId);
+    const selected = data.allTodos.find((t) => t.id === todoUi.get().selectedId);
     const canHaveSubtasks = selected?.parent_id === null && selected.completed_at === null;
     if (!canHaveSubtasks) {
       openQuickAdd();

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { useMeta } from "../../../core/api/coreQueries";
+import { matchesTagFilter, useTagFilter } from "../../../core/tags/tagFilter";
 import { formatRelativeDay, todayIn } from "../../../core/time";
 import { Button } from "../../../ui/Button";
 import { PageHeader } from "../../../ui/PageHeader";
@@ -18,9 +19,12 @@ export function LogbookPage() {
   const actions = useTodoActions();
   const { data: meta } = useMeta();
   const logbook = useLogbook();
+  const { tagIds } = useTagFilter();
 
   const days = useMemo(() => {
-    const todos = logbook.data?.pages.flatMap((p) => p.todos) ?? [];
+    const todos = (logbook.data?.pages.flatMap((p) => p.todos) ?? []).filter((t) =>
+      matchesTagFilter(t.tag_ids, tagIds),
+    );
     const zone = meta?.timezone ?? "UTC";
     const byDay = new Map<string, Todo[]>();
     for (const todo of todos) {
@@ -28,7 +32,7 @@ export function LogbookPage() {
       byDay.set(day, [...(byDay.get(day) ?? []), todo]);
     }
     return [...byDay.entries()];
-  }, [logbook.data, meta]);
+  }, [logbook.data, meta, tagIds]);
   const visible = useMemo(() => days.flatMap(([, todos]) => todos), [days]);
   useTodoKeyboard(visible, actions, { reorder: false });
 

@@ -36,7 +36,7 @@ export function KnowledgeHost() {
       entityType: ENTRY_TYPE,
       noun: "Entry",
       icon: BookOpen,
-      items: data.entries.map((e) => ({
+      items: data.allEntries.map((e) => ({
         ref: entryRef(e.id),
         title: e.title,
         hint: `${KIND_LABELS[e.kind]} · ${data.collectionName(e.collection_id)}`,
