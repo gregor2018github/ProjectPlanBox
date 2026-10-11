@@ -69,7 +69,6 @@ export function QuickAddDialog({
       onOpenChange={close}
       title="Quick add"
       hideTitle
-      closeButton={false}
       placement="top"
       initialFocus={inputRef}
     >
