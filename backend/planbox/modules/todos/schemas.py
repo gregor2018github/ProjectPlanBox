@@ -16,16 +16,25 @@ class AreaOut(BaseModel):
 
     id: str
     name: str
+    hue: int
     position: str
     created_at: str
     updated_at: str
 
 
 class AreaCreate(BaseModel):
-    """Create an area at the end."""
+    """Create an area at the end; without a ``hue`` it gets the next default one."""
 
     id: str | None = None
     name: str
+    hue: int | None = Field(default=None, ge=0, le=359)
+
+
+class AreaUpdate(BaseModel):
+    """Rename an area and/or change its hue (omitted fields stay)."""
+
+    name: str | None = None
+    hue: int | None = Field(default=None, ge=0, le=359)
 
 
 class Rename(BaseModel):

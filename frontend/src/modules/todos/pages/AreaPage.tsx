@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { byPosition } from "../../../core/ordering";
@@ -8,6 +8,8 @@ import { Menu } from "../../../ui/Menu";
 import { EmptyHint } from "../components/EmptyHint";
 import { NameDialog } from "../../../ui/NameDialog";
 import { PageHeader } from "../../../ui/PageHeader";
+import { TintDot } from "../../../ui/TintDot";
+import { AreaSettingsDialog } from "../components/AreaSettingsDialog";
 import { TodoGroup } from "../components/TodoGroup";
 import { ViewLayout } from "../../../ui/ViewLayout";
 import { paramOf, todoPaths } from "../paths";
@@ -24,7 +26,7 @@ export function AreaPage() {
   const actions = useTodoActions();
   const containers = useContainerActions();
   const navigate = useNavigate();
-  const [dialog, setDialog] = useState<"rename" | "list" | null>(null);
+  const [dialog, setDialog] = useState<"settings" | "list" | null>(null);
 
   const area = data.areas.find((a) => a.id === areaId);
   const lists = useMemo(
@@ -53,9 +55,10 @@ export function AreaPage() {
   }
 
   return (
-    <ViewLayout>
+    <ViewLayout tint={area.hue}>
       <PageHeader
         title={area.name}
+        leading={<TintDot hue={area.hue} size="md" />}
         actions={
           <Menu
             entries={[
@@ -68,11 +71,11 @@ export function AreaPage() {
                 },
               },
               {
-                id: "rename",
-                label: "Rename area",
-                icon: Pencil,
+                id: "settings",
+                label: "Area settings…",
+                icon: Settings2,
                 onSelect: () => {
-                  setDialog("rename");
+                  setDialog("settings");
                 },
               },
               { kind: "separator", id: "sep" },
@@ -109,17 +112,13 @@ export function AreaPage() {
           )}
         </section>
       ))}
-      <NameDialog
-        open={dialog === "rename"}
+      <AreaSettingsDialog
+        area={area}
+        open={dialog === "settings"}
         onOpenChange={(open) => {
-          setDialog(open ? "rename" : null);
+          setDialog(open ? "settings" : null);
         }}
-        title="Rename area"
-        initial={area.name}
-        submitLabel="Rename"
-        onSubmit={(name) => {
-          containers.rename("area", area.id, name);
-        }}
+        containers={containers}
       />
       <NameDialog
         open={dialog === "list"}

@@ -183,10 +183,23 @@ in `index.html` applies it before first paint. `system` follows
 **One-accent rule:** only `--color-accent` is used decoratively. The
 semantic colours carry *meaning* (overdue, priority, destruction) and appear
 as small marks (an icon, a 3 px flag, text), never as large fills. Tags and
-lists have no colours.
+lists have no colours. Areas have one, but only as a **tint** of the accent
+(below), so every view still has exactly one accent.
+
+**Tints (area colours).** `[data-tint]` with an inline `--tint-hue` (set
+only through `ui/tint.ts`: `tintProps(hue)`, `ViewLayout tint`, `TintDot`)
+redefines `accent`, `accent-hover`, `accent-subtle`, `selected` and `focus`
+(plus `on-accent` in dark) for that subtree. Only the hue varies. Lightness
+and chroma are fixed per theme: `oklch(0.50 0.12 h)` light and
+`oklch(0.70 0.12 h)` dark, a little calmer than the default accent.
+Surfaces, text and semantic colours never change. An area's page, its
+lists' pages and its sidebar group are tinted. Elsewhere an area appears
+only as a `TintDot` (8 px; 12 px by a page title). The hue wheel
+(`ui/HueWheel`) draws its ring from `--tint-wheel`.
 
 `src/styles/tokens.test.ts` parses `tokens.css`, converts OKLCH to sRGB
-and checks WCAG contrast in both themes. Text, muted text, accent, danger
+and checks WCAG contrast in both themes, including the tints at every
+whole-degree hue. Text, muted text, accent, danger
 and on-accent must reach ≥ 4.5:1 on every background they are used on,
 including hover and selected rows. Warning, which is only used for marks,
 must reach ≥ 3:1. Changing a colour without passing this test fails the

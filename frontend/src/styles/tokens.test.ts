@@ -49,8 +49,8 @@ function contrast(x: Oklch, y: Oklch): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-const light = colours(block(tokensCss, "@theme"));
-const dark = new Map([...light, ...colours(block(tokensCss, '[data-theme="dark"]'))]);
+const light = colours(block(tokensCss, "@theme {"));
+const dark = new Map([...light, ...colours(block(tokensCss, '[data-theme="dark"] {'))]);
 const backgrounds = ["bg", "surface", "surface-raised", "sidebar", "hover", "selected"];
 
 const requirements: [fg: string, min: number, on: string[]][] = [
@@ -95,5 +95,59 @@ describe.each([
 
   it("full is a visible mark on the card surface (3:1)", () => {
     expect(contrast(ramp[4]!, theme.get("surface")!)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+/** The tint overrides of one theme, as [lightness, chroma] per token (the hue varies). */
+function tints(body: string): Map<string, [l: number, c: number]> {
+  const result = new Map<string, [number, number]>();
+  for (const match of body.matchAll(
+    /--color-([\w-]+):\s*oklch\(([\d.]+) ([\d.]+) var\(--tint-hue\)\)/g,
+  )) {
+    const [, name, l, c] = match;
+    result.set(name as string, [Number(l), Number(c)]);
+  }
+  return result;
+}
+
+const lightTints = tints(block(tokensCss, "[data-tint] {"));
+const darkTints = new Map([
+  ...lightTints,
+  ...tints(block(tokensCss, '[data-theme="dark"] [data-tint] {')),
+]);
+
+describe.each([
+  ["light", light, lightTints],
+  ["dark", dark, darkTints],
+])("%s tints", (_, theme, tinted) => {
+  // Every whole degree: gamut clipping makes some hues darker or lighter than others.
+  const hues = Array.from({ length: 360 }, (__, hue) => hue);
+  const at = (name: string, hue: number): Oklch => {
+    const lc = tinted.get(name);
+    if (lc) return [lc[0], lc[1], hue];
+    const fixed = theme.get(name);
+    if (!fixed) throw new Error(`no token ${name}`);
+    return fixed;
+  };
+  const tintRequirements: [fg: string, min: number, on: string[]][] = [
+    ["text", 4.5, ["selected"]],
+    ["text-muted", 4.5, ["selected"]],
+    ["accent", 4.5, backgrounds],
+    ["on-accent", 4.5, ["accent"]],
+  ];
+
+  for (const [fg, min, on] of tintRequirements) {
+    for (const bg of on) {
+      it(`${fg} on ${bg} reaches ${min}:1 at every hue`, () => {
+        const worst = Math.min(...hues.map((hue) => contrast(at(fg, hue), at(bg, hue))));
+        expect(worst).toBeGreaterThanOrEqual(min);
+      });
+    }
+  }
+
+  it("re-tints the whole accent family", () => {
+    expect([...tinted.keys()]).toEqual(
+      expect.arrayContaining(["accent", "accent-hover", "accent-subtle", "selected"]),
+    );
   });
 });

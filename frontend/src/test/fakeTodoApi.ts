@@ -96,7 +96,26 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
       state.tags.push(tag);
       return json(tag, 201);
     }
-    if (path === "/api/todos/areas") return json(state.areas);
+    if (path === "/api/todos/areas" && method === "GET") return json(state.areas);
+    if (path === "/api/todos/areas" && method === "POST") {
+      const area: Area = {
+        id: String(b.id),
+        name: String(b.name),
+        hue: typeof b.hue === "number" ? b.hue : 264,
+        position: endOf(state.areas),
+        created_at: state.now,
+        updated_at: state.now,
+      };
+      state.areas.push(area);
+      return json(area, 201);
+    }
+    const areaMatch = /^\/api\/todos\/areas\/([^/]+)$/.exec(path);
+    if (areaMatch && method === "PATCH") {
+      const area = state.areas.find((a) => a.id === areaMatch[1]);
+      if (!area) return json({ title: "Not found" }, 404);
+      Object.assign(area, b, { updated_at: state.now });
+      return json(area);
+    }
     if (path === "/api/todos/lists" && method === "GET") return json(state.lists);
     if (path === "/api/todos/lists" && method === "POST") {
       const list: TodoList = {

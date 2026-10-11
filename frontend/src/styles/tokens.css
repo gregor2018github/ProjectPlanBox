@@ -129,6 +129,49 @@
   --shadow-glow: 0 0 0 1px oklch(0.7 0.15 264 / 0.6), 0 0 20px -2px oklch(0.7 0.15 264 / 0.4);
 }
 
+/*
+ * Tints (area colours; STYLE_GUIDE Part B, Tints). An element with
+ * `data-tint` and an inline `--tint-hue` (see ui/tint.ts) re-tints the accent
+ * family for itself and everything inside it, so a view keeps one accent,
+ * in its area's hue. Only the hue varies: lightness and chroma are fixed per
+ * theme, a little calmer than the default accent, and tokens.test.ts checks
+ * contrast at every hue. Neutral surfaces and semantic colours never change.
+ */
+[data-tint] {
+  --color-accent: oklch(0.5 0.12 var(--tint-hue));
+  --color-accent-hover: oklch(0.46 0.12 var(--tint-hue));
+  --color-accent-subtle: oklch(0.96 0.022 var(--tint-hue));
+  --color-selected: oklch(0.94 0.022 var(--tint-hue));
+  --color-focus: var(--color-accent);
+}
+
+[data-theme="dark"] [data-tint] {
+  --color-accent: oklch(0.7 0.12 var(--tint-hue));
+  --color-accent-hover: oklch(0.75 0.11 var(--tint-hue));
+  --color-accent-subtle: oklch(0.3 0.05 var(--tint-hue));
+  --color-selected: oklch(0.29 0.035 var(--tint-hue));
+  --color-on-accent: oklch(0.17 0.02 var(--tint-hue));
+}
+
+:root {
+  /* The hue wheel's ring (ui/HueWheel): the tint accent every 30°, from the top, clockwise. */
+  --tint-wheel: conic-gradient(
+    oklch(0.62 0.12 0),
+    oklch(0.62 0.12 30),
+    oklch(0.62 0.12 60),
+    oklch(0.62 0.12 90),
+    oklch(0.62 0.12 120),
+    oklch(0.62 0.12 150),
+    oklch(0.62 0.12 180),
+    oklch(0.62 0.12 210),
+    oklch(0.62 0.12 240),
+    oklch(0.62 0.12 270),
+    oklch(0.62 0.12 300),
+    oklch(0.62 0.12 330),
+    oklch(0.62 0.12 360)
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0.01ms;

@@ -46,7 +46,7 @@ def compute(todos: list[Todo], lists: list[TodoList] | None = None) -> TodoStats
     return compute_stats(
         todos,
         lists=lists or [],
-        areas=[Area("a1", "Work", "a0", "", "", None)],
+        areas=[Area("a1", "Work", 264, "a0", "", "", None)],
         tag_ids={},
         now=NOW,
         zone=ZONE,

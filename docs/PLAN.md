@@ -18,6 +18,7 @@ this file records what was planned, decided and pinned.
 | 5. Habits | Built 2026-10-10 |
 | 6. Recurring todos | Built 2026-10-10 (brought forward) |
 | Insights (statistics page) | Built 2026-10-11 (owner request) |
+| Area colours | Built 2026-10-11 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
@@ -155,6 +156,23 @@ tables across every module. Decisions:
 - "Added" leaves out the next occurrence a repeating todo creates itself,
   and lead times leave repeating todos out (their wait is the schedule).
 
+### Area colours (owner request, 2026-10-11)
+
+Each area has a colour, picked by default for new areas and changed in
+**Area settings** (⋯ menu or right-click on the area) with a hue wheel and
+eight suggested colours. Decisions (ARCHITECTURE §7, STYLE_GUIDE B1, Tints):
+- **Only a hue is stored** (migration `todos/0005`). The themes fix
+  lightness and chroma, so every colour stays quiet, works in light and dark
+  and passes the contrast test at every hue.
+- **A tint, not a second accent.** Inside an area's pages and sidebar
+  group the accent family takes the area's hue. Elsewhere the area shows
+  only as a small dot. The one-accent rule now holds per view.
+- **No colour-picker dependency.** The wheel is a small `ui/HueWheel`
+  (pointer, keyboard and touch).
+- Fixed on the way: `tokens.test.ts` matched the header comment instead of
+  the `[data-theme="dark"]` rule, so the dark contrast checks had been
+  re-testing the light values. They now test the dark theme, and it passes.
+
 ## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
@@ -235,7 +253,8 @@ parity), `concurrently` (`dev.py` does it), React Compiler.
 6. English UI and quick-add keywords. Dates display as `Wed 8 Oct` and
    `8 Oct 2026`, with 24-hour time.
 7. System font stack and a single indigo-blue accent
-   (`oklch(0.55 0.19 264)`), contrast-tested in both themes.
+   (`oklch(0.55 0.19 264)`), contrast-tested in both themes. Areas re-tint
+   it with their own hue inside their pages (Area colours above).
 8. `private_data/` holds everything that must not leave the PC: the real DB,
    `settings.toml`, backups and the dev DB (`private_data/dev/`).
 9. The daily server runs on port 8765, separate from dev (8000/5173).

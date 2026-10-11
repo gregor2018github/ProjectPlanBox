@@ -459,6 +459,7 @@ level deep.
 CREATE TABLE todos_areas (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 200),
+  hue INTEGER NOT NULL DEFAULT 264 CHECK (hue BETWEEN 0 AND 359),  -- migration 0005
   position TEXT NOT NULL,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
 ) STRICT;
@@ -574,6 +575,18 @@ that can be enforced in SQL are also CHECK constraints.
   Todos with a key come first in key order, and the rest follow
   auto-sorted. Changing the due date clears the key, and so does creating
   a repeat's next occurrence, so a todo arriving in Today lands at the end.
+- **Area colours (owner request, 2026-10-11):** migration
+  `0005_add_area_hue.sql` adds `hue`, an OKLCH angle (0–359). Only the hue
+  is stored. Lightness and chroma come from the theme's tint tokens
+  (STYLE_GUIDE B1, Tints), so no area can be loud or illegible. A new area
+  gets the first default hue (`AREA_HUES` in `service.py`, mirrored in
+  `areaHues.ts`) that no live area uses. The client picks it and sends it
+  with the create, so the optimistic row is coloured at once. The migration
+  gave existing areas the defaults in sidebar order. `PATCH …/areas/{id}`
+  takes `{name?, hue?}`. In the UI an area's hue tints its page, its lists'
+  pages and its sidebar group, and shows as a dot by its name and in the
+  place label of its todos in other views. The ⋯ menu or a right-click on
+  the sidebar heading opens **Area settings** (name and a hue wheel).
 - Due dates are date-only for now (decided). Times of day arrive with the
   calendar.
 

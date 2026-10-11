@@ -2,6 +2,7 @@ import { ChevronRight, CornerDownRight, FileText, Flag, ListChecks, Repeat } fro
 
 import { formatRelativeDay, type IsoDate } from "../../../core/time";
 import { cx } from "../../../ui/cx";
+import { TintDot } from "../../../ui/TintDot";
 import type { Todo } from "../types";
 import type { TodoLookup } from "../useTodoData";
 
@@ -32,6 +33,7 @@ export function TodoMeta({
     today !== null && todo.due_date !== null && todo.due_date < today && todo.completed_at === null;
   const parentTitle = showParent === true ? lookup.todoTitle(todo.parent_id) : null;
   const section = lookup.sectionName(todo.section_id);
+  const placeHue = showPlace === true ? lookup.listHue(todo.list_id) : null;
 
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-text-muted tabular-nums">
@@ -88,9 +90,12 @@ export function TodoMeta({
         </span>
       )}
       {showPlace === true && (
-        <span className="truncate">
-          {lookup.listName(todo.list_id)}
-          {section !== null && ` / ${section}`}
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          {placeHue !== null && <TintDot hue={placeHue} />}
+          <span className="truncate">
+            {lookup.listName(todo.list_id)}
+            {section !== null && ` / ${section}`}
+          </span>
         </span>
       )}
     </span>

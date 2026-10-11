@@ -80,8 +80,21 @@
         "type": "object"
       },
       "AreaCreate": {
-        "description": "Create an area at the end.",
+        "description": "Create an area at the end; without a ``hue`` it gets the next default one.",
         "properties": {
+          "hue": {
+            "anyOf": [
+              {
+                "maximum": 359.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hue"
+          },
           "id": {
             "anyOf": [
               {
@@ -140,6 +153,10 @@
             "title": "Created At",
             "type": "string"
           },
+          "hue": {
+            "title": "Hue",
+            "type": "integer"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -160,11 +177,43 @@
         "required": [
           "id",
           "name",
+          "hue",
           "position",
           "created_at",
           "updated_at"
         ],
         "title": "AreaOut",
+        "type": "object"
+      },
+      "AreaUpdate": {
+        "description": "Rename an area and/or change its hue (omitted fields stay).",
+        "properties": {
+          "hue": {
+            "anyOf": [
+              {
+                "maximum": 359.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hue"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "AreaUpdate",
         "type": "object"
       },
       "CalendarRangeOut": {
@@ -5231,8 +5280,8 @@
         ]
       },
       "patch": {
-        "description": "Renames an area.",
-        "operationId": "todos_rename_area",
+        "description": "Renames an area and/or changes its hue.",
+        "operationId": "todos_update_area",
         "parameters": [
           {
             "in": "path",
@@ -5248,7 +5297,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Rename"
+                "$ref": "#/components/schemas/AreaUpdate"
               }
             }
           },
@@ -5276,7 +5325,7 @@
             "description": "Problem details"
           }
         },
-        "summary": "Rename Area",
+        "summary": "Update Area",
         "tags": [
           "todos"
         ]

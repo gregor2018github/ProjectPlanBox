@@ -1,11 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Settings2, Trash2 } from "lucide-react";
+import { useState } from "react";
 
+import { ContextMenu } from "../../../ui/ContextMenu";
 import { cx } from "../../../ui/cx";
 import { useDropTarget } from "../../../ui/dnd";
+import { tintProps } from "../../../ui/tint";
+import { TintDot } from "../../../ui/TintDot";
 import { todoPaths } from "../paths";
 import type { Area, TodoList } from "../types";
 import type { ContainerActions } from "../useContainerActions";
+import { AreaSettingsDialog } from "./AreaSettingsDialog";
 import { ListLink } from "./ListLink";
 
 /** Props for {@link AreaNavGroup}. */
@@ -18,7 +23,10 @@ export interface AreaNavGroupProps {
   containers: ContainerActions;
 }
 
-/** An area in the sidebar: a collapsible heading (drop lists on it) with its lists. */
+/**
+ * An area in the sidebar: a collapsible heading (drop lists on it; right-click
+ * for settings) with its lists, tinted in the area's colour.
+ */
 export function AreaNavGroup({
   area,
   lists,
@@ -33,40 +41,64 @@ export function AreaNavGroup({
     data: { kind: "container-destination", parentId: area.id },
   });
   const ids = lists.map((l) => l.id);
+  const [settings, setSettings] = useState(false);
 
   return (
-    <div className="flex flex-col gap-0.5">
-      <div
-        ref={ref}
-        className={cx(
-          "flex h-8 items-center gap-1 rounded-md coarse:h-11",
-          isDropTarget && "bg-accent-subtle ring-2 ring-accent",
-        )}
+    <div {...tintProps(area.hue)} className="flex flex-col gap-0.5">
+      <ContextMenu
+        entries={[
+          {
+            id: "settings",
+            label: "Area settings…",
+            icon: Settings2,
+            onSelect: () => {
+              setSettings(true);
+            },
+          },
+          {
+            id: "delete",
+            label: "Delete area",
+            icon: Trash2,
+            danger: true,
+            onSelect: () => {
+              containers.remove("area", area.id, area.name);
+            },
+          },
+        ]}
       >
-        <button
-          type="button"
-          aria-expanded={!collapsed}
-          aria-label={`${collapsed ? "Show" : "Hide"} lists in ${area.name}`}
-          onClick={onToggle}
-          className="inline-flex size-6 items-center justify-center rounded-sm text-text-muted hover:bg-hover coarse:size-11"
+        <div
+          ref={ref}
+          className={cx(
+            "flex h-8 items-center gap-1 rounded-md coarse:h-11",
+            isDropTarget && "bg-accent-subtle ring-2 ring-accent",
+          )}
         >
-          <ChevronRight
-            size={14}
-            strokeWidth={1.75}
-            aria-hidden
-            className={cx(
-              "transition-transform duration-(--duration-fast) ease-out",
-              !collapsed && "rotate-90",
-            )}
-          />
-        </button>
-        <Link
-          to={todoPaths.area(area.id)}
-          className="flex-1 truncate rounded-md px-1 text-sm font-medium text-text-muted hover:text-text data-[status=active]:text-text"
-        >
-          {area.name}
-        </Link>
-      </div>
+          <button
+            type="button"
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? "Show" : "Hide"} lists in ${area.name}`}
+            onClick={onToggle}
+            className="inline-flex size-6 items-center justify-center rounded-sm text-text-muted hover:bg-hover coarse:size-11"
+          >
+            <ChevronRight
+              size={14}
+              strokeWidth={1.75}
+              aria-hidden
+              className={cx(
+                "transition-transform duration-(--duration-fast) ease-out",
+                !collapsed && "rotate-90",
+              )}
+            />
+          </button>
+          <Link
+            to={todoPaths.area(area.id)}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-sm font-medium text-text-muted hover:text-text data-[status=active]:text-text"
+          >
+            <TintDot hue={area.hue} />
+            <span className="truncate">{area.name}</span>
+          </Link>
+        </div>
+      </ContextMenu>
       {!collapsed && (
         <div className="flex flex-col gap-0.5">
           {lists.map((list, index) => (
@@ -82,6 +114,12 @@ export function AreaNavGroup({
           ))}
         </div>
       )}
+      <AreaSettingsDialog
+        area={area}
+        open={settings}
+        onOpenChange={setSettings}
+        containers={containers}
+      />
     </div>
   );
 }

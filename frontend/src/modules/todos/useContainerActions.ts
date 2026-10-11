@@ -1,7 +1,9 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { newId } from "../../core/ids";
 import { useUndo } from "../../core/undo/undoContext";
+import { nextAreaHue } from "./areaHues";
 import {
   useCreateArea,
   useCreateList,
@@ -10,9 +12,13 @@ import {
   useMoveContainer,
   useRenameContainer,
   useRestoreContainer,
+  useUpdateArea,
+  type AreaPatch,
   type ContainerKind,
   type MoveContainerVars,
 } from "./mutations";
+import { todoKeys } from "./queries";
+import type { Area } from "./types";
 
 const NOUN: Record<ContainerKind, string> = { area: "area", list: "list", section: "section" };
 
@@ -23,6 +29,8 @@ export function useContainerActions() {
   const createList = useCreateList();
   const createSection = useCreateSection();
   const rename = useRenameContainer();
+  const updateArea = useUpdateArea();
+  const queryClient = useQueryClient();
   const move = useMoveContainer();
   const remove = useDeleteContainer();
   const restore = useRestoreContainer();
@@ -31,8 +39,15 @@ export function useContainerActions() {
     () => ({
       createArea(name: string): string {
         const id = newId();
-        createArea.mutate({ id, name: name.trim() });
+        const taken = (queryClient.getQueryData<Area[]>(todoKeys.areas) ?? []).map((a) => a.hue);
+        createArea.mutate({ id, name: name.trim(), hue: nextAreaHue(taken) });
         return id;
+      },
+      updateArea(id: string, patch: AreaPatch): void {
+        updateArea.mutate({
+          id,
+          patch: patch.name === undefined ? patch : { ...patch, name: patch.name.trim() },
+        });
       },
       createList(name: string, areaId: string | null): string {
         const id = newId();
@@ -70,7 +85,18 @@ export function useContainerActions() {
         );
       },
     }),
-    [pushUndo, createArea, createList, createSection, rename, move, remove, restore],
+    [
+      pushUndo,
+      queryClient,
+      createArea,
+      updateArea,
+      createList,
+      createSection,
+      rename,
+      move,
+      remove,
+      restore,
+    ],
   );
 }
 

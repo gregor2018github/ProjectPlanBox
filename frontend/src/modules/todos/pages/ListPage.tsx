@@ -33,6 +33,7 @@ export function ListPage() {
   const [dialog, setDialog] = useState<"rename" | "section" | null>(null);
 
   const list = data.lists.find((l) => l.id === listId);
+  const area = data.areas.find((a) => a.id === list?.area_id);
   const view = useMemo(
     () => listView(data.todos, data.sections, listId),
     [data.todos, data.sections, listId],
@@ -60,9 +61,10 @@ export function ListPage() {
   const sectionIds = view.groups.flatMap((g) => (g.section ? [g.section.id] : []));
 
   return (
-    <ViewLayout>
+    <ViewLayout tint={area?.hue}>
       <PageHeader
         title={list.name}
+        subtitle={area?.name}
         actions={
           <Menu
             entries={[

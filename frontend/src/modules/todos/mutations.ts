@@ -263,7 +263,7 @@ const stamp = () => {
 /** Creates an area at the end. */
 export function useCreateArea() {
   const client = useApiClient();
-  return useOptimisticMutation<Area[], { id: string; name: string }, Area>({
+  return useOptimisticMutation<Area[], { id: string; name: string; hue: number }, Area>({
     cacheKey: todoKeys.areas,
     mutationFn: (vars) => unwrap(client.POST("/api/todos/areas", { body: vars })),
     apply: (areas, vars) => [
@@ -271,6 +271,29 @@ export function useCreateArea() {
       { ...vars, position: placeAmong([...areas].sort(byPosition), null, null), ...stamp() },
     ],
     errorTitle: "Could not add the area",
+  });
+}
+
+/** What an area update changes (omitted fields stay). */
+export interface AreaPatch {
+  name?: string;
+  hue?: number;
+}
+
+/** Renames an area and/or changes its colour. */
+export function useUpdateArea() {
+  const client = useApiClient();
+  return useOptimisticMutation<Area[], { id: string; patch: AreaPatch }, Area>({
+    cacheKey: todoKeys.areas,
+    mutationFn: ({ id, patch }) =>
+      unwrap(
+        client.PATCH("/api/todos/areas/{area_id}", {
+          params: { path: { area_id: id } },
+          body: patch,
+        }),
+      ),
+    apply: (areas, { id, patch }) => areas.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    errorTitle: "Could not update the area",
   });
 }
 
@@ -385,7 +408,13 @@ export function useMoveContainer() {
   const { show } = useToast();
   return useMutation({
     scope: SCOPE,
-    mutationFn: ({ kind, id, parent_id, before_id, after_id }: MoveContainerVars) => {
+    mutationFn: ({
+      kind,
+      id,
+      parent_id,
+      before_id,
+      after_id,
+    }: MoveContainerVars): Promise<Area | TodoList | Section> => {
       if (kind === "area") {
         return unwrap(
           client.POST("/api/todos/areas/{area_id}/move", {

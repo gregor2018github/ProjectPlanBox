@@ -109,7 +109,14 @@ describe("counts", () => {
 
 describe("listTree", () => {
   it("puts loose lists first, then areas with their lists", () => {
-    const area = { id: "A", name: "Work", position: "a0", created_at: "", updated_at: "" };
+    const area = {
+      id: "A",
+      name: "Work",
+      hue: 264,
+      position: "a0",
+      created_at: "",
+      updated_at: "",
+    };
     const loose = {
       id: "L1",
       area_id: null,

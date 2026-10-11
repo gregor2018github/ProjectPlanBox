@@ -6,6 +6,7 @@ import type { TodoLookup } from "./useTodoData";
 
 const lookup: TodoLookup = {
   listName: (id) => (id === null ? "Inbox" : "Work"),
+  listHue: () => null,
   sectionName: () => null,
   tagName: () => "",
   todoTitle: (id) => (id === "parent" ? "Launch" : null),

@@ -12,6 +12,8 @@ import type { Area, Section, Todo, TodoList } from "./types";
 /** Name lookups rows need (list, section, tag and parent titles). */
 export interface TodoLookup {
   listName: (id: string | null) => string;
+  /** The colour of the list's area; null outside any area (and for the Inbox). */
+  listHue: (id: string | null) => number | null;
   sectionName: (id: string | null) => string | null;
   tagName: (id: string) => string;
   todoTitle: (id: string | null) => string | null;
@@ -48,6 +50,7 @@ export function useTodoData(): TodoData {
 
   return useMemo(() => {
     const listById = new Map((lists.data ?? EMPTY).map((l: TodoList) => [l.id, l]));
+    const areaById = new Map((areas.data ?? EMPTY).map((a: Area) => [a.id, a]));
     const sectionById = new Map((sections.data ?? EMPTY).map((s: Section) => [s.id, s]));
     const tagById = new Map((tags.data ?? EMPTY).map((t: Tag) => [t.id, t]));
     const todoById = new Map((todos.data ?? EMPTY).map((t: Todo) => [t.id, t]));
@@ -63,6 +66,10 @@ export function useTodoData(): TodoData {
       loading: todos.isPending,
       lookup: {
         listName: (id) => (id === null ? "Inbox" : (listById.get(id)?.name ?? "…")),
+        listHue: (id) => {
+          const areaId = id === null ? null : (listById.get(id)?.area_id ?? null);
+          return areaId === null ? null : (areaById.get(areaId)?.hue ?? null);
+        },
         sectionName: (id) => (id === null ? null : (sectionById.get(id)?.name ?? null)),
         tagName: (id) => tagById.get(id)?.name ?? "…",
         todoTitle: (id) => (id === null ? null : (todoById.get(id)?.title ?? null)),

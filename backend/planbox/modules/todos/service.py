@@ -53,6 +53,23 @@ MAX_NOTES = 20_000
 _WHITESPACE = re.compile(r"\s+")
 REPEAT_FROM = ("due", "completion")
 MAX_FORECAST_DAYS = 400
+MAX_HUE = 359
+# Default area hues (OKLCH degrees), well apart; the frontend mirrors this
+# list in `areaHues.ts` and so does migration `todos/0005`.
+AREA_HUES = (264, 155, 30, 210, 310, 80, 350, 185)
+
+
+def check_hue(hue: int) -> int:
+    """Checks an area hue (0-359 degrees)."""
+    if not 0 <= hue <= MAX_HUE:
+        raise ValidationFailed("An area hue is 0 to 359 degrees.")
+    return hue
+
+
+def default_area_hue(taken: Sequence[int]) -> int:
+    """The first default hue no live area uses, else cycles by area count."""
+    used = set(taken)
+    return next((h for h in AREA_HUES if h not in used), AREA_HUES[len(taken) % len(AREA_HUES)])
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,17 +170,24 @@ class AreaService:
         """Live areas in order."""
         return self._repos.areas.list_live()
 
-    def create(self, name: str, area_id: str | None) -> tuple[Area, bool]:
-        """Creates an area at the end; idempotent per client id."""
+    def create(self, name: str, area_id: str | None, hue: int | None = None) -> tuple[Area, bool]:
+        """Creates an area at the end; idempotent per client id.
+
+        Without a ``hue`` the area gets the first default hue not in use.
+        """
         check_client_id(area_id)
         cleaned = clean_name(name, "area")
+        if hue is not None:
+            check_hue(hue)
         with transaction(self._conn):
             if area_id is not None and (existing := self._repos.areas.get(area_id)) is not None:
                 return existing, False
             now = utc_now_iso(self._clock)
+            live = self._repos.areas.list_live()
             area = Area(
                 id=area_id or new_id(),
                 name=cleaned,
+                hue=default_area_hue([a.hue for a in live]) if hue is None else hue,
                 position=place(self._repos.areas.positions(), None, None),
                 created_at=now,
                 updated_at=now,
@@ -172,12 +196,16 @@ class AreaService:
             self._repos.areas.insert(area)
             return area, True
 
-    def rename(self, area_id: str, name: str) -> Area:
-        """Renames an area."""
-        cleaned = clean_name(name, "area")
+    def update(self, area_id: str, name: str | None = None, hue: int | None = None) -> Area:
+        """Renames an area and/or changes its hue; ``None`` leaves a field as is."""
+        fields: dict[str, object] = {}
+        if name is not None:
+            fields["name"] = clean_name(name, "area")
+        if hue is not None:
+            fields["hue"] = check_hue(hue)
         with transaction(self._conn):
             _live(self._repos.areas.get(area_id), "area")
-            self._repos.areas.update(area_id, {"name": cleaned}, utc_now_iso(self._clock))
+            self._repos.areas.update(area_id, fields, utc_now_iso(self._clock))
             return _live(self._repos.areas.get(area_id), "area")
 
     def move(self, area_id: str, before_id: str | None, after_id: str | None) -> Area:

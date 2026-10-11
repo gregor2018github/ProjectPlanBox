@@ -16,6 +16,7 @@ from planbox.modules.todos.schemas import (
     AreaCreate,
     AreaMove,
     AreaOut,
+    AreaUpdate,
     DeletedOut,
     ForecastOut,
     ListCreate,
@@ -140,15 +141,15 @@ def list_areas(service: Areas) -> list[AreaOut]:
 @router.post("/areas", status_code=status.HTTP_201_CREATED)
 def create_area(body: AreaCreate, service: Areas, response: Response) -> AreaOut:
     """Creates an area at the end (idempotent per client id)."""
-    area, created = service.create(body.name, body.id)
+    area, created = service.create(body.name, body.id, body.hue)
     _created(response, created)
     return _area(area)
 
 
 @router.patch("/areas/{area_id}")
-def rename_area(area_id: str, body: Rename, service: Areas) -> AreaOut:
-    """Renames an area."""
-    return _area(service.rename(area_id, body.name))
+def update_area(area_id: str, body: AreaUpdate, service: Areas) -> AreaOut:
+    """Renames an area and/or changes its hue."""
+    return _area(service.update(area_id, body.name, body.hue))
 
 
 @router.post("/areas/{area_id}/move")

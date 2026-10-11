@@ -47,6 +47,9 @@ will come later.
   tags.
 - Drag todos to reorder them, or drop them on a list in the sidebar. Drag
   lists between areas, and drag sections by their grip.
+- Each area has a colour that quietly tints its pages and marks its todos
+  elsewhere with a dot. Change it in **Area settings** (the area's ⋯ menu,
+  or right-click it in the sidebar) with the colour wheel or a suggestion.
 - **E** adds a note, link or snippet (to the collection on screen, else to
   Unsorted); **G K** opens Knowledge. Filter a view by kind or by words and
   tags. Drag entries onto a collection in the sidebar, and drag collections

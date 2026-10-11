@@ -6,10 +6,11 @@ from datetime import date
 
 @dataclass(frozen=True, slots=True)
 class Area:
-    """A group of lists (e.g. "Work")."""
+    """A group of lists (e.g. "Work"), tinted by its hue (0-359, OKLCH)."""
 
     id: str
     name: str
+    hue: int
     position: str
     created_at: str
     updated_at: str

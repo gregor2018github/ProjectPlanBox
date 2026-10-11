@@ -638,10 +638,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename Area
-         * @description Renames an area.
+         * Update Area
+         * @description Renames an area and/or changes its hue.
          */
-        patch: operations["todos_rename_area"];
+        patch: operations["todos_update_area"];
         trace?: never;
     };
     "/api/todos/areas/{area_id}/move": {
@@ -1137,9 +1137,11 @@ export interface components {
         };
         /**
          * AreaCreate
-         * @description Create an area at the end.
+         * @description Create an area at the end; without a ``hue`` it gets the next default one.
          */
         AreaCreate: {
+            /** Hue */
+            hue?: number | null;
             /** Id */
             id?: string | null;
             /** Name */
@@ -1162,6 +1164,8 @@ export interface components {
         AreaOut: {
             /** Created At */
             created_at: string;
+            /** Hue */
+            hue: number;
             /** Id */
             id: string;
             /** Name */
@@ -1170,6 +1174,16 @@ export interface components {
             position: string;
             /** Updated At */
             updated_at: string;
+        };
+        /**
+         * AreaUpdate
+         * @description Rename an area and/or change its hue (omitted fields stay).
+         */
+        AreaUpdate: {
+            /** Hue */
+            hue?: number | null;
+            /** Name */
+            name?: string | null;
         };
         /**
          * CalendarRangeOut
@@ -3835,7 +3849,7 @@ export interface operations {
             };
         };
     };
-    todos_rename_area: {
+    todos_update_area: {
         parameters: {
             query?: never;
             header?: never;
@@ -3846,7 +3860,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Rename"];
+                "application/json": components["schemas"]["AreaUpdate"];
             };
         };
         responses: {

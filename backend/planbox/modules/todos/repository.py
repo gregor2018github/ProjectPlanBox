@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from planbox.core.placement import Positions
 from planbox.modules.todos.models import Area, Section, Todo, TodoList
 
-_AREA = "id, name, position, created_at, updated_at, deleted_at"
+_AREA = "id, name, hue, position, created_at, updated_at, deleted_at"
 _LIST = "id, area_id, name, position, created_at, updated_at, deleted_at"
 _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
@@ -71,13 +71,15 @@ class AreaRepository:
         """Inserts an area."""
         self._conn.execute(
             f"INSERT INTO todos_areas ({_AREA}) "  # noqa: S608
-            "VALUES (:id, :name, :position, :created_at, :updated_at, :deleted_at)",
+            "VALUES (:id, :name, :hue, :position, :created_at, :updated_at, :deleted_at)",
             _asdict(area),
         )
 
     def update(self, area_id: str, fields: Mapping[str, object], now: str) -> None:
-        """Updates name and/or position."""
-        _update(self._conn, "todos_areas", area_id, fields, allowed={"name", "position"}, now=now)
+        """Updates name, hue and/or position."""
+        _update(
+            self._conn, "todos_areas", area_id, fields, allowed={"name", "hue", "position"}, now=now
+        )
 
     def set_deleted(self, area_id: str, deleted_at: str | None, now: str) -> None:
         """Soft-deletes (or, with ``None``, restores) one area."""
