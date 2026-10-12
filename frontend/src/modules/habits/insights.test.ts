@@ -18,6 +18,8 @@ function habit(fields: Partial<Habit> = {}): Habit {
     updated_at: "2026-10-01T10:00:00.000Z",
     checkins: [],
     scheduled: daysEnding("2026-10-11", 11), // 1-11 Oct
+    days_off: [],
+    days_off_ahead: [],
     current_streak: 0,
     best_streak: 0,
     total_checkins: 0,

@@ -402,6 +402,47 @@
         "title": "DayActivityOut",
         "type": "object"
       },
+      "DaysOffChange": {
+        "description": "Take days off (or back) for one or more habits.",
+        "properties": {
+          "items": {
+            "description": "The (habit, day) pairs to change.",
+            "items": {
+              "$ref": "#/components/schemas/HabitDay"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "off": {
+            "description": "True takes the days off, false puts them back.",
+            "title": "Off",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "off"
+        ],
+        "title": "DaysOffChange",
+        "type": "object"
+      },
+      "DaysOffChanged": {
+        "description": "The pairs that changed; sending them with ``off`` flipped undoes the change.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HabitDay"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DaysOffChanged",
+        "type": "object"
+      },
       "DeletedOut": {
         "description": "What a (cascading) soft delete or its restore touched.",
         "properties": {
@@ -1111,6 +1152,26 @@
         "title": "HabitCreate",
         "type": "object"
       },
+      "HabitDay": {
+        "description": "One day of one habit.",
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "habit_id": {
+            "title": "Habit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "habit_id",
+          "day"
+        ],
+        "title": "HabitDay",
+        "type": "object"
+      },
       "HabitDeletedOut": {
         "description": "Result of a soft delete; restore by id to undo.",
         "properties": {
@@ -1205,6 +1266,22 @@
             "title": "Current Streak",
             "type": "integer"
           },
+          "days_off": {
+            "description": "Days off in the range, ascending.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Days Off",
+            "type": "array"
+          },
+          "days_off_ahead": {
+            "description": "Every day off from today on, ascending, whatever the range.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Days Off Ahead",
+            "type": "array"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -1227,7 +1304,7 @@
             "type": "string"
           },
           "scheduled": {
-            "description": "Days the schedule asks for in the range.",
+            "description": "Days the schedule asks for in the range, without the days off.",
             "items": {
               "type": "string"
             },
@@ -1259,6 +1336,8 @@
           "updated_at",
           "checkins",
           "scheduled",
+          "days_off",
+          "days_off_ahead",
           "current_streak",
           "best_streak",
           "total_checkins"
@@ -3679,6 +3758,48 @@
         "summary": "Restore Event",
         "tags": [
           "calendar"
+        ]
+      }
+    },
+    "/api/habits/days-off": {
+      "post": {
+        "description": "Takes days off (or back) for habits; returns the pairs that changed.",
+        "operationId": "habits_change_days_off",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DaysOffChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaysOffChanged"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Change Days Off",
+        "tags": [
+          "habits"
         ]
       }
     },

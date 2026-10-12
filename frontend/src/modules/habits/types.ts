@@ -7,6 +7,9 @@ export type Habit = components["schemas"]["HabitOverviewOut"];
 /** A habit row as mutations return it (no days, no streaks). */
 export type HabitRow = components["schemas"]["HabitOut"];
 
+/** One day of one habit, as the days-off endpoint takes and returns them. */
+export type HabitDay = components["schemas"]["HabitDay"];
+
 /** Changes to a habit. */
 export type HabitPatch = components["schemas"]["HabitPatch"];
 

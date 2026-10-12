@@ -1,12 +1,16 @@
 import { Trash2 } from "lucide-react";
 
+import { useMeta } from "../../../core/api/coreQueries";
 import { LinkedItems } from "../../../core/links/LinkedItems";
+import { WeekdayToggles } from "../../../core/recurrence/WeekdayToggles";
 import { AutosaveTextArea } from "../../../ui/AutosaveTextArea";
 import { Button } from "../../../ui/Button";
 import { InlineTitle } from "../../../ui/InlineTitle";
 import { useHabitData } from "../queries";
 import { habitRef } from "../types";
+import { ruleOfWeekdays, weekdaysOf } from "../schedule";
 import { useHabitActions } from "../useHabitActions";
+import { DaysOffSection } from "./DaysOffSection";
 import { HistoryGrid } from "./HistoryGrid";
 import { SchedulePicker } from "./SchedulePicker";
 import { WeekStrip } from "./WeekStrip";
@@ -23,9 +27,14 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
-/** The detail panel for one habit: name, schedule, streaks, history, notes, links. */
+/**
+ * The detail panel for one habit: name, schedule (with the weekdays as
+ * toggles when it is a plain weekly one), streaks, history, days off, notes,
+ * links.
+ */
 export function HabitDetail({ id }: HabitDetailProps) {
   const { habits, today, loading } = useHabitData();
+  const timeZone = useMeta().data?.timezone ?? "UTC";
   const actions = useHabitActions();
   const habit = habits.find((h) => h.id === id);
 
@@ -37,6 +46,7 @@ export function HabitDetail({ id }: HabitDetailProps) {
     );
   }
 
+  const weekdays = weekdaysOf(habit.rrule, habit.start_date, timeZone);
   const stats: [string, number][] = [
     ["Current streak", habit.current_streak],
     ["Best streak", habit.best_streak],
@@ -53,13 +63,24 @@ export function HabitDetail({ id }: HabitDetailProps) {
           actions.update(habit.id, { name });
         }}
       />
-      <div>
-        <SchedulePicker
-          habit={habit}
-          onChange={(rrule) => {
-            actions.update(habit.id, { rrule });
-          }}
-        />
+      <div className="flex flex-col gap-2">
+        <div>
+          <SchedulePicker
+            habit={habit}
+            onChange={(rrule) => {
+              actions.update(habit.id, { rrule });
+            }}
+          />
+        </div>
+        {weekdays !== null && (
+          <WeekdayToggles
+            label="Due on"
+            value={weekdays}
+            onChange={(days) => {
+              actions.update(habit.id, { rrule: ruleOfWeekdays(days) });
+            }}
+          />
+        )}
       </div>
 
       <WeekStrip habit={habit} today={today} actions={actions} />
@@ -74,6 +95,8 @@ export function HabitDetail({ id }: HabitDetailProps) {
       </dl>
 
       <HistoryGrid habit={habit} today={today} />
+
+      <DaysOffSection habit={habit} habits={habits} today={today} actions={actions} />
 
       <AutosaveTextArea
         aria-label="Notes"

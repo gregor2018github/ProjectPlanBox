@@ -226,6 +226,14 @@ Small iterations after a first day of use at work, one commit each:
   the next one). A ✕ button next to the field discards, like Esc; it is
   the same ✕ the subtask checklist uses for delete. Switching to another
   window keeps the draft. The subtask field adds on blur as well.
+- **Habit weekdays and days off.** Weekdays could already be excluded
+  ("Weekly" on chosen days in the schedule editor) but were hard to find,
+  so the detail panel now shows the weekdays as toggles ("Due on") for any
+  plain daily or weekly schedule. Single dates are a new concept: **days
+  off** (migration `habits/0002`), added as a date or a stretch, for one
+  habit or every habit at once (a holiday), or per day from the week
+  strip's context menu. They leave the schedule, so streaks survive them
+  (ARCHITECTURE §7c).
 
 ## Dependencies
 

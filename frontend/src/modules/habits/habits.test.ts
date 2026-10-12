@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { applyChecked } from "./apply";
-import { dayState, daysEnding, habitRange, historyWeeks, HISTORY_WEEKS, isDueToday } from "./days";
+import { applyChecked, applyDaysOff } from "./apply";
+import {
+  dayRuns,
+  dayState,
+  daysEnding,
+  habitRange,
+  historyWeeks,
+  HISTORY_WEEKS,
+  isDueToday,
+} from "./days";
+import { ruleOfWeekdays, weekdaysOf } from "./schedule";
 import type { Habit } from "./types";
 
 const TODAY = "2026-10-08"; // a Thursday
@@ -18,6 +27,8 @@ function habit(fields: Partial<Habit> = {}): Habit {
     updated_at: "2026-10-01T10:00:00.000Z",
     checkins: [],
     scheduled: [],
+    days_off: [],
+    days_off_ahead: [],
     current_streak: 0,
     best_streak: 0,
     total_checkins: 0,
@@ -76,5 +87,55 @@ describe("applyChecked", () => {
     const [out] = applyChecked([h], "h1", "2026-10-07", false, TODAY);
     expect(out?.current_streak).toBe(2);
     expect(out?.checkins).toEqual([]);
+  });
+});
+
+describe("days off", () => {
+  it("shows a day off unless it was checked anyway", () => {
+    const h = habit({ days_off: ["2026-10-07"], days_off_ahead: ["2026-10-12"] });
+    expect(dayState(h, "2026-10-07", TODAY)).toBe("off");
+    expect(dayState(h, "2026-10-12", TODAY)).toBe("off");
+    expect(dayState({ ...h, checkins: ["2026-10-07"] }, "2026-10-07", TODAY)).toBe("done");
+  });
+
+  it("groups days into runs", () => {
+    expect(dayRuns(["2026-10-14", "2026-10-12", "2026-10-13", "2026-10-20"])).toEqual([
+      { start: "2026-10-12", end: "2026-10-14" },
+      { start: "2026-10-20", end: "2026-10-20" },
+    ]);
+    expect(dayRuns([])).toEqual([]);
+  });
+
+  it("applies days off optimistically: off leaves the schedule, back waits", () => {
+    const h = habit({ scheduled: ["2026-10-07", TODAY, "2026-10-09"] });
+    const items = [
+      { habit_id: "h1", day: "2026-10-07" },
+      { habit_id: "h1", day: "2026-10-09" },
+      { habit_id: "other", day: TODAY },
+    ];
+    const [off] = applyDaysOff([h], items, true, TODAY);
+    expect(off).toMatchObject({
+      days_off: ["2026-10-07", "2026-10-09"],
+      days_off_ahead: ["2026-10-09"],
+      scheduled: [TODAY],
+    });
+    const [back] = applyDaysOff([off as Habit], items, false, TODAY);
+    expect(back).toMatchObject({ days_off: [], days_off_ahead: [], scheduled: [TODAY] });
+  });
+});
+
+describe("weekday schedules", () => {
+  it("reads plain daily and weekly rules as weekdays", () => {
+    expect(weekdaysOf("FREQ=DAILY", TODAY, "UTC")).toHaveLength(7);
+    expect(weekdaysOf("FREQ=WEEKLY;BYDAY=FR,MO", TODAY, "UTC")).toEqual(["MO", "FR"]);
+    expect(weekdaysOf("FREQ=WEEKLY", TODAY, "UTC")).toEqual(["TH"]);
+    expect(weekdaysOf("FREQ=DAILY;INTERVAL=2", TODAY, "UTC")).toBeNull();
+    expect(weekdaysOf("FREQ=MONTHLY", TODAY, "UTC")).toBeNull();
+    expect(weekdaysOf("FREQ=WEEKLY;COUNT=3", TODAY, "UTC")).toBeNull();
+  });
+
+  it("writes weekdays as a weekly rule, all seven as daily", () => {
+    expect(ruleOfWeekdays(["FR", "MO", "TU", "WE", "TH"])).toBe("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR");
+    expect(ruleOfWeekdays(["MO", "TU", "WE", "TH", "FR", "SA", "SU"])).toBe("FREQ=DAILY");
   });
 });

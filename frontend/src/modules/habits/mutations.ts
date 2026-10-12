@@ -12,6 +12,7 @@ import type { IsoDate } from "../../core/time";
 import { useToast } from "../../ui/useToast";
 import {
   applyChecked,
+  applyDaysOff,
   applyDelete,
   applyPatch,
   buildHabit,
@@ -19,7 +20,7 @@ import {
   type CreateHabitVars,
 } from "./apply";
 import { habitKeys } from "./queries";
-import type { Habit, HabitPatch, HabitRow } from "./types";
+import type { Habit, HabitDay, HabitPatch, HabitRow } from "./types";
 
 const SCOPE = { id: "habits" };
 
@@ -149,5 +150,23 @@ export function useSetChecked() {
     },
     edit: (habits, { id, day, checked, today }) => applyChecked(habits, id, day, checked, today),
     errorTitle: "Could not save the check-in",
+  });
+}
+
+/** Variables of a days-off change. */
+export interface SetDaysOffVars {
+  items: HabitDay[];
+  off: boolean;
+  today: IsoDate;
+}
+
+/** Takes days off (or back); resolves to the pairs that changed (for an exact undo). */
+export function useSetDaysOff() {
+  const client = useApiClient();
+  return useOptimisticMutation<SetDaysOffVars, { items: HabitDay[] }>({
+    mutationFn: ({ items, off }) =>
+      unwrap(client.POST("/api/habits/days-off", { body: { items, off } })),
+    edit: (habits, { items, off, today }) => applyDaysOff(habits, items, off, today),
+    errorTitle: "Could not change the days off",
   });
 }

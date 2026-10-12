@@ -691,6 +691,13 @@ CREATE TABLE habits_checkins (
   day TEXT NOT NULL,                   -- floating date in the configured zone
   created_at, updated_at, deleted_at
 ) STRICT;  -- unique live (habit_id, day)
+
+CREATE TABLE habits_days_off (       -- migration 0002 (owner request, 2026-10-12)
+  id TEXT PRIMARY KEY,
+  habit_id TEXT NOT NULL REFERENCES habits(id),
+  day TEXT NOT NULL,                   -- floating date, past or future
+  created_at, updated_at, deleted_at
+) STRICT;  -- unique live (habit_id, day)
 ```
 
 - **Schedules** reuse the shared recurrence engine on floating dates
@@ -709,16 +716,25 @@ CREATE TABLE habits_checkins (
   extends nor breaks a streak. "Best" is the longest run ever. Changing the
   schedule re-reads the whole history under the new rule, which is simple
   and predictable.
-- Deleting a habit keeps its check-ins, so a restore brings its history
-  back.
+- **Days off** are single dates the schedule skips (a holiday, a sick
+  day), stored like check-ins (one live row per habit and day, taking one
+  back soft-deletes it). They leave `scheduled`, so they neither count nor
+  break a streak, and the consistency numbers ignore them. A check-in on a
+  day off is kept and shown, like one on an unscheduled day. Excluding a
+  weekday for good is a schedule change instead ("every week on Mon–Fri");
+  the detail panel shows the weekdays as toggles whenever the rule is a
+  plain daily or weekly one.
+- Deleting a habit keeps its check-ins and days off, so a restore brings
+  its history back.
 
 | Method | Path | |
 |---|---|---|
-| GET | `/api/habits/habits?start=&end=` | Live habits with `checkins` and `scheduled` days in the range (≤ 400 days), `current_streak`, `best_streak`, `total_checkins` |
+| GET | `/api/habits/habits?start=&end=` | Live habits with `checkins`, `scheduled` and `days_off` in the range (≤ 400 days), `days_off_ahead` (every day off from today on), `current_streak`, `best_streak`, `total_checkins` |
 | POST | `/api/habits/habits` | `{id?, name, notes?, rrule?, start_date?}` (idempotent per id) |
 | PATCH | `/api/habits/habits/{id}` | name, notes, rrule, start_date |
 | DELETE | `/api/habits/habits/{id}` · POST `…/restore` | Soft delete, undo |
 | PUT / DELETE | `/api/habits/habits/{id}/checkins/{day}` | Check / uncheck a day |
+| POST | `/api/habits/days-off` | `{items: [{habit_id, day}], off}`: take days off (or back) for one or more habits; returns the pairs that changed, so undo reverts exactly those |
 
 On the frontend there is one cache: the habits with the last 26 whole weeks
 (`['habits','list',start,end]`). The page (a 7-day strip per habit, today

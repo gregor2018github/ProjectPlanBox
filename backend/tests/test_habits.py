@@ -226,3 +226,53 @@ def test_streak_function_edge_cases() -> None:
     assert streaks(days, set(days), today) == (5, 5)
     assert streaks(days, set(days[:3]), today) == (0, 3)  # 4 Oct missed
     assert streaks(days, set(days[:4]), today) == (4, 4)  # today still open
+
+
+def days_off(client: TestClient, pairs: list[tuple[str, str]], off: bool = True) -> list[Json]:
+    """Takes days off (or back) and returns the pairs that changed."""
+    body = {"items": [{"habit_id": h, "day": d} for h, d in pairs], "off": off}
+    return ok(client.post("/api/habits/days-off", json=body))["items"]
+
+
+def test_days_off_leave_the_schedule_and_keep_the_streak(client: TestClient) -> None:
+    """A day off is not scheduled, so missing it does not break the streak."""
+    h = habit(client, start_date=days_before(4))
+    for n in (4, 3, 1):
+        ok(check(client, h["id"], days_before(n)))
+    assert overview(client)[0]["current_streak"] == 1  # day 2 was missed
+
+    changed = days_off(client, [(h["id"], days_before(2))])
+
+    assert changed == [{"habit_id": h["id"], "day": days_before(2)}]
+    view = overview(client)[0]
+    assert view["days_off"] == [days_before(2)]
+    assert days_before(2) not in view["scheduled"]
+    assert (view["current_streak"], view["best_streak"]) == (3, 3)
+
+
+def test_days_off_change_only_what_differs_and_undo_is_exact(client: TestClient) -> None:
+    """Pairs already in the asked state are not reported, so an undo leaves them alone."""
+    a, b = habit(client, "A"), habit(client, "B")
+    days_off(client, [(a["id"], "2026-10-12")])
+
+    holiday = [(h["id"], d) for h in (a, b) for d in ("2026-10-12", "2026-10-13")]
+    changed = days_off(client, holiday)
+    assert len(changed) == 3  # A on the 12th was already off
+    assert days_off(client, holiday) == []
+
+    undone = days_off(client, [(c["habit_id"], c["day"]) for c in changed], off=False)
+    assert len(undone) == 3
+    views = {v["name"]: v for v in overview(client, "2026-10-12", "2026-10-18")}
+    assert views["A"]["days_off"] == ["2026-10-12"]
+    assert views["B"]["days_off"] == []
+    # Upcoming days off show whatever the range.
+    assert overview(client, "2026-10-01", "2026-10-02")[0]["days_off_ahead"] == ["2026-10-12"]
+
+
+def test_days_off_need_live_habits(client: TestClient) -> None:
+    """An unknown or deleted habit refuses the whole change."""
+    h = habit(client)
+    ok(client.delete(f"/api/habits/habits/{h['id']}"))
+    body = {"items": [{"habit_id": h["id"], "day": TODAY}], "off": True}
+
+    assert client.post("/api/habits/days-off", json=body).status_code == 404

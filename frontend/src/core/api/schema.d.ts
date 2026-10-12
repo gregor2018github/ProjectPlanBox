@@ -96,6 +96,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/habits/days-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Days Off
+         * @description Takes days off (or back) for habits; returns the pairs that changed.
+         */
+        post: operations["habits_change_days_off"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/habits/habits": {
         parameters: {
             query?: never;
@@ -1271,6 +1291,30 @@ export interface components {
             opens: number;
         };
         /**
+         * DaysOffChange
+         * @description Take days off (or back) for one or more habits.
+         */
+        DaysOffChange: {
+            /**
+             * Items
+             * @description The (habit, day) pairs to change.
+             */
+            items: components["schemas"]["HabitDay"][];
+            /**
+             * Off
+             * @description True takes the days off, false puts them back.
+             */
+            off: boolean;
+        };
+        /**
+         * DaysOffChanged
+         * @description The pairs that changed; sending them with ``off`` flipped undoes the change.
+         */
+        DaysOffChanged: {
+            /** Items */
+            items: components["schemas"]["HabitDay"][];
+        };
+        /**
          * DeletedOut
          * @description What a (cascading) soft delete or its restore touched.
          */
@@ -1512,6 +1556,19 @@ export interface components {
             start_date?: string | null;
         };
         /**
+         * HabitDay
+         * @description One day of one habit.
+         */
+        HabitDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Habit Id */
+            habit_id: string;
+        };
+        /**
          * HabitDeletedOut
          * @description Result of a soft delete; restore by id to undo.
          */
@@ -1568,6 +1625,16 @@ export interface components {
              * @description Scheduled days kept in a row up to today (an open today does not break it).
              */
             current_streak: number;
+            /**
+             * Days Off
+             * @description Days off in the range, ascending.
+             */
+            days_off: string[];
+            /**
+             * Days Off Ahead
+             * @description Every day off from today on, ascending, whatever the range.
+             */
+            days_off_ahead: string[];
             /** Id */
             id: string;
             /** Name */
@@ -1583,7 +1650,7 @@ export interface components {
             rrule: string;
             /**
              * Scheduled
-             * @description Days the schedule asks for in the range.
+             * @description Days the schedule asks for in the range, without the days off.
              */
             scheduled: string[];
             /**
@@ -2685,6 +2752,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    habits_change_days_off: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DaysOffChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DaysOffChanged"];
                 };
             };
             /** @description Problem details */

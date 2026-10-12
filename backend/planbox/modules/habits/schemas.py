@@ -22,7 +22,13 @@ class HabitOverviewOut(HabitOut):
     """A habit with its days in the requested range and its streaks."""
 
     checkins: list[str] = Field(description="Checked days in the range, ascending.")
-    scheduled: list[str] = Field(description="Days the schedule asks for in the range.")
+    scheduled: list[str] = Field(
+        description="Days the schedule asks for in the range, without the days off."
+    )
+    days_off: list[str] = Field(description="Days off in the range, ascending.")
+    days_off_ahead: list[str] = Field(
+        description="Every day off from today on, ascending, whatever the range."
+    )
     current_streak: int = Field(
         description="Scheduled days kept in a row up to today (an open today does not break it)."
     )
@@ -54,6 +60,26 @@ class HabitDeletedOut(BaseModel):
 
     id: str
     deleted_at: str
+
+
+class HabitDay(BaseModel):
+    """One day of one habit."""
+
+    habit_id: str
+    day: date
+
+
+class DaysOffChange(BaseModel):
+    """Take days off (or back) for one or more habits."""
+
+    items: list[HabitDay] = Field(description="The (habit, day) pairs to change.")
+    off: bool = Field(description="True takes the days off, false puts them back.")
+
+
+class DaysOffChanged(BaseModel):
+    """The pairs that changed; sending them with ``off`` flipped undoes the change."""
+
+    items: list[HabitDay]
 
 
 class CheckinOut(BaseModel):

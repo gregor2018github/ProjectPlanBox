@@ -5,6 +5,8 @@ import { WEEKDAYS, type Weekday } from "./recurrence";
 export interface WeekdayTogglesProps {
   value: readonly Weekday[];
   onChange: (days: Weekday[]) => void;
+  /** Accessible name of the group. */
+  label?: string;
 }
 
 const NAMES: Record<Weekday, [short: string, long: string]> = {
@@ -18,9 +20,9 @@ const NAMES: Record<Weekday, [short: string, long: string]> = {
 };
 
 /** Seven toggle buttons for the days a weekly series repeats on (at least one stays on). */
-export function WeekdayToggles({ value, onChange }: WeekdayTogglesProps) {
+export function WeekdayToggles({ value, onChange, label = "Repeat on" }: WeekdayTogglesProps) {
   return (
-    <div role="group" aria-label="Repeat on" className="flex gap-1">
+    <div role="group" aria-label={label} className="flex gap-1">
       {WEEKDAYS.map((day) => {
         const on = value.includes(day);
         const [short, long] = NAMES[day];

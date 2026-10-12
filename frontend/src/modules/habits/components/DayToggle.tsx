@@ -1,10 +1,11 @@
 import { Check } from "lucide-react";
+import type { ComponentPropsWithRef } from "react";
 
 import { cx } from "../../../ui/cx";
 import type { DayState } from "../days";
 
-/** Props for {@link DayToggle}. */
-export interface DayToggleProps {
+/** Props for {@link DayToggle}; extra button props come from a wrapping context menu. */
+export interface DayToggleProps extends Omit<ComponentPropsWithRef<"button">, "onToggle"> {
   state: DayState;
   /** Short visible label, e.g. "T" for Thursday. */
   label: string;
@@ -19,13 +20,22 @@ const STATE_CLASSES: Record<DayState, string> = {
   open: "border-accent text-accent",
   missed: "border-border-strong text-text-muted",
   unscheduled: "border-transparent bg-hover text-text-subtle",
+  off: "border-transparent bg-hover text-text-subtle line-through",
   future: "border-dashed border-border text-text-subtle",
 };
 
 /** One day of a habit: a round button that checks or unchecks it. */
-export function DayToggle({ state, label, ariaLabel, isToday, onToggle }: DayToggleProps) {
+export function DayToggle({
+  state,
+  label,
+  ariaLabel,
+  isToday,
+  onToggle,
+  ...props
+}: DayToggleProps) {
   return (
     <button
+      {...props}
       type="button"
       aria-label={ariaLabel}
       aria-pressed={state === "done"}

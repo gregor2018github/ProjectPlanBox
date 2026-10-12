@@ -11,7 +11,10 @@ from planbox.core.errors import ValidationFailed
 from planbox.modules.habits.models import Habit, HabitView
 from planbox.modules.habits.schemas import (
     CheckinOut,
+    DaysOffChange,
+    DaysOffChanged,
     HabitCreate,
+    HabitDay,
     HabitDeletedOut,
     HabitOut,
     HabitOverviewOut,
@@ -38,6 +41,8 @@ def _overview(view: HabitView) -> HabitOverviewOut:
         **_habit(view.habit).model_dump(),
         checkins=view.checkins,
         scheduled=view.scheduled,
+        days_off=view.days_off,
+        days_off_ahead=view.days_off_ahead,
         current_streak=view.current_streak,
         best_streak=view.best_streak,
         total_checkins=view.total_checkins,
@@ -105,3 +110,10 @@ def uncheck_habit(habit_id: str, day: date, service: Habits) -> CheckinOut:
     """Removes the day's check-in (idempotent)."""
     service.uncheck(habit_id, day)
     return CheckinOut(habit_id=habit_id, day=day.isoformat(), checked=False)
+
+
+@router.post("/days-off")
+def change_days_off(body: DaysOffChange, service: Habits) -> DaysOffChanged:
+    """Takes days off (or back) for habits; returns the pairs that changed."""
+    changed = service.set_days_off([(i.habit_id, i.day) for i in body.items], body.off)
+    return DaysOffChanged(items=[HabitDay(habit_id=h, day=d) for h, d in changed])

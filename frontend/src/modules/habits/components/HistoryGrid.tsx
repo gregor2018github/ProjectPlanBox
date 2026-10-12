@@ -14,6 +14,7 @@ const CELL: Record<DayState, string> = {
   missed: "bg-border-strong",
   open: "border border-accent",
   unscheduled: "bg-hover",
+  off: "border border-border",
   future: "",
 };
 

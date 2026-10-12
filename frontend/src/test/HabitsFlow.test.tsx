@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -119,5 +119,69 @@ describe("habits", () => {
     await user.keyboard("{Control>}z{/Control}");
     const list = await screen.findByRole("list", { name: "Habits" });
     expect(within(list).getByText("Journal")).toBeInTheDocument();
+  });
+
+  it("excludes weekdays with the toggles in the detail panel", async () => {
+    const user = userEvent.setup();
+    const habit = makeFakeHabit("Standup", addDays(today, -3));
+    const api = open(`/habits?item=habits.habit:${habit.row.id}`, [habit]);
+
+    const days = await screen.findByRole("group", { name: "Due on" });
+    await user.click(within(days).getByRole("button", { name: "Saturday" }));
+
+    await waitFor(() => {
+      expect(api.state.requests.find((r) => r.method === "PATCH")?.body).toEqual({
+        rrule: "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SU",
+      });
+    });
+  });
+
+  it("takes a holiday off for every habit, lists it, and undoes it", async () => {
+    const user = userEvent.setup();
+    const a = makeFakeHabit("Stretch", addDays(today, -3));
+    const b = makeFakeHabit("Read", addDays(today, -3));
+    const api = open(`/habits?item=habits.habit:${a.row.id}`, [a, b]);
+    const first = addDays(today, 3);
+    const last = addDays(today, 5);
+
+    const section = await screen.findByRole("region", { name: "Days off" });
+    expect(within(section).getByText("None coming up.")).toBeInTheDocument();
+    await user.click(within(section).getByRole("button", { name: "Add days off" }));
+    fireEvent.change(await screen.findByLabelText("From"), { target: { value: first } });
+    fireEvent.change(screen.getByLabelText("To"), { target: { value: last } });
+    await user.click(screen.getByRole("switch", { name: "Every habit" }));
+    await user.click(screen.getByRole("button", { name: "Take 3 days off" }));
+
+    await waitFor(() => {
+      expect(api.state.habits.map((h) => h.daysOff)).toEqual([
+        [first, addDays(today, 4), last],
+        [first, addDays(today, 4), last],
+      ]);
+    });
+    expect(
+      await within(section).findByText(`${formatDayShort(first)} – ${formatDayShort(last)}`),
+    ).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+    await waitFor(() => {
+      expect(api.state.habits.map((h) => h.daysOff)).toEqual([[], []]);
+    });
+  });
+
+  it("takes a single day off from the week strip's context menu", async () => {
+    const user = userEvent.setup();
+    const yesterday = addDays(today, -1);
+    const api = open("/habits", [makeFakeHabit("Read", addDays(today, -5))]);
+
+    const day = await screen.findByRole("button", { name: `Read on ${formatDayShort(yesterday)}` });
+    await user.pointer({ keys: "[MouseRight]", target: day });
+    await user.click(await screen.findByRole("menuitem", { name: "Day off" }));
+
+    await waitFor(() => {
+      expect(api.state.habits[0]?.daysOff).toEqual([yesterday]);
+    });
+    expect(
+      await screen.findByRole("button", { name: `Read on ${formatDayShort(yesterday)} (day off)` }),
+    ).toBeInTheDocument();
   });
 });

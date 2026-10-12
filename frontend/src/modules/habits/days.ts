@@ -28,11 +28,12 @@ export function historyWeeks(today: IsoDate): IsoDate[][] {
 }
 
 /** What a day means for a habit. */
-export type DayState = "done" | "missed" | "open" | "unscheduled" | "future";
+export type DayState = "done" | "missed" | "open" | "unscheduled" | "off" | "future";
 
 /** Classifies one day of a habit relative to today. */
 export function dayState(habit: Habit, day: IsoDate, today: IsoDate): DayState {
   if (habit.checkins.includes(day)) return "done";
+  if (habit.days_off.includes(day) || habit.days_off_ahead.includes(day)) return "off";
   if (day > today) return "future";
   if (!habit.scheduled.includes(day)) return "unscheduled";
   return day === today ? "open" : "missed";
@@ -41,4 +42,28 @@ export function dayState(habit: Habit, day: IsoDate, today: IsoDate): DayState {
 /** Whether the habit is scheduled today and not yet checked. */
 export function isDueToday(habit: Habit, today: IsoDate): boolean {
   return habit.scheduled.includes(today) && !habit.checkins.includes(today);
+}
+
+/** A run of consecutive days, both ends inclusive. */
+export interface DayRun {
+  start: IsoDate;
+  end: IsoDate;
+}
+
+/** Groups days into runs of consecutive days (a holiday reads as one range). */
+export function dayRuns(days: readonly IsoDate[]): DayRun[] {
+  const runs: DayRun[] = [];
+  for (const day of [...new Set(days)].sort()) {
+    const last = runs.at(-1);
+    if (last !== undefined && addDays(last.end, 1) === day) last.end = day;
+    else runs.push({ start: day, end: day });
+  }
+  return runs;
+}
+
+/** Every day from `start` to `end`, both inclusive (empty when reversed). */
+export function daysBetweenInclusive(start: IsoDate, end: IsoDate): IsoDate[] {
+  const days: IsoDate[] = [];
+  for (let day = start; day <= end; day = addDays(day, 1)) days.push(day);
+  return days;
 }

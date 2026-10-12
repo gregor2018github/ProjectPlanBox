@@ -15,9 +15,10 @@ import {
   useDeleteHabit,
   useRestoreHabit,
   useSetChecked,
+  useSetDaysOff,
   useUpdateHabit,
 } from "./mutations";
-import { habitRef, type Habit, type HabitPatch } from "./types";
+import { habitRef, type Habit, type HabitDay, type HabitPatch } from "./types";
 
 /** Returns the habit actions bound to the current caches. */
 export function useHabitActions() {
@@ -29,6 +30,7 @@ export function useHabitActions() {
   const deleteHabit = useDeleteHabit();
   const restoreHabit = useRestoreHabit();
   const setChecked = useSetChecked();
+  const setDaysOff = useSetDaysOff();
 
   return useMemo(
     () => ({
@@ -58,6 +60,29 @@ export function useHabitActions() {
         });
       },
 
+      /**
+       * Takes days off (or back); undo reverts exactly the days that changed.
+       * `label` names the change for the undo toast.
+       */
+      setDaysOff(items: HabitDay[], off: boolean, label: string): void {
+        if (today === null || items.length === 0) return;
+        void setDaysOff.mutateAsync({ items, off, today }).then(
+          (changed) => {
+            if (changed.items.length === 0) return;
+            pushUndo({
+              label,
+              silent: items.length === 1,
+              undo: () => {
+                setDaysOff.mutate({ items: changed.items, off: !off, today });
+              },
+            });
+          },
+          () => {
+            // The mutation already rolled back and showed the error.
+          },
+        );
+      },
+
       remove(habit: Habit): void {
         deleteHabit.mutate({ id: habit.id });
         pushUndo({
@@ -76,7 +101,17 @@ export function useHabitActions() {
         });
       },
     }),
-    [navigate, pushUndo, today, createHabit, updateHabit, deleteHabit, restoreHabit, setChecked],
+    [
+      navigate,
+      pushUndo,
+      today,
+      createHabit,
+      updateHabit,
+      deleteHabit,
+      restoreHabit,
+      setChecked,
+      setDaysOff,
+    ],
   );
 }
 

@@ -4,7 +4,7 @@
  * refetch that follows every mutation.
  */
 import type { IsoDate } from "../../core/time";
-import { DEFAULT_RULE, type Habit, type HabitPatch, type HabitRow } from "./types";
+import { DEFAULT_RULE, type Habit, type HabitDay, type HabitPatch, type HabitRow } from "./types";
 
 /** Variables of a create. */
 export interface CreateHabitVars {
@@ -25,6 +25,8 @@ export function buildHabit(vars: CreateHabitVars, today: IsoDate, now: string): 
     updated_at: now,
     checkins: [],
     scheduled: [today],
+    days_off: [],
+    days_off_ahead: [],
     current_streak: 0,
     best_streak: 0,
     total_checkins: 0,
@@ -81,4 +83,31 @@ export function applyChecked(
 /** Removes a habit. */
 export function applyDelete(habits: readonly Habit[], id: string): Habit[] {
   return habits.filter((h) => h.id !== id);
+}
+
+/**
+ * Takes days off (or back). A day off also leaves the scheduled days; a day
+ * back waits for the refetch, since only the server expands schedules.
+ */
+export function applyDaysOff(
+  habits: readonly Habit[],
+  items: readonly HabitDay[],
+  off: boolean,
+  today: IsoDate,
+): Habit[] {
+  return habits.map((h) => {
+    const days = new Set(items.filter((i) => i.habit_id === h.id).map((i) => i.day));
+    if (days.size === 0) return h;
+    const change = (list: readonly string[], keep: (day: string) => boolean) =>
+      off
+        ? [...new Set([...list, ...[...days].filter(keep)])].sort()
+        : list.filter((d) => !days.has(d));
+    return {
+      ...h,
+      // Days outside the cached range drop out again with the refetch.
+      days_off: change(h.days_off, () => true),
+      days_off_ahead: change(h.days_off_ahead, (d) => d >= today),
+      scheduled: off ? h.scheduled.filter((d) => !days.has(d)) : h.scheduled,
+    };
+  });
 }

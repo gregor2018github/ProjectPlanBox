@@ -5,11 +5,11 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 
 from planbox.core.placement import Positions
-from planbox.modules.habits.models import Checkin, Habit
+from planbox.modules.habits.models import Checkin, DayOff, Habit
 
 _HABIT = "id, name, notes, rrule, start_date, position, created_at, updated_at, deleted_at"
 _HABIT_EDITABLE = frozenset({"name", "notes", "rrule", "start_date", "position"})
-_CHECKIN = "id, habit_id, day, created_at, updated_at, deleted_at"
+_DAY_ROW = "id, habit_id, day, created_at, updated_at, deleted_at"
 _CHUNK = 500
 
 
@@ -72,28 +72,31 @@ class HabitRepository:
         )
 
 
-class CheckinRepository:
-    """``habits_checkins``."""
+class _DayRepository[T: (Checkin, DayOff)]:
+    """A table of one live row per habit and day (check-ins, days off)."""
+
+    _table: str
+    _row: type[T]
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
-    def live_on(self, habit_id: str, day: str) -> Checkin | None:
-        """The live check-in of a habit on a day, if any."""
+    def live_on(self, habit_id: str, day: str) -> T | None:
+        """The live row of a habit on a day, if any."""
         row = self._conn.execute(
-            f"SELECT {_CHECKIN} FROM habits_checkins "  # noqa: S608
+            f"SELECT {_DAY_ROW} FROM {self._table} "  # noqa: S608
             "WHERE habit_id = ? AND day = ? AND deleted_at IS NULL",
             (habit_id, day),
         ).fetchone()
-        return None if row is None else Checkin(**dict(row))
+        return None if row is None else self._row(**dict(row))
 
     def live_days(self, habit_ids: Sequence[str]) -> dict[str, list[str]]:
-        """Every checked day per habit, ascending."""
+        """Every day with a live row per habit, ascending."""
         result: dict[str, list[str]] = {habit_id: [] for habit_id in habit_ids}
         for start in range(0, len(habit_ids), _CHUNK):
             chunk = list(habit_ids[start : start + _CHUNK])
             rows = self._conn.execute(
-                "SELECT habit_id, day FROM habits_checkins WHERE deleted_at IS NULL "  # noqa: S608
+                f"SELECT habit_id, day FROM {self._table} WHERE deleted_at IS NULL "  # noqa: S608
                 f"AND habit_id IN ({','.join('?' * len(chunk))}) ORDER BY day",
                 chunk,
             ).fetchall()
@@ -101,20 +104,34 @@ class CheckinRepository:
                 result[str(r["habit_id"])].append(str(r["day"]))
         return result
 
-    def insert(self, checkin: Checkin) -> None:
-        """Inserts a check-in."""
+    def insert(self, row: T) -> None:
+        """Inserts a row."""
         self._conn.execute(
-            f"INSERT INTO habits_checkins ({_CHECKIN}) "  # noqa: S608
+            f"INSERT INTO {self._table} ({_DAY_ROW}) "  # noqa: S608
             "VALUES (:id, :habit_id, :day, :created_at, :updated_at, :deleted_at)",
-            dataclasses.asdict(checkin),
+            dataclasses.asdict(row),
         )
 
-    def set_deleted(self, checkin_id: str, deleted_at: str, now: str) -> None:
-        """Soft-deletes a check-in (unchecking a day)."""
+    def set_deleted(self, row_id: str, deleted_at: str, now: str) -> None:
+        """Soft-deletes a row (unchecking a day, taking a day off back)."""
         self._conn.execute(
-            "UPDATE habits_checkins SET deleted_at = ?, updated_at = ? WHERE id = ?",
-            (deleted_at, now, checkin_id),
+            f"UPDATE {self._table} SET deleted_at = ?, updated_at = ? WHERE id = ?",  # noqa: S608
+            (deleted_at, now, row_id),
         )
+
+
+class CheckinRepository(_DayRepository[Checkin]):
+    """``habits_checkins``."""
+
+    _table = "habits_checkins"
+    _row = Checkin
+
+
+class DayOffRepository(_DayRepository[DayOff]):
+    """``habits_days_off``."""
+
+    _table = "habits_days_off"
+    _row = DayOff
 
 
 def summarize_habits(

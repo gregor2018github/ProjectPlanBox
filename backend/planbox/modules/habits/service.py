@@ -2,13 +2,14 @@
 
 Rules (ARCHITECTURE §7c): a habit's schedule is an RRULE on floating dates,
 anchored on its start date. Check-ins are floating dates in the configured
-zone, never in the future. Deleting a habit keeps its check-ins, so a
-restore brings its history back.
+zone, never in the future. Days off are single dates the schedule skips
+(any day, past or future). Deleting a habit keeps its check-ins and days
+off, so a restore brings its history back.
 """
 
 import re
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
@@ -19,8 +20,12 @@ from planbox.core.db import transaction
 from planbox.core.errors import NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
 from planbox.core.placement import free_position, place
-from planbox.modules.habits.models import Checkin, Habit, HabitView
-from planbox.modules.habits.repository import CheckinRepository, HabitRepository
+from planbox.modules.habits.models import Checkin, DayOff, Habit, HabitView
+from planbox.modules.habits.repository import (
+    CheckinRepository,
+    DayOffRepository,
+    HabitRepository,
+)
 from planbox.modules.habits.streaks import streaks
 
 ENTITY_TYPE = "habits.habit"
@@ -28,6 +33,7 @@ DEFAULT_RULE = "FREQ=DAILY"
 MAX_NAME = 200
 MAX_NOTES = 20_000
 MAX_RANGE_DAYS = 400
+MAX_DAYS_OFF_CHANGE = 5_000
 _WHITESPACE = re.compile(r"\s+")
 
 
@@ -37,11 +43,12 @@ class Repositories:
 
     habits: HabitRepository
     checkins: CheckinRepository
+    days_off: DayOffRepository
 
     @classmethod
     def on(cls, conn: sqlite3.Connection) -> "Repositories":
         """Builds all repositories on ``conn``."""
-        return cls(HabitRepository(conn), CheckinRepository(conn))
+        return cls(HabitRepository(conn), CheckinRepository(conn), DayOffRepository(conn))
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,9 +111,13 @@ class HabitService:
         if (end - start).days >= MAX_RANGE_DAYS:
             raise ValidationFailed(f"Ask for at most {MAX_RANGE_DAYS} days at a time.")
         habits = self._repos.habits.list_live()
-        days = self._repos.checkins.live_days([h.id for h in habits])
+        ids = [h.id for h in habits]
+        days = self._repos.checkins.live_days(ids)
+        off = self._repos.days_off.live_days(ids)
         today = self._today()
-        return [self._view(h, days[h.id], start, end, today) for h in habits]
+        return [
+            self._view(h, days[h.id], off[h.id], start=start, end=end, today=today) for h in habits
+        ]
 
     # ---- writes
 
@@ -243,6 +254,47 @@ class HabitService:
                 now = utc_now_iso(self._clock)
                 self._repos.checkins.set_deleted(existing.id, now, now)
 
+    def set_days_off(self, items: Sequence[tuple[str, date]], off: bool) -> list[tuple[str, date]]:
+        """Takes days off (or back) for habits; days already in that state are left alone.
+
+        Args:
+            items: ``(habit_id, day)`` pairs, e.g. a holiday for every habit.
+            off: True takes the days off, False puts them back on the schedule.
+
+        Returns:
+            The pairs that changed, in the given order (what an undo reverts).
+
+        Raises:
+            NotFound: If a habit is not live.
+            ValidationFailed: If there are too many pairs.
+        """
+        if len(items) > MAX_DAYS_OFF_CHANGE:
+            raise ValidationFailed(f"Change at most {MAX_DAYS_OFF_CHANGE} days at a time.")
+        changed: list[tuple[str, date]] = []
+        with transaction(self._conn):
+            for habit_id in dict.fromkeys(habit_id for habit_id, _ in items):
+                _live(self._repos.habits.get(habit_id))
+            now = utc_now_iso(self._clock)
+            for habit_id, day in dict.fromkeys(items):
+                existing = self._repos.days_off.live_on(habit_id, day.isoformat())
+                if off and existing is None:
+                    self._repos.days_off.insert(
+                        DayOff(
+                            id=new_id(),
+                            habit_id=habit_id,
+                            day=day.isoformat(),
+                            created_at=now,
+                            updated_at=now,
+                            deleted_at=None,
+                        )
+                    )
+                elif not off and existing is not None:
+                    self._repos.days_off.set_deleted(existing.id, now, now)
+                else:
+                    continue
+                changed.append((habit_id, day))
+        return changed
+
     # ---- helpers
 
     def _today(self) -> date:
@@ -263,19 +315,27 @@ class HabitService:
             raise ValidationFailed(str(exc)) from exc
 
     def _view(
-        self, habit: Habit, checked_days: list[str], start: date, end: date, today: date
+        self,
+        habit: Habit,
+        checked_days: list[str],
+        off_days: list[str],
+        *,
+        start: date,
+        end: date,
+        today: date,
     ) -> HabitView:
         first = date.fromisoformat(habit.start_date)
         anchor = recurrence.all_day_anchor(first, first)
+        off = {date.fromisoformat(d) for d in off_days}
 
         def scheduled(lo: date, hi: date) -> list[date]:
-            """Scheduled days in ``[lo, hi]``."""
+            """Scheduled days in ``[lo, hi]``, without the days off."""
             if hi < lo:
                 return []
             spans = recurrence.between(
                 habit.rrule, anchor, _midnight(lo), _midnight(hi + timedelta(days=1))
             )
-            return [s.occurrence_date for s in spans]
+            return [s.occurrence_date for s in spans if s.occurrence_date not in off]
 
         checked = {date.fromisoformat(d) for d in checked_days}
         current, best = streaks(scheduled(first, today), checked, today)
@@ -283,6 +343,8 @@ class HabitService:
             habit=habit,
             checkins=[d for d in checked_days if start.isoformat() <= d <= end.isoformat()],
             scheduled=[d.isoformat() for d in scheduled(max(start, first), end)],
+            days_off=[d for d in off_days if start.isoformat() <= d <= end.isoformat()],
+            days_off_ahead=[d for d in off_days if d >= today.isoformat()],
             current_streak=current,
             best_streak=best,
             total_checkins=len(checked_days),

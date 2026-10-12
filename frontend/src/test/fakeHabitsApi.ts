@@ -7,10 +7,11 @@ import type { FetchFn } from "../core/api/client";
 import { addDays } from "../core/time";
 import type { Habit, HabitRow } from "../modules/habits/types";
 
-/** One stored habit: its row and its checked days. */
+/** One stored habit: its row, its checked days and its days off. */
 export interface FakeHabit {
   row: HabitRow;
   checkins: string[];
+  daysOff?: string[];
   deleted?: boolean;
 }
 
@@ -48,10 +49,13 @@ function overview(habit: FakeHabit, start: string, end: string, today: string): 
       best = Math.max(best, run);
     } else if (day < today) run = 0;
   }
+  const off = habit.daysOff ?? [];
   return {
     ...habit.row,
     checkins: habit.checkins.filter((d) => d >= start && d <= end).sort(),
-    scheduled: daysFrom(first > start ? first : start, end),
+    scheduled: daysFrom(first > start ? first : start, end).filter((d) => !off.includes(d)),
+    days_off: off.filter((d) => d >= start && d <= end).sort(),
+    days_off_ahead: off.filter((d) => d >= today).sort(),
     current_streak: run,
     best_streak: best,
     total_checkins: habit.checkins.length,
@@ -102,6 +106,18 @@ export function createFakeHabitsApi(
       const start = url.searchParams.get("start") ?? state.today;
       const end = url.searchParams.get("end") ?? state.today;
       return json(live().map((h) => overview(h, start, end, state.today)));
+    }
+    if (path === "/api/habits/days-off") {
+      const items = (b.items ?? []) as { habit_id: string; day: string }[];
+      const changed = items.filter((item) => {
+        const target = state.habits.find((h) => h.row.id === item.habit_id);
+        if (target === undefined) return false;
+        const off = target.daysOff ?? [];
+        if (off.includes(item.day) === b.off) return false;
+        target.daysOff = b.off === true ? [...off, item.day] : off.filter((d) => d !== item.day);
+        return true;
+      });
+      return json({ items: changed });
     }
     if (id === undefined && method === "POST") {
       const habit = makeFakeHabit(String(b.name), state.today);
