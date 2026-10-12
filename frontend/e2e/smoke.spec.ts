@@ -76,9 +76,14 @@ test("drag and drop reorders, and the order survives a reload", async ({ page })
   await page.mouse.down();
   await page.mouse.move(from.x + from.width / 2, from.y - 10, { steps: 5 });
   await page.mouse.move(to.x + to.width / 2, to.y + 2, { steps: 15 });
+  // The new order shows at once (optimistic); reload only once the server has it.
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith("/move") && r.request().method() === "POST",
+  );
   await page.mouse.up();
 
   await expect.poll(ours).toEqual([c, a, b]);
+  expect((await saved).ok()).toBe(true);
   await page.reload();
   await expect.poll(ours).toEqual([c, a, b]);
   // Rows stay plain list items (no role="button" wrapping the row's own buttons).
@@ -101,9 +106,14 @@ test("Today reorders by drag and drop, and the order survives a reload", async (
   await page.mouse.down();
   await page.mouse.move(from.x + from.width / 2, from.y - 10, { steps: 5 });
   await page.mouse.move(to.x + to.width / 2, to.y + 2, { steps: 15 });
+  // The new order shows at once (optimistic); reload only once the server has it.
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith("/api/todos/today-order") && r.request().method() === "POST",
+  );
   await page.mouse.up();
 
   await expect.poll(ours).toEqual([c, a, b]);
+  expect((await saved).ok()).toBe(true);
   await page.reload();
   await expect.poll(ours).toEqual([c, a, b]);
 });
