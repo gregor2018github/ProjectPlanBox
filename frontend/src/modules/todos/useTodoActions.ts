@@ -27,7 +27,7 @@ import {
 } from "./mutations";
 import { todoKeys } from "./queries";
 import type { Placement, RepeatFrom, Todo } from "./types";
-import { todoUi } from "./uiStore";
+import { todoUi, type PendingPicker } from "./uiStore";
 
 /** Input for creating a todo; tags named in `new_tags` are created first. */
 export type NewTodoInput = Omit<CreateTodoVars, "id"> & { new_tags?: string[] };
@@ -294,7 +294,7 @@ export function useTodoActions() {
       },
 
       /** Opens the todo in the detail panel (optionally with a picker open). */
-      open(t: Todo, picker: "due" | "place" | null = null): void {
+      open(t: Todo, picker: PendingPicker = null): void {
         todoUi.select(t.id);
         todoUi.requestPicker(picker);
         void navigate({

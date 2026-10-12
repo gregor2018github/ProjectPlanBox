@@ -11,11 +11,25 @@ export interface TagPickerProps {
   tags: readonly Tag[];
   selected: readonly string[];
   onChange: (tagIds: string[]) => void;
+  /** Controlled opening (e.g. by the L shortcut); uncontrolled when absent. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Toggle tags on an item; typing a new name and pressing Enter creates it. */
-export function TagPicker({ tags, selected, onChange }: TagPickerProps) {
-  const [open, setOpen] = useState(false);
+export function TagPicker({
+  tags,
+  selected,
+  onChange,
+  open: openProp,
+  onOpenChange,
+}: TagPickerProps) {
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = openProp ?? openLocal;
+  const setOpen = (next: boolean) => {
+    setOpenLocal(next);
+    onOpenChange?.(next);
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const createTag = useCreateTag();
 

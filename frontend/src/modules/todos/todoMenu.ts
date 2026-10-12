@@ -6,6 +6,7 @@ import {
   CalendarX,
   Check,
   FolderInput,
+  Tag,
   PanelRightOpen,
   RotateCcw,
   SkipForward,
@@ -109,6 +110,15 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
       },
     })),
     { kind: "separator", id: "s3" },
+    {
+      id: "tags",
+      label: "Tags…",
+      icon: Tag,
+      shortcut: "L",
+      onSelect: () => {
+        actions.open(todo, "tags");
+      },
+    },
     {
       id: "move",
       label: "Move to…",

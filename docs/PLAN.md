@@ -217,6 +217,10 @@ Small iterations after a first day of use at work, one commit each:
   open, keeps the shortcuts whose description, group or keys contain every
   typed word. Plain substring words rather than the palette's fuzzy scorer,
   so a reference list does not fill with loose matches.
+- **L for tags.** On a selected todo, `L` opens its detail panel with the
+  tag picker open (like `D` and `V`; also "Tags…" in the row menu). With a
+  knowledge entry open, `L` opens that entry's tag picker. `L` as in label,
+  since `T` is "due today" and `#` names a list in quick-add.
 
 ## Dependencies
 

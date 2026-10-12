@@ -372,4 +372,29 @@ describe("todos", () => {
     });
     expect(within(checklist).getByRole("button", { name: "Due Tomorrow" })).toBeInTheDocument();
   });
+
+  it("opens the tag picker for the selected todo with L", async () => {
+    const user = userEvent.setup();
+    const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa41", title: "Report" });
+    const tag = {
+      id: "01a11c71-6563-773d-8602-c5617ab6aa42",
+      name: "work",
+      created_at: "2026-10-01T08:00:00.000Z",
+      updated_at: "2026-10-01T08:00:00.000Z",
+    };
+    const api = open("/todos/inbox", createFakeTodoApi({ todos: [todo], tags: [tag] }));
+    await screen.findByRole("checkbox", { name: "Complete “Report”" });
+
+    await user.keyboard("{ArrowDown}l");
+    const find = await screen.findByPlaceholderText("Find or create a tag…");
+    await waitFor(() => {
+      expect(find).toHaveFocus();
+    });
+    await user.keyboard("work{Enter}");
+
+    await waitFor(() => {
+      const patch = api.state.requests.find((r) => r.method === "PATCH");
+      expect(patch?.body).toEqual({ tag_ids: [tag.id] });
+    });
+  });
 });

@@ -1,6 +1,8 @@
 import { Copy, ExternalLink, Folder, Inbox, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { LinkedItems } from "../../../core/links/LinkedItems";
+import { useShortcut } from "../../../core/shortcuts/useShortcut";
 import { TagPicker } from "../../../core/tags/TagPicker";
 import { AutosaveTextArea } from "../../../ui/AutosaveTextArea";
 import { Button } from "../../../ui/Button";
@@ -32,6 +34,20 @@ export function EntryDetail({ id }: EntryDetailProps) {
   const data = useKnowledgeData();
   const actions = useKnowledgeActions();
   const entry = data.allEntries.find((e) => e.id === id);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  useShortcut(
+    entry === undefined
+      ? null
+      : {
+          id: "knowledge.tags",
+          keys: "L",
+          description: "Add or remove tags of the open entry",
+          group: "Knowledge",
+          run: () => {
+            setTagsOpen(true);
+          },
+        },
+  );
 
   if (entry === undefined) {
     return (
@@ -133,6 +149,8 @@ export function EntryDetail({ id }: EntryDetailProps) {
           }
         />
         <TagPicker
+          open={tagsOpen}
+          onOpenChange={setTagsOpen}
           tags={data.tags}
           selected={entry.tag_ids}
           onChange={(tag_ids) => {

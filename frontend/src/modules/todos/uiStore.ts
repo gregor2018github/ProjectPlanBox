@@ -7,8 +7,8 @@
  */
 import { useSyncExternalStore } from "react";
 
-/** A picker the detail panel opens on arrival (from the D or V shortcuts). */
-export type PendingPicker = "due" | "place" | null;
+/** A picker the detail panel opens on arrival (from the D, V or L shortcuts). */
+export type PendingPicker = "due" | "place" | "tags" | null;
 
 interface State {
   selectedId: string | null;

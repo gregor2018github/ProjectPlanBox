@@ -34,10 +34,11 @@ export function TodoDetail({ id }: TodoDetailProps) {
   const todo = data.allTodos.find((t) => t.id === id);
   const [dueOpenLocal, setDueOpenLocal] = useState(false);
   const [placeOpenLocal, setPlaceOpenLocal] = useState(false);
-  // A shortcut (D or V) may ask for a picker; it stays open until closed here.
+  // A shortcut (D, V or L) may ask for a picker; it stays open until closed here.
   const pending = useTodoUi((s) => s.pendingPicker);
   const dueOpen = dueOpenLocal || pending === "due";
   const placeOpen = placeOpenLocal || pending === "place";
+  const tagsOpen = pending === "tags";
   const setDueOpen = (open: boolean) => {
     setDueOpenLocal(open);
     if (!open) todoUi.requestPicker(null);
@@ -181,6 +182,10 @@ export function TodoDetail({ id }: TodoDetailProps) {
           }}
         />
         <TagPicker
+          {...(tagsOpen && { open: true })}
+          onOpenChange={(open) => {
+            if (!open) todoUi.requestPicker(null);
+          }}
           tags={data.tags}
           selected={todo.tag_ids}
           onChange={(tag_ids) => {

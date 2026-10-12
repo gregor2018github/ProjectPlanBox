@@ -205,6 +205,15 @@ export function useTodoKeyboard(
     }),
   });
   useShortcut({
+    id: "todos.tags",
+    keys: "L",
+    description: "Add or remove tags",
+    group: GROUP,
+    run: withSelected((t) => {
+      actions.open(t, "tags");
+    }),
+  });
+  useShortcut({
     id: "todos.skip",
     keys: "S",
     description: "Skip this repeat (next date, not done)",
