@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { chordMatches, formatKeys, isTypingTarget, parseKeys, type KeyEventLike } from "./keys";
+import { filterShortcuts } from "./overview";
 import { SEQUENCE_TIMEOUT_MS, ShortcutRegistry, type ShortcutEvent } from "./registry";
 
 function key(k: string, mods: Partial<KeyEventLike> = {}): KeyEventLike {
@@ -169,5 +170,24 @@ describe("ShortcutRegistry", () => {
     expect(registry.list()).not.toBe(before);
     expect(registry.list()).toBe(registry.list());
     expect(registry.list().map((s) => s.id)).toEqual(["a"]);
+  });
+});
+
+describe("filterShortcuts", () => {
+  const list = [
+    { description: "Due today", group: "Todos", keys: "T" },
+    { description: "Pick a date", group: "Todos", keys: "D" },
+    { description: "Open command palette", group: "General", keys: "Ctrl+K" },
+  ];
+
+  it("keeps everything for an empty query", () => {
+    expect(filterShortcuts(list, "  ")).toEqual(list);
+  });
+
+  it("needs every word somewhere in description, group or keys", () => {
+    expect(filterShortcuts(list, "date").map((s) => s.keys)).toEqual(["D"]);
+    expect(filterShortcuts(list, "todos DUE").map((s) => s.keys)).toEqual(["T"]);
+    expect(filterShortcuts(list, "ctrl+k").map((s) => s.keys)).toEqual(["Ctrl+K"]);
+    expect(filterShortcuts(list, "general date")).toEqual([]);
   });
 });

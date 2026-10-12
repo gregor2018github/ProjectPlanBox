@@ -1,5 +1,9 @@
+import { useRef, useState } from "react";
+
 import { Dialog } from "../../ui/Dialog";
+import { Input } from "../../ui/Input";
 import { Kbd } from "../../ui/Kbd";
+import { filterShortcuts } from "./overview";
 import { useShortcutList } from "./useShortcut";
 
 /** Props for {@link ShortcutsDialog}. */
@@ -8,13 +12,41 @@ export interface ShortcutsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** The "?" overview of every registered shortcut, grouped. */
+/** The "?" overview of every registered shortcut, grouped, with a filter field on top. */
 export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
-  const shortcuts = useShortcutList().filter((s) => s.hidden !== true);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const shortcuts = filterShortcuts(
+    useShortcutList().filter((s) => s.hidden !== true),
+    query,
+  );
   const groups = [...new Set(shortcuts.map((s) => s.group))];
 
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setQuery("");
+    onOpenChange(next);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Keyboard shortcuts" size="md">
+    <Dialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Keyboard shortcuts"
+      size="md"
+      initialFocus={inputRef}
+    >
+      <div className="px-5 pt-3">
+        <Input
+          ref={inputRef}
+          type="search"
+          aria-label="Search shortcuts"
+          placeholder="Search shortcuts…"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+          }}
+        />
+      </div>
       <div className="overflow-y-auto px-5 pt-2 pb-5">
         {groups.map((group) => (
           <section key={group} className="mt-4 first:mt-2">
@@ -33,6 +65,9 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
             </dl>
           </section>
         ))}
+        {shortcuts.length === 0 && (
+          <p className="py-6 text-center text-sm text-text-muted">No shortcut matches.</p>
+        )}
       </div>
     </Dialog>
   );

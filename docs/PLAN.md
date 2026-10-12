@@ -213,6 +213,10 @@ Small iterations after a first day of use at work, one commit each:
   date, but only from their own detail panel or a list row. The parent's
   checklist now shows each subtask's date and offers a compact date picker
   (the icon appears on hover and focus, always on touch).
+- **Search in the shortcut overview** (`?`): a field on top, focused on
+  open, keeps the shortcuts whose description, group or keys contain every
+  typed word. Plain substring words rather than the palette's fuzzy scorer,
+  so a reference list does not fill with loose matches.
 
 ## Dependencies
 

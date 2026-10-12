@@ -42,6 +42,15 @@ describe("app shell", () => {
     const dialog = await screen.findByRole("dialog", { name: "Keyboard shortcuts" });
     expect(within(dialog).getByText("Open command palette")).toBeInTheDocument();
     expect(within(dialog).getByText("Toggle sidebar")).toBeInTheDocument();
+
+    // The search field has focus and filters the list.
+    const search = within(dialog).getByRole("searchbox", { name: "Search shortcuts" });
+    await waitFor(() => {
+      expect(search).toHaveFocus();
+    });
+    await user.type(search, "sidebar");
+    expect(within(dialog).getByText("Toggle sidebar")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Open command palette")).toBeNull();
   });
 
   it("switches the theme from the palette and remembers it", async () => {
