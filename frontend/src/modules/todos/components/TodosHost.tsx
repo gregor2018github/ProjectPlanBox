@@ -121,6 +121,13 @@ export function TodosHost() {
     run: go(todoPaths.upcoming),
   });
   useShortcut({
+    id: "todos.go.all",
+    keys: "G A",
+    description: "Go to All todos",
+    group: "Navigation",
+    run: go(todoPaths.all),
+  });
+  useShortcut({
     id: "todos.go.logbook",
     keys: "G L",
     description: "Go to Logbook",
@@ -184,6 +191,14 @@ export function TodosHost() {
         group: "Navigation",
         shortcut: "G U",
         run: go(todoPaths.upcoming),
+      },
+      {
+        id: "todos.go.all",
+        title: "Go to All todos",
+        group: "Navigation",
+        shortcut: "G A",
+        keywords: ["overview", "everything", "total"],
+        run: go(todoPaths.all),
       },
       {
         id: "todos.go.logbook",

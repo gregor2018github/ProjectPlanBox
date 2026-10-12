@@ -4,6 +4,7 @@ export const todoPaths = {
   today: "/todos/today",
   upcoming: "/todos/upcoming",
   logbook: "/todos/logbook",
+  all: "/todos/all",
   list: (id: string) => `/todos/lists/${id}`,
   area: (id: string) => `/todos/areas/${id}`,
 } as const;

@@ -241,6 +241,11 @@ Small iterations after a first day of use at work, one commit each:
   `subtasks_completed` (all time) and `subtasks_completed_7`, shown in the
   section line, the "Completed this week" tile and Records. Completing or
   reopening refreshes the todo stats and the activity caches at once.
+- **All todos** (`/todos/all`, sidebar under Upcoming, `G A`): every open
+  todo at once, grouped by place (Inbox, loose lists, then each area's
+  lists, as in the sidebar), subtasks expandable, with the totals in the
+  header (open todos, open subtasks, places) and the open count as the
+  sidebar badge. A selector over the one cached array, like every view.
 
 ## Dependencies
 

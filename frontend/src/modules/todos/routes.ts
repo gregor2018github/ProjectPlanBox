@@ -1,5 +1,6 @@
 import { createRoute, type AnyRoute, type RouteComponent } from "@tanstack/react-router";
 
+import { AllTodosPage } from "./pages/AllTodosPage";
 import { AreaPage } from "./pages/AreaPage";
 import { InboxPage } from "./pages/InboxPage";
 import { ListPage } from "./pages/ListPage";
@@ -12,6 +13,7 @@ const PAGES: [path: string, component: RouteComponent][] = [
   ["/todos/today", TodayPage],
   ["/todos/upcoming", UpcomingPage],
   ["/todos/logbook", LogbookPage],
+  ["/todos/all", AllTodosPage],
   ["/todos/lists/$listId", ListPage],
   ["/todos/areas/$areaId", AreaPage],
 ];

@@ -424,4 +424,25 @@ describe("todos", () => {
       api.state.requests.filter((r) => r.method === "POST" && r.path === "/api/todos/items"),
     ).toHaveLength(1);
   });
+
+  it("shows every open todo on All todos (G A) with the totals", async () => {
+    const user = userEvent.setup();
+    const parent = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa51", title: "Plan trip" });
+    const todos = [
+      parent,
+      makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa52", title: "Visa", parent_id: parent.id }),
+      makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa53", title: "Call mum" }),
+    ];
+    open("/todos/today", createFakeTodoApi({ todos }));
+    const link = await screen.findByRole("link", { name: /All todos/ });
+    await waitFor(() => {
+      expect(within(link).getByText("2")).toBeInTheDocument();
+    });
+
+    await user.keyboard("ga");
+
+    expect(await screen.findByRole("heading", { name: "All todos" })).toBeInTheDocument();
+    expect(screen.getByText("2 open todos · 1 open subtask · 1 place")).toBeInTheDocument();
+    expect(rowTitles("Inbox")).toEqual(["Plan trip", "Call mum"]);
+  });
 });

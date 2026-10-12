@@ -149,6 +149,8 @@ export function upcomingView(todos: readonly Todo[], today: IsoDate): DayGroup[]
 
 /** Sidebar badge numbers. */
 export interface Counts {
+  /** Every open top-level todo (the "All todos" badge). */
+  open: number;
   inbox: number;
   today: number;
   overdue: number;
@@ -157,10 +159,11 @@ export interface Counts {
 
 /** Open counts for the sidebar (Today counts subtasks with a due date too). */
 export function counts(todos: readonly Todo[], today: IsoDate | null): Counts {
-  const result: Counts = { inbox: 0, today: 0, overdue: 0, lists: {} };
+  const result: Counts = { open: 0, inbox: 0, today: 0, overdue: 0, lists: {} };
   for (const t of todos) {
     if (!isOpen(t)) continue;
     if (isTopLevel(t)) {
+      result.open += 1;
       if (t.list_id === null) result.inbox += 1;
       else result.lists[t.list_id] = (result.lists[t.list_id] ?? 0) + 1;
     }
@@ -198,4 +201,69 @@ export function flattenWithChildren(
   return rows.flatMap((row) =>
     expanded.has(row.id) ? [row, ...childrenOf(todos, row.id)] : [row],
   );
+}
+
+/** One place in the "All todos" view: the Inbox or a list (with its area). */
+export interface PlaceGroup {
+  /** "inbox", a list id, or "elsewhere" for todos whose list is not loaded. */
+  key: string;
+  list: TodoList | null;
+  area: Area | null;
+  /** Open top-level todos, in the list's order (sections in order). */
+  todos: Todo[];
+}
+
+/** Everything open, by place, plus the totals the header shows. */
+export interface AllViewData {
+  groups: PlaceGroup[];
+  /** Top-level todos completed today. */
+  done: Todo[];
+  open: number;
+  subtasksOpen: number;
+}
+
+/**
+ * All todos at once: the Inbox, the lists outside areas, then each area's
+ * lists (sidebar order). Places without open todos are left out.
+ */
+export function allView(
+  todos: readonly Todo[],
+  areas: readonly Area[],
+  lists: readonly TodoList[],
+  sections: readonly Section[],
+): AllViewData {
+  const sectionRank = new Map(
+    [...sections].sort(byPosition).map((section, index) => [section.id, index]),
+  );
+  const inListOrder = (a: Todo, b: Todo) =>
+    (sectionRank.get(a.section_id ?? "") ?? -1) - (sectionRank.get(b.section_id ?? "") ?? -1) ||
+    byPosition(a, b);
+  const open = todos.filter((t) => isOpen(t) && isTopLevel(t));
+  const tree = listTree(areas, lists);
+  const places: { key: string; list: TodoList | null; area: Area | null }[] = [
+    { key: "inbox", list: null, area: null },
+    ...tree.loose.map((list) => ({ key: list.id, list, area: null })),
+    ...tree.areas.flatMap(({ area, lists: own }) =>
+      own.map((list) => ({ key: list.id, list, area })),
+    ),
+  ];
+  const known = new Set(lists.map((l) => l.id));
+  const groups = [
+    ...places.map((place) => ({
+      ...place,
+      todos: open.filter((t) => t.list_id === (place.list?.id ?? null)).sort(inListOrder),
+    })),
+    {
+      key: "elsewhere",
+      list: null,
+      area: null,
+      todos: open.filter((t) => t.list_id !== null && !known.has(t.list_id)).sort(byPosition),
+    },
+  ].filter((g) => g.todos.length > 0);
+  return {
+    groups,
+    done: todos.filter((t) => !isOpen(t) && isTopLevel(t)).sort(byPosition),
+    open: open.length,
+    subtasksOpen: todos.filter((t) => isOpen(t) && !isTopLevel(t)).length,
+  };
 }

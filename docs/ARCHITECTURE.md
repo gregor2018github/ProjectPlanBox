@@ -764,8 +764,8 @@ part in links (a linkable source) and search (`documents`: name and notes).
 ### One cache, derived views
 
 For todos the client loads **all open todos plus today's completed ones** in
-one query (`['todos','items']`). Inbox, Today, Upcoming, each area and each
-list (grouped by section, subtasks nested under their parent) are
+one query (`['todos','items']`). Inbox, Today, Upcoming, All todos, each
+area and each list (grouped by section, subtasks nested under their parent) are
 **selectors** over that array (filter, sort and group, memoised). Areas,
 lists, sections and tags are small extra queries.
 

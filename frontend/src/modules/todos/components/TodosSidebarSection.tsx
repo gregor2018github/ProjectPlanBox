@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, FolderPlus, Inbox, Plus, Sun } from "lucide-react";
+import { Archive, CalendarDays, FolderPlus, Inbox, Layers, Plus, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { readStorage, writeStorage } from "../../../core/storage";
@@ -73,6 +73,7 @@ export function TodosSidebarSection() {
         alert={badge.overdue > 0}
       />
       <SidebarLink to={todoPaths.upcoming} label="Upcoming" icon={CalendarDays} />
+      <SidebarLink to={todoPaths.all} label="All todos" icon={Layers} count={badge.open} />
       <SidebarLink to={todoPaths.logbook} label="Logbook" icon={Archive} />
 
       <div
