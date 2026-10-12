@@ -40,6 +40,7 @@ const stats: TodoStats = {
     repeating: 1,
     subtasks_open: 2,
     completed: 40,
+    subtasks_completed: 9,
     added: 55,
     deleted: 3,
   },
@@ -50,6 +51,7 @@ const stats: TodoStats = {
     completed_prev_7: 4,
     added_30: 20,
     completed_30: 22,
+    subtasks_completed_7: 2,
   },
   weeks: [{ start: "2026-10-05", added: 5, completed: 7, deleted: 0 }],
   lead_time: {
@@ -138,7 +140,8 @@ describe("Insights page", () => {
 
     const todos = await screen.findByRole("region", { name: "Todos" });
     expect(await within(todos).findByText("3 overdue · 2 due today")).toBeInTheDocument();
-    expect(within(todos).getByText("+3 vs the week before")).toBeInTheDocument();
+    expect(within(todos).getByText("2 subtasks · +3 vs the week before")).toBeInTheDocument();
+    expect(within(todos).getByText(/40 completed \(9 of them subtasks\)/)).toBeInTheDocument();
     expect(within(todos).getByText("75 %")).toBeInTheDocument();
     expect(within(todos).getByRole("link", { name: /Garden/ })).toBeInTheDocument();
     expect(within(todos).getByText(/Peak: Tue around 09:00/)).toBeInTheDocument();

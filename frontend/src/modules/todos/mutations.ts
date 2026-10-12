@@ -8,6 +8,7 @@ import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-quer
 
 import { useApiClient } from "../../core/api/apiContext";
 import { unwrap } from "../../core/api/client";
+import { insightKeys } from "../../core/insights/insightsQueries";
 import { byPosition, placeAmong } from "../../core/ordering";
 import { useToast } from "../../ui/useToast";
 import {
@@ -147,6 +148,9 @@ export function useSetCompleted() {
     onSuccess: (todos, { completed }) => {
       merge(todos);
       void queryClient.invalidateQueries({ queryKey: todoKeys.logbook });
+      // Home's "Last 7 days" and the Insights numbers count every tick (subtasks too).
+      void queryClient.invalidateQueries({ queryKey: todoKeys.stats });
+      void queryClient.invalidateQueries({ queryKey: insightKeys.all });
       if (!completed && todos.some((t) => t.rrule !== null)) {
         void queryClient.invalidateQueries({ queryKey: todoKeys.items });
       }

@@ -232,7 +232,8 @@ class StatsTotalsOut(BaseModel):
     inbox: int
     repeating: int
     subtasks_open: int
-    completed: int = Field(description="Completed todos that still exist.")
+    completed: int = Field(description="Completed todos that still exist, subtasks included.")
+    subtasks_completed: int = Field(description="The completed subtasks among them.")
     added: int = Field(description="Every todo ever added (deleted ones too).")
     deleted: int
 
@@ -246,6 +247,7 @@ class StatsRecentOut(BaseModel):
     completed_prev_7: int
     added_30: int
     completed_30: int
+    subtasks_completed_7: int = Field(description="Subtasks among the completed_7.")
 
 
 class StatsWeekOut(BaseModel):

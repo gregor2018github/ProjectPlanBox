@@ -39,7 +39,7 @@ export function TodoInsights() {
     <InsightSection
       id={ID}
       title="Todos"
-      subtitle={`${plural(totals.added, "todo")} added so far, ${formatCount(totals.completed)} completed.`}
+      subtitle={`${plural(totals.added, "todo")} added so far, ${formatCount(totals.completed)} completed (${formatCount(totals.subtasks_completed)} of them subtasks).`}
       tiles={
         <>
           <StatTile
@@ -50,7 +50,7 @@ export function TodoInsights() {
           <StatTile
             label="Completed this week"
             value={formatCount(recent.completed_7)}
-            detail={formatDelta(recent.completed_7, recent.completed_prev_7, "the week before")}
+            detail={`${plural(recent.subtasks_completed_7, "subtask")} · ${formatDelta(recent.completed_7, recent.completed_prev_7, "the week before")}`}
           />
           <StatTile
             label="Added this week"
@@ -221,6 +221,7 @@ export function TodoInsights() {
             ],
             ["Repeating todos", formatCount(totals.repeating)],
             ["Open subtasks", formatCount(totals.subtasks_open)],
+            ["Completed subtasks", formatCount(totals.subtasks_completed)],
             ["In the Inbox", formatCount(totals.inbox)],
             ["Deleted", formatCount(totals.deleted)],
           ].map(([term, value]) => (

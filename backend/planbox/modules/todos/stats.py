@@ -56,6 +56,7 @@ class Totals:
     repeating: int
     subtasks_open: int
     completed: int
+    subtasks_completed: int
     added: int
     deleted: int
 
@@ -70,6 +71,7 @@ class Recent:
     completed_prev_7: int
     added_30: int
     completed_30: int
+    subtasks_completed_7: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -292,6 +294,9 @@ class _Snapshot:
         }
         self.added_days = [self.day(t.created_at) for t in todos if t.recurs_from_id is None]
         self.completed_days = [self.day(t.completed_at) for t in todos if t.completed_at]
+        self.subtask_completed_days = [
+            self.day(t.completed_at) for t in todos if t.completed_at and t.parent_id is not None
+        ]
         self.deleted_days = [self.day(t.deleted_at) for t in todos if t.deleted_at]
         self.ages = sorted(self.age(t) for t in self.open)
 
@@ -350,6 +355,7 @@ def _totals(s: _Snapshot) -> Totals:
         repeating=sum(t.rrule is not None for t in s.open),
         subtasks_open=sum(t.parent_id is not None for t in s.open),
         completed=len(s.done),
+        subtasks_completed=sum(t.parent_id is not None for t in s.done),
         added=len(s.added_days),
         deleted=len(s.deleted_days),
     )
@@ -368,6 +374,7 @@ def _recent(s: _Snapshot) -> Recent:
         completed_prev_7=within(s.completed_days, 7, 13),
         added_30=within(s.added_days, 0, 29),
         completed_30=within(s.completed_days, 0, 29),
+        subtasks_completed_7=within(s.subtask_completed_days, 0, 6),
     )
 
 

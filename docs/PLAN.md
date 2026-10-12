@@ -234,6 +234,13 @@ Small iterations after a first day of use at work, one commit each:
   habit or every habit at once (a holiday), or per day from the week
   strip's context menu. They leave the schedule, so streaks survive them
   (ARCHITECTURE §7c).
+- **Subtask ticks in the statistics.** They were already counted (a subtask
+  is a todo, so its completion is in every total, flow, streak and the
+  activity overview) but nowhere visible as such, and Home's "Last 7 days"
+  could lag by the 30 s cache. The todo stats now report
+  `subtasks_completed` (all time) and `subtasks_completed_7`, shown in the
+  section line, the "Completed this week" tile and Records. Completing or
+  reopening refreshes the todo stats and the activity caches at once.
 
 ## Dependencies
 

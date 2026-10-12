@@ -2198,6 +2198,11 @@ export interface components {
             completed_7: number;
             /** Completed Prev 7 */
             completed_prev_7: number;
+            /**
+             * Subtasks Completed 7
+             * @description Subtasks among the completed_7.
+             */
+            subtasks_completed_7: number;
         };
         /**
          * StatsStreaksOut
@@ -2236,7 +2241,7 @@ export interface components {
             added: number;
             /**
              * Completed
-             * @description Completed todos that still exist.
+             * @description Completed todos that still exist, subtasks included.
              */
             completed: number;
             /** Deleted */
@@ -2258,6 +2263,11 @@ export interface components {
             overdue: number;
             /** Repeating */
             repeating: number;
+            /**
+             * Subtasks Completed
+             * @description The completed subtasks among them.
+             */
+            subtasks_completed: number;
             /** Subtasks Open */
             subtasks_open: number;
         };

@@ -200,3 +200,21 @@ def test_tags_and_oldest_open(client: TestClient, clock: FixedClock) -> None:
     assert body["oldest_open"][0]["id"] == old["id"]
     assert body["oldest_open"][0]["age_days"] == 40
     assert body["open_age"]["buckets"][-2]["count"] == 1  # 1-3 months
+
+
+def test_subtask_completions_count_and_show_on_their_own(client: TestClient) -> None:
+    """Ticking a subtask counts as a completion and is reported as a subtask too."""
+    parent = todo(client, "Trip")
+    first = todo(client, "Book hotel", parent_id=parent["id"])
+    todo(client, "Pack", parent_id=parent["id"])
+    ok(client.post(f"/api/todos/items/{first['id']}/complete"))
+
+    body = stats(client)
+
+    assert body["totals"]["completed"] == 1
+    assert body["totals"]["subtasks_completed"] == 1
+    assert body["totals"]["subtasks_open"] == 1
+    assert body["recent"]["completed_7"] == 1
+    assert body["recent"]["subtasks_completed_7"] == 1
+    assert body["weeks"][-1]["completed"] == 1
+    assert body["streaks"]["current"] == 1
