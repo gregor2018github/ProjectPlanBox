@@ -345,4 +345,31 @@ describe("todos", () => {
     });
     expect(await screen.findByRole("checkbox", { name: "Complete “Final”" })).toBeInTheDocument();
   });
+
+  it("gives a subtask a due date from the parent's checklist", async () => {
+    const user = userEvent.setup();
+    const parent = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa31", title: "Trip" });
+    const child = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa32",
+      title: "Book hotel",
+      parent_id: parent.id,
+      position: "a1",
+    });
+    const api = open("/todos/inbox", createFakeTodoApi({ todos: [parent, child] }));
+
+    await user.click(await screen.findByText("Trip"));
+    const checklist = await screen.findByRole("region", { name: "Subtasks" });
+    await user.click(
+      within(checklist).getByRole("button", { name: "Add due date to “Book hotel”" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Tomorrow" }));
+
+    await waitFor(() => {
+      const patch = api.state.requests.find(
+        (r) => r.method === "PATCH" && r.path === `/api/todos/items/${child.id}`,
+      );
+      expect(patch?.body).toEqual({ due_date: "2026-10-09" });
+    });
+    expect(within(checklist).getByRole("button", { name: "Due Tomorrow" })).toBeInTheDocument();
+  });
 });

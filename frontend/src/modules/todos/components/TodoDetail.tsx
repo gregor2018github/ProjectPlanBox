@@ -211,7 +211,7 @@ export function TodoDetail({ id }: TodoDetailProps) {
       />
 
       {todo.parent_id === null && (
-        <SubtaskList parent={todo} todos={data.allTodos} actions={actions} />
+        <SubtaskList parent={todo} todos={data.allTodos} actions={actions} today={data.today} />
       )}
 
       <LinkedItems entity={todoItemRef(todo.id)} title={todo.title} />

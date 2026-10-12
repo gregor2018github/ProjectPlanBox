@@ -15,6 +15,15 @@ export interface DueDatePickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   actions: TodoActions;
+  /**
+   * A small trigger for rows (the subtask checklist): only the icon without
+   * a date, and the date as muted text with one.
+   */
+  compact?: boolean;
+  /** Accessible name of a compact trigger without a date. */
+  label?: string;
+  /** Layout only (e.g. revealing an empty compact trigger on hover). */
+  className?: string | undefined;
 }
 
 /** A button showing the due date; opens quick picks and a month grid. */
@@ -25,6 +34,9 @@ export function DueDatePicker({
   open,
   onOpenChange,
   actions,
+  compact = false,
+  label = "Add date",
+  className,
 }: DueDatePickerProps) {
   const dates = actions.quickDates();
   const pick = (date: IsoDate | null) => {
@@ -47,13 +59,28 @@ export function DueDatePicker({
       onOpenChange={onOpenChange}
       label="Due date"
       trigger={
-        <Button
-          size="sm"
-          className={cx(overdue && "text-danger", value === null && "text-text-muted")}
-        >
-          <CalendarDays size={16} strokeWidth={1.75} aria-hidden />
-          {value === null ? "Add date" : formatRelativeDay(value, today)}
-        </Button>
+        compact ? (
+          <Button
+            size="sm"
+            aria-label={value === null ? label : `Due ${formatRelativeDay(value, today)}`}
+            className={cx(
+              "px-1.5 font-normal tabular-nums",
+              overdue ? "text-danger" : "text-text-muted",
+              className,
+            )}
+          >
+            <CalendarDays size={14} strokeWidth={1.75} aria-hidden />
+            {value !== null && formatRelativeDay(value, today)}
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            className={cx(overdue && "text-danger", value === null && "text-text-muted", className)}
+          >
+            <CalendarDays size={16} strokeWidth={1.75} aria-hidden />
+            {value === null ? "Add date" : formatRelativeDay(value, today)}
+          </Button>
+        )
       }
     >
       <div className="flex flex-col">

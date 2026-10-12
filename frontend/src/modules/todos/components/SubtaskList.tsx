@@ -5,20 +5,27 @@ import { Checkbox } from "../../../ui/Checkbox";
 import { cx } from "../../../ui/cx";
 import { IconButton } from "../../../ui/IconButton";
 import { Input } from "../../../ui/Input";
+import type { IsoDate } from "../../../core/time";
 import { childrenOf } from "../selectors";
 import type { Todo } from "../types";
 import type { TodoActions } from "../useTodoActions";
 import { InlineTitle } from "../../../ui/InlineTitle";
+import { SubtaskDue } from "./SubtaskDue";
 
 /** Props for {@link SubtaskList}. */
 export interface SubtaskListProps {
   parent: Todo;
   todos: readonly Todo[];
   actions: TodoActions;
+  /** Today in the configured zone; the due-date pickers wait for it. */
+  today: IsoDate | null;
 }
 
-/** The checklist of subtasks in the detail panel, with an "add" field. */
-export function SubtaskList({ parent, todos, actions }: SubtaskListProps) {
+/**
+ * The checklist of subtasks in the detail panel, with an "add" field. Each
+ * subtask can get its own due date here.
+ */
+export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps) {
   const [draft, setDraft] = useState("");
   const children = childrenOf(todos, parent.id);
   const done = children.filter((c) => c.completed_at !== null).length;
@@ -63,6 +70,7 @@ export function SubtaskList({ parent, todos, actions }: SubtaskListProps) {
                 actions.update(child.id, { title });
               }}
             />
+            {today !== null && <SubtaskDue subtask={child} today={today} actions={actions} />}
             <span className="flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 coarse:opacity-100">
               <IconButton
                 label="Promote to todo"

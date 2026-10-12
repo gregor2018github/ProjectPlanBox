@@ -22,6 +22,7 @@ this file records what was planned, decided and pinned.
 | Home overview | Built 2026-10-11 (owner request) |
 | Quote footer | Built 2026-10-11 (owner request) |
 | Create buttons | Built 2026-10-11 (owner request) |
+| Work-day feedback | Built 2026-10-12 (owner request) |
 | **7. Mobile PWA** | **Next, not started** |
 | **8. Data safety and sync** | **Not started** |
 
@@ -204,6 +205,14 @@ It is now an overview with one card per module plus the last 7 days
   Numbers and charts stay on Insights; Home shows only what matters now.
 - **No new endpoints.** Every card reads caches its module already loads;
   the week card shares the Insights activity query.
+
+### Work-day feedback (owner request, 2026-10-12)
+
+Small iterations after a first day of use at work, one commit each:
+- **Subtask due dates in the checklist.** Subtasks always had their own due
+  date, but only from their own detail panel or a list row. The parent's
+  checklist now shows each subtask's date and offers a compact date picker
+  (the icon appears on hover and focus, always on touch).
 
 ## Dependencies
 
