@@ -14,6 +14,8 @@ export interface FakeCalendarState {
   events: (CalendarEvent & { deleted?: boolean })[];
   /** Skipped occurrences as `<event id>:<date>`. */
   exceptions: Set<string>;
+  /** Done marks by `<event id>:<date>`. */
+  marks: Map<string, boolean>;
   requests: { method: string; path: string; query: string; body: unknown }[];
 }
 
@@ -31,8 +33,10 @@ function occurrencesOf(
   start: string,
   end: string,
   skip: Set<string>,
+  marks: Map<string, boolean>,
 ): Occurrence[] {
   const first = singleOccurrence(event, TIME_ZONE);
+  first.marked_done = marks.get(`${event.id}:${first.occurrence_date}`) ?? null;
   if (event.rrule === null) {
     const last = event.end_date ?? first.occurrence_date;
     return first.occurrence_date < end && last >= start ? [first] : [];
@@ -45,6 +49,7 @@ function occurrencesOf(
         ...placeLike(event, date, TIME_ZONE),
         event_id: event.id,
         occurrence_date: date,
+        marked_done: marks.get(`${event.id}:${date}`) ?? null,
       });
     }
   }
@@ -56,6 +61,7 @@ export function createFakeCalendarApi(seed: CalendarEvent[] = [], fallback?: Fet
   const state: FakeCalendarState = {
     events: seed.map((e) => ({ ...e })),
     exceptions: new Set(),
+    marks: new Map(),
     requests: [],
   };
   const live = () => state.events.filter((e) => e.deleted !== true);
@@ -80,7 +86,9 @@ export function createFakeCalendarApi(seed: CalendarEvent[] = [], fallback?: Fet
     if (path === "/api/calendar/events" && method === "GET") {
       const start = url.searchParams.get("start") ?? "";
       const end = url.searchParams.get("end") ?? "";
-      const occurrences = live().flatMap((e) => occurrencesOf(e, start, end, state.exceptions));
+      const occurrences = live().flatMap((e) =>
+        occurrencesOf(e, start, end, state.exceptions, state.marks),
+      );
       const ids = new Set(occurrences.map((o) => o.event_id));
       return json({
         events: live()
@@ -124,6 +132,18 @@ export function createFakeCalendarApi(seed: CalendarEvent[] = [], fallback?: Fet
       }
       target.deleted = true;
       return json({ events: [] });
+    }
+    if (target && sub === "done" && method === "PUT") {
+      const key = `${target.id}:${String(body.occurrence_date)}`;
+      const previous = state.marks.get(key) ?? null;
+      if (body.done === null) state.marks.delete(key);
+      else state.marks.set(key, body.done === true);
+      return json({
+        event_id: target.id,
+        occurrence_date: body.occurrence_date,
+        done: body.done,
+        previous,
+      });
     }
     if (target && sub === "restore") {
       target.deleted = false;

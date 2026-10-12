@@ -6,6 +6,7 @@ from pathlib import Path
 
 from planbox.core.entities import (
     ActivityEvent,
+    ActivityWindow,
     EntitySummary,
     EntityType,
     SearchDocument,
@@ -32,8 +33,8 @@ def _documents(conn: sqlite3.Connection, since: str | None) -> list[SearchDocume
     return [SearchDocument(*row) for row in entry_search_rows(conn, since)]
 
 
-def _activity(conn: sqlite3.Connection, since: str) -> list[ActivityEvent]:
-    return lifecycle_events(entry_activity_rows(conn, since))
+def _activity(conn: sqlite3.Connection, window: ActivityWindow) -> list[ActivityEvent]:
+    return lifecycle_events(entry_activity_rows(conn, window.since))
 
 
 module = Module(

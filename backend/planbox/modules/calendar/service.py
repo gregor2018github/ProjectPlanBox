@@ -11,12 +11,16 @@ calendars:
   before it and, for a change, a new series starts there.
 
 Occurrences are keyed by their local start date in the configured zone.
+
+An occurrence is done once it has ended, unless a done mark set by hand
+says otherwise (ticked early, or unticked after it ended). Marks follow
+their occurrence when a series moves or splits.
 """
 
 import re
 import sqlite3
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
@@ -27,8 +31,18 @@ from planbox.core.db import transaction
 from planbox.core.errors import NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
 from planbox.core.recurrence import Anchor, RecurrenceError, Span
-from planbox.modules.calendar.models import CalendarRange, Event, EventException, Occurrence
-from planbox.modules.calendar.repository import EventRepository, ExceptionRepository
+from planbox.modules.calendar.models import (
+    CalendarRange,
+    DoneMark,
+    Event,
+    EventException,
+    Occurrence,
+)
+from planbox.modules.calendar.repository import (
+    DoneMarkRepository,
+    EventRepository,
+    ExceptionRepository,
+)
 
 ENTITY_TYPE = "calendar.event"
 MAX_TITLE = 500
@@ -48,11 +62,12 @@ class Repositories:
 
     events: EventRepository
     exceptions: ExceptionRepository
+    done_marks: DoneMarkRepository
 
     @classmethod
     def on(cls, conn: sqlite3.Connection) -> "Repositories":
         """Builds all repositories on ``conn``."""
-        return cls(EventRepository(conn), ExceptionRepository(conn))
+        return cls(EventRepository(conn), ExceptionRepository(conn), DoneMarkRepository(conn))
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +287,10 @@ class EventService:
             raise ValidationFailed("The range must end after it starts.")
         if days > MAX_RANGE_DAYS:
             raise ValidationFailed(f"Ask for at most {MAX_RANGE_DAYS} days at a time.")
+        return self._expand(start, end)
+
+    def _expand(self, start: date, end: date) -> CalendarRange:
+        """Events and occurrences in ``[start, end)``, with their done marks."""
         start_utc, end_utc = self._midnight_utc(start), self._midnight_utc(end)
         singles = self._repos.events.list_single_in_range(
             to_iso(start_utc), to_iso(end_utc), start.isoformat(), end.isoformat()
@@ -300,8 +319,48 @@ class EventService:
             if spans:
                 events.append(event)
                 occurrences.extend(self._series_occurrence(event, s) for s in spans)
+        marks = {
+            (m.event_id, m.occurrence_date): m
+            for m in self._repos.done_marks.live_for([e.id for e in events])
+        }
+        occurrences = [
+            replace(o, marked_done=mark.done)
+            if (mark := marks.get((o.event_id, o.occurrence_date))) is not None
+            else o
+            for o in occurrences
+        ]
         occurrences.sort(key=lambda o: (o.start_date or o.start_at or "", o.event_id))
         return CalendarRange(events, occurrences)
+
+    def completions(self, since: str, now: str) -> Iterator[str]:
+        """When occurrences got done, for the Insights activity overview.
+
+        An occurrence ticked by hand counts when it was ticked; one without a
+        mark counts when it ended. Unticked ones do not count.
+
+        Args:
+            since: The earliest UTC instant of interest.
+            now: The current UTC instant; later ends have not happened yet.
+        """
+        first = datetime.fromisoformat(since).astimezone(self._zone).date() - timedelta(
+            days=MAX_SPAN_DAYS
+        )
+        last = datetime.fromisoformat(now).astimezone(self._zone).date() + timedelta(days=1)
+        for occurrence in self._expand(first, last).occurrences:
+            if occurrence.marked_done is None:
+                ended = self._end_instant(occurrence)
+                if since <= ended <= now:
+                    yield ended
+        for mark in self._repos.done_marks.live_since(since):
+            if mark.done:
+                yield mark.updated_at
+
+    def _end_instant(self, occurrence: Occurrence) -> str:
+        """When an occurrence ends (all-day: the start of the day after its last)."""
+        if occurrence.end_at is not None:
+            return occurrence.end_at
+        assert occurrence.end_date is not None  # noqa: S101
+        return to_iso(self._midnight_utc(date.fromisoformat(occurrence.end_date) + timedelta(1)))
 
     def _single_occurrence(self, event: Event) -> Occurrence:
         timing = timing_of(event)
@@ -453,7 +512,20 @@ class EventService:
             for exc in self._repos.exceptions.live_for([event.id]):
                 moved = date.fromisoformat(exc.occurrence_date) + timedelta(days=shift)
                 self._repos.exceptions.move(exc.id, event.id, moved.isoformat(), now)
+        if shift != 0:
+            # So do done marks (a single event's one mark included).
+            self._move_marks(event.id, event.id, shift, now)
         return _live(self._repos.events.get(event.id))
+
+    def _move_marks(
+        self, event_id: str, to_event_id: str, shift: int, now: str, from_day: date | None = None
+    ) -> None:
+        """Re-keys an event's done marks (those from ``from_day`` on) by ``shift`` days."""
+        for mark in self._repos.done_marks.live_for([event_id]):
+            day = date.fromisoformat(mark.occurrence_date)
+            if from_day is None or day >= from_day:
+                moved = (day + timedelta(days=shift)).isoformat()
+                self._repos.done_marks.move(mark.id, to_event_id, moved, now)
 
     def _add_exception(self, event_id: str, day: date) -> None:
         now = utc_now_iso(self._clock)
@@ -491,6 +563,14 @@ class EventService:
         timing = merge_timing(occurrence, fields)
         self._add_exception(event.id, day)
         detached = self._insert(split_id, self._merged_text(event, fields), timing, None)
+        mark = self._repos.done_marks.get_live(event.id, day.isoformat())
+        if mark is not None:
+            self._repos.done_marks.move(
+                mark.id,
+                detached.id,
+                self._local_date(timing).isoformat(),
+                utc_now_iso(self._clock),
+            )
         return [_live(self._repos.events.get(event.id)), detached]
 
     def _split(
@@ -523,6 +603,8 @@ class EventService:
                 if exc_day >= day:
                     moved = exc_day + timedelta(days=shift)
                     self._repos.exceptions.move(exc.id, tail.id, moved.isoformat(), now)
+        # Done marks from here on belong to the new series (or event).
+        self._move_marks(event.id, tail.id, (self._local_date(timing) - day).days, now, day)
         return [_live(self._repos.events.get(event.id)), tail]
 
     def delete(
@@ -572,3 +654,41 @@ class EventService:
             now = utc_now_iso(self._clock)
             self._repos.exceptions.set_deleted(exc.id, now, now)
             return event
+
+    def set_done(self, event_id: str, occurrence_date: date, done: bool | None) -> bool | None:
+        """Marks one occurrence done or not done by hand, or (``None``) back to automatic.
+
+        Returns:
+            The mark it had before (``None``: none), so an undo can put it back.
+
+        Raises:
+            NotFound: If the event does not happen on that date.
+        """
+        with transaction(self._conn):
+            event = _live(self._repos.events.get(event_id))
+            if event.rrule is None:
+                if self._local_date(timing_of(event)) != occurrence_date:
+                    raise NotFound("This event does not happen on that date.")
+            else:
+                self._occurrence(event, occurrence_date)
+            day = occurrence_date.isoformat()
+            mark = self._repos.done_marks.get_live(event.id, day)
+            previous = None if mark is None else mark.done
+            now = utc_now_iso(self._clock)
+            if mark is not None and done is None:
+                self._repos.done_marks.set_deleted(mark.id, now, now)
+            elif mark is not None and done is not None and mark.done != done:
+                self._repos.done_marks.set_done(mark.id, done, now)
+            elif mark is None and done is not None:
+                self._repos.done_marks.insert(
+                    DoneMark(
+                        id=new_id(),
+                        event_id=event.id,
+                        occurrence_date=day,
+                        done=done,
+                        created_at=now,
+                        updated_at=now,
+                        deleted_at=None,
+                    )
+                )
+            return previous

@@ -69,6 +69,7 @@ export function singleOccurrence(event: CalendarEvent, timeZone: string): Occurr
     end_at: event.end_at,
     start_date: event.start_date,
     end_date: event.end_date,
+    marked_done: null,
   };
 }
 
@@ -84,7 +85,12 @@ export function retime(
 ): Occurrence {
   const shift = daysBetween(startDate(before, timeZone), startDate(after, timeZone));
   const date = addDays(occurrence.occurrence_date, shift);
-  return { ...placeLike(after, date, timeZone), event_id: after.id, occurrence_date: date };
+  return {
+    ...placeLike(after, date, timeZone),
+    event_id: after.id,
+    occurrence_date: date,
+    marked_done: occurrence.marked_done,
+  };
 }
 
 /**

@@ -126,3 +126,18 @@ export function useRestoreOccurrence() {
     "Could not restore the event",
   );
 }
+
+/** Marks one occurrence done or not done by hand, or (null) back to automatic. */
+export function useSetEventDone() {
+  const client = useApiClient();
+  return useCalendarMutation(
+    ({ id, date, done }: { id: string; date: IsoDate; done: boolean | null; apply?: MonthPatch }) =>
+      unwrap(
+        client.PUT("/api/calendar/events/{event_id}/done", {
+          params: { path: { event_id: id } },
+          body: { occurrence_date: date, done },
+        }),
+      ),
+    "Could not change the event",
+  );
+}

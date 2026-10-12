@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from planbox.core.clock import Clock, to_iso, utc_now_iso
 from planbox.core.db import transaction
-from planbox.core.entities import EntityRegistry
+from planbox.core.entities import ActivityWindow, EntityRegistry
 from planbox.core.errors import ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
 from planbox.core.insights.models import (
@@ -92,13 +92,14 @@ class InsightsService:
         since = local_start(start, self._zone)
         until = local_start(end + timedelta(days=1), self._zone)
 
+        window = ActivityWindow(since, utc_now_iso(self._clock), self._zone)
         per_day: dict[date, Counter[str]] = {}
         types: list[TypeActivity] = []
         for entity_type in self._registry.all_types():
             if entity_type.activity is None:
                 continue
             totals: Counter[str] = Counter()
-            for event in entity_type.activity(self._conn, since):
+            for event in entity_type.activity(self._conn, window):
                 if event.at < since or event.at >= until:
                     continue
                 day = local_moment(event.at, self._zone).date()

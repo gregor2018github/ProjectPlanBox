@@ -477,6 +477,78 @@
         "title": "DeletedOut",
         "type": "object"
       },
+      "DoneChange": {
+        "description": "Mark one occurrence done or not done by hand; ``null`` goes back to automatic.",
+        "properties": {
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          },
+          "occurrence_date": {
+            "description": "The occurrence's local start date.",
+            "format": "date",
+            "title": "Occurrence Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "occurrence_date",
+          "done"
+        ],
+        "title": "DoneChange",
+        "type": "object"
+      },
+      "DoneOut": {
+        "description": "The occurrence's mark now and before (for undo).",
+        "properties": {
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "occurrence_date": {
+            "format": "date",
+            "title": "Occurrence Date",
+            "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          }
+        },
+        "required": [
+          "event_id",
+          "occurrence_date",
+          "done",
+          "previous"
+        ],
+        "title": "DoneOut",
+        "type": "object"
+      },
       "EntryCreate": {
         "description": "Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.",
         "properties": {
@@ -1787,6 +1859,18 @@
             "title": "Event Id",
             "type": "string"
           },
+          "marked_done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Done set by hand; null means automatic (done once it has ended).",
+            "title": "Marked Done"
+          },
           "occurrence_date": {
             "format": "date",
             "title": "Occurrence Date",
@@ -1822,7 +1906,8 @@
           "start_at",
           "end_at",
           "start_date",
-          "end_date"
+          "end_date",
+          "marked_done"
         ],
         "title": "OccurrenceOut",
         "type": "object"
@@ -3672,6 +3757,59 @@
           }
         },
         "summary": "Update Event",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/calendar/events/{event_id}/done": {
+      "put": {
+        "description": "Marks one occurrence done or not done, or back to automatic (done once ended).",
+        "operationId": "calendar_set_done",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoneChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoneOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Set Done",
         "tags": [
           "calendar"
         ]

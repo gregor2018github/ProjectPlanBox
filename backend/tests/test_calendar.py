@@ -289,3 +289,70 @@ def test_detached_event_cannot_take_a_rule(client: TestClient) -> None:
         },
     )
     assert response.status_code == 422
+
+
+def mark(client: TestClient, event_id: str, day: str, done: bool | None) -> Json:
+    """Sets an occurrence's done mark."""
+    body = {"occurrence_date": day, "done": done}
+    return ok(client.put(f"/api/calendar/events/{event_id}/done", json=body))
+
+
+def marks_of(data: Json, event_id: str) -> dict[str, bool | None]:
+    """Done marks per occurrence date of one event."""
+    return {
+        o["occurrence_date"]: o["marked_done"]
+        for o in data["occurrences"]
+        if o["event_id"] == event_id
+    }
+
+
+def test_done_marks_override_the_automatic_state(client: TestClient) -> None:
+    """No mark means automatic; a mark can be set, changed and cleared, reporting the previous."""
+    event = create(client)
+    assert marks_of(in_range(client), event["id"]) == {"2026-10-08": None}
+
+    assert mark(client, event["id"], "2026-10-08", False)["previous"] is None
+    assert marks_of(in_range(client), event["id"]) == {"2026-10-08": False}
+    assert mark(client, event["id"], "2026-10-08", True)["previous"] is False
+    assert mark(client, event["id"], "2026-10-08", None)["previous"] is True
+    assert marks_of(in_range(client), event["id"]) == {"2026-10-08": None}
+
+    body = {"occurrence_date": "2026-10-09", "done": True}
+    assert client.put(f"/api/calendar/events/{event['id']}/done", json=body).status_code == 404
+
+
+def test_series_marks_are_per_occurrence_and_follow_a_split(client: TestClient) -> None:
+    """Ticking one week leaves the others; splitting moves later marks to the new series."""
+    series = weekly(client)
+    mark(client, series["id"], "2026-10-12", True)
+    mark(client, series["id"], "2026-10-19", True)
+    assert marks_of(in_range(client), series["id"])["2026-10-12"] is True
+    assert marks_of(in_range(client), series["id"])["2026-10-05"] is None
+
+    patch = {
+        "scope": "following",
+        "occurrence_date": "2026-10-19",
+        "start_at": "2026-10-19T09:00:00.000Z",
+        "end_at": "2026-10-19T10:00:00.000Z",
+    }
+    _, tail = ok(client.patch(f"/api/calendar/events/{series['id']}", json=patch))["events"]
+
+    data = in_range(client)
+    assert marks_of(data, series["id"]) == {"2026-10-05": None, "2026-10-12": True}
+    assert marks_of(data, tail["id"])["2026-10-19"] is True
+
+
+def test_done_occurrences_count_in_the_activity_overview(client: TestClient) -> None:
+    """Ended events count when they ended, ticked ones when ticked, unticked ones not at all."""
+    create(client, "Ended")  # 07:00-08:00 UTC today; now is 12:00 UTC
+    unticked = create(client, "Cancelled")
+    mark(client, unticked["id"], "2026-10-08", False)
+    create(client, "Later", start_at="2026-10-08T15:00:00.000Z", end_at="2026-10-08T16:00:00.000Z")
+    early = create(
+        client, "Early", start_at="2026-10-08T17:00:00.000Z", end_at="2026-10-08T18:00:00.000Z"
+    )
+    mark(client, early["id"], "2026-10-08", True)
+
+    activity = ok(client.get("/api/insights/activity?start=2026-10-01&end=2026-10-08"))
+    [calendar] = [t for t in activity["types"] if t["entity_type"] == "calendar.event"]
+    assert calendar["completed"] == 2

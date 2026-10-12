@@ -4,13 +4,14 @@ import dataclasses
 import sqlite3
 from collections.abc import Mapping, Sequence
 
-from planbox.modules.calendar.models import Event, EventException
+from planbox.modules.calendar.models import DoneMark, Event, EventException
 
 _EVENT = (
     "id, title, notes, location, all_day, start_at, end_at, start_date, end_date, rrule, "
     "created_at, updated_at, deleted_at"
 )
 _EXCEPTION = "id, event_id, occurrence_date, created_at, updated_at, deleted_at"
+_MARK = "id, event_id, occurrence_date, done, created_at, updated_at, deleted_at"
 _EVENT_EDITABLE = frozenset(
     {
         "title",
@@ -174,6 +175,83 @@ class ExceptionRepository:
         self._conn.execute(
             "UPDATE calendar_exceptions SET deleted_at = ?, updated_at = ? WHERE id = ?",
             (deleted_at, now, exception_id),
+        )
+
+
+def _mark(row: sqlite3.Row) -> DoneMark:
+    values = dict(row)
+    values["done"] = bool(values["done"])
+    return DoneMark(**values)
+
+
+class DoneMarkRepository:
+    """``calendar_done_marks``."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def live_for(self, event_ids: Sequence[str]) -> list[DoneMark]:
+        """Live marks of the given events."""
+        result: list[DoneMark] = []
+        for chunk in _chunks(event_ids):
+            rows = self._conn.execute(
+                f"SELECT {_MARK} FROM calendar_done_marks "  # noqa: S608
+                f"WHERE deleted_at IS NULL AND event_id IN ({_marks(chunk)}) "
+                "ORDER BY event_id, occurrence_date",
+                chunk,
+            ).fetchall()
+            result.extend(_mark(r) for r in rows)
+        return result
+
+    def get_live(self, event_id: str, occurrence_date: str) -> DoneMark | None:
+        """The live mark of one occurrence, if any."""
+        row = self._conn.execute(
+            f"SELECT {_MARK} FROM calendar_done_marks "  # noqa: S608
+            "WHERE deleted_at IS NULL AND event_id = ? AND occurrence_date = ?",
+            (event_id, occurrence_date),
+        ).fetchone()
+        return None if row is None else _mark(row)
+
+    def insert(self, mark: DoneMark) -> None:
+        """Inserts a mark."""
+        values = dataclasses.asdict(mark)
+        values["done"] = int(mark.done)
+        self._conn.execute(
+            f"INSERT INTO calendar_done_marks ({_MARK}) VALUES ("  # noqa: S608
+            ":id, :event_id, :occurrence_date, :done, :created_at, :updated_at, :deleted_at)",
+            values,
+        )
+
+    def live_since(self, since: str) -> list[DoneMark]:
+        """Live marks of live events set (or changed) at/after ``since``."""
+        rows = self._conn.execute(
+            f"SELECT {', '.join('m.' + c for c in _MARK.split(', '))} "  # noqa: S608
+            "FROM calendar_done_marks m JOIN calendar_events e ON e.id = m.event_id "
+            "WHERE m.deleted_at IS NULL AND e.deleted_at IS NULL AND m.updated_at >= ?",
+            (since,),
+        ).fetchall()
+        return [_mark(r) for r in rows]
+
+    def set_done(self, mark_id: str, done: bool, now: str) -> None:
+        """Changes a mark's state (``updated_at`` records when)."""
+        self._conn.execute(
+            "UPDATE calendar_done_marks SET done = ?, updated_at = ? WHERE id = ?",
+            (int(done), now, mark_id),
+        )
+
+    def move(self, mark_id: str, event_id: str, occurrence_date: str, now: str) -> None:
+        """Re-keys a mark (its occurrence moved to another date or event)."""
+        self._conn.execute(
+            "UPDATE calendar_done_marks SET event_id = ?, occurrence_date = ?, updated_at = ? "
+            "WHERE id = ?",
+            (event_id, occurrence_date, now, mark_id),
+        )
+
+    def set_deleted(self, mark_id: str, deleted_at: str, now: str) -> None:
+        """Clears a mark (back to automatic)."""
+        self._conn.execute(
+            "UPDATE calendar_done_marks SET deleted_at = ?, updated_at = ? WHERE id = ?",
+            (deleted_at, now, mark_id),
         )
 
 

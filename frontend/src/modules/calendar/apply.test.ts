@@ -23,6 +23,7 @@ function weekly(): { series: CalendarEvent; range: CalendarRange } {
     ...placeLike(series, `2026-10-${d}`, TZ),
     event_id: series.id,
     occurrence_date: `2026-10-${d}`,
+    marked_done: null,
   }));
   return { series, range: { events: [series], occurrences } };
 }

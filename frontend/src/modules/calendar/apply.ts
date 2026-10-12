@@ -117,3 +117,18 @@ export function applySplit(
     occurrences: [...rest.occurrences, ...kept.map((o) => retime(o, before, tail, timeZone))],
   };
 }
+
+/** Sets one occurrence's done mark (null: back to automatic). */
+export function applyMarkDone(
+  range: CalendarRange,
+  eventId: string,
+  date: IsoDate,
+  done: boolean | null,
+): CalendarRange {
+  return {
+    events: range.events,
+    occurrences: range.occurrences.map((o) =>
+      o.event_id === eventId && o.occurrence_date === date ? { ...o, marked_done: done } : o,
+    ),
+  };
+}

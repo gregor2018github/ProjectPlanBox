@@ -8,6 +8,7 @@ import { segmentLabel, segmentTimeLabel } from "../format";
 import type { PlacedSegment } from "../selectors";
 import { PX_PER_MINUTE } from "../timeGrid";
 import type { CalendarActions } from "../useCalendarActions";
+import { useEventDone } from "../useEventDone";
 
 /** Props for {@link TimedEventBlock}. */
 export interface TimedEventBlockProps {
@@ -34,13 +35,14 @@ export function TimedEventBlock({
   onOpen,
 }: TimedEventBlockProps) {
   const { event } = segment.item;
+  const done = useEventDone(segment.item);
   const height = Math.max((segment.end - segment.start) * PX_PER_MINUTE, 18);
   const short = height < 40;
   return (
-    <ContextMenu entries={eventMenuEntries(segment.item, actions)}>
+    <ContextMenu entries={eventMenuEntries(segment.item, actions, done)}>
       <button
         type="button"
-        aria-label={segmentLabel(segment)}
+        aria-label={`${segmentLabel(segment)}${done ? ", done" : ""}`}
         onPointerDown={(e) => {
           onGesture(segment, "move", e);
         }}
@@ -54,13 +56,16 @@ export function TimedEventBlock({
           width: `calc(${String(100 / segment.lanes)}% - 2px)`,
         }}
         className={cx(
-          "absolute flex flex-col overflow-hidden rounded-sm border-l-3 border-accent bg-accent-subtle px-1.5 text-left text-xs text-text transition-[opacity,box-shadow] duration-(--duration-fast) ease-out select-none hover:shadow-sm",
+          "absolute flex flex-col overflow-hidden rounded-sm border-l-3 px-1.5 text-left text-xs transition-[opacity,box-shadow] duration-(--duration-fast) ease-out select-none hover:shadow-sm",
+          done
+            ? "border-border-strong bg-hover text-text-muted"
+            : "border-accent bg-accent-subtle text-text",
           short ? "flex-row items-center gap-1.5" : "py-0.5",
           dragging && "opacity-40",
         )}
       >
         <span className="flex min-w-0 items-center gap-1 font-medium">
-          <span className="truncate">{event.title}</span>
+          <span className={cx("truncate", done && "line-through")}>{event.title}</span>
           {event.rrule !== null && (
             <Repeat size={11} strokeWidth={1.75} aria-hidden className="shrink-0 text-text-muted" />
           )}

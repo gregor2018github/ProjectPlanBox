@@ -246,6 +246,23 @@ Small iterations after a first day of use at work, one commit each:
   lists, as in the sidebar), subtasks expandable, with the totals in the
   header (open todos, open subtasks, places) and the open count as the
   sidebar badge. A selector over the one cached array, like every view.
+- **Calendar events can be done.** Insights' "Where the work happens"
+  showed every calendar event as never done, because events had no done
+  state. Now an occurrence is done once it has ended (an all-day one after
+  its last day), or when ticked by hand; unticking an ended one records
+  that it did not happen. Done marks are per occurrence (migration
+  `calendar/0002`) and follow it when a series moves or splits. The agenda
+  rows (rail pane, Home) have a tick, every event has "Mark done" in its
+  menu, and done events turn grey and struck through everywhere. Insights
+  counts each done occurrence as a completion, when it was ticked or when
+  it ended. Decisions:
+  - **The automatic state is computed, not stored.** Only marks set by
+    hand are rows; the client recomputes "ended" every minute, so an event
+    turns done on screen as it ends. Ticking to the state the clock would
+    give anyway clears the mark instead of storing it.
+  - Activity sources now receive an `ActivityWindow` (`since`, `now`,
+    `zone`) instead of a bare `since`, since the calendar must expand
+    series and stop at the present.
 
 ## Dependencies
 

@@ -165,12 +165,51 @@ describe("calendar", () => {
 
     expect(await screen.findByRole("heading", { name: "5–11 October 2026" })).toBeInTheDocument();
     expect(
-      await screen.findByRole("button", { name: "Standup, Thursday, 8 October, 09:00–10:00" }),
+      await screen.findByRole("button", {
+        name: "Standup, Thursday, 8 October, 09:00–10:00, done",
+      }),
     ).toBeInTheDocument();
 
     await user.keyboard("m");
     expect(await screen.findByRole("heading", { name: "October 2026" })).toBeInTheDocument();
     await user.keyboard("j");
     expect(await screen.findByRole("heading", { name: "November 2026" })).toBeInTheDocument();
+  });
+
+  it("ticks events done in the agenda; past ones are done by themselves", async () => {
+    const user = userEvent.setup();
+    const later = makeEvent({
+      title: "Review",
+      start_at: "2026-10-08T14:00:00.000Z",
+      end_at: "2026-10-08T15:00:00.000Z",
+    });
+    const { api } = open("/todos/inbox", [makeEvent({ title: "Standup" }), later]);
+    await user.click(await screen.findByRole("button", { name: "Calendar" }));
+
+    const ended = await within(pane()).findByRole("checkbox", { name: "Mark not done: “Standup”" });
+    expect(ended).toBeChecked();
+    const review = within(pane()).getByRole("checkbox", { name: "Mark done: “Review”" });
+    expect(review).not.toBeChecked();
+
+    await user.click(review);
+    expect(
+      await within(pane()).findByRole("checkbox", { name: "Mark not done: “Review”" }),
+    ).toBeChecked();
+    await waitFor(() => {
+      expect(api.state.marks.get(`${later.id}:2026-10-08`)).toBe(true);
+    });
+    const put = api.state.requests.find((r) => r.method === "PUT");
+    expect(put?.body).toEqual({ occurrence_date: "2026-10-08", done: true });
+
+    await user.keyboard("{Control>}z{/Control}");
+    await waitFor(() => {
+      expect(api.state.marks.has(`${later.id}:2026-10-08`)).toBe(false);
+    });
+
+    // Unticking an ended event records that it did not happen.
+    await user.click(ended);
+    await waitFor(() => {
+      expect([...api.state.marks.values()]).toEqual([false]);
+    });
   });
 });

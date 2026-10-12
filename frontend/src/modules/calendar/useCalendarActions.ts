@@ -10,23 +10,26 @@ import { useMeta } from "../../core/api/coreQueries";
 import type { CalendarFeed } from "../../core/calendar/feed";
 import { useCalendarFeeds } from "../../core/calendar/feedContext";
 import { newId } from "../../core/ids";
-import type { IsoDate } from "../../core/time";
+import { zonedParts, type IsoDate } from "../../core/time";
 import { useUndo } from "../../core/undo/undoContext";
 import {
   applyAdd,
   applyDetach,
+  applyMarkDone,
   applyRemoveFrom,
   applyRemoveOccurrence,
   applyReplace,
   applySplit,
   buildEvent,
 } from "./apply";
+import { toggledMark } from "./done";
 import type { EventDraft } from "./draft";
 import {
   useCreateEvent,
   useDeleteEvent,
   useRestoreEvent,
   useRestoreOccurrence,
+  useSetEventDone,
   useUpdateEvent,
 } from "./mutations";
 import { shiftRule } from "../../core/recurrence/recurrence";
@@ -90,6 +93,7 @@ export function useCalendarActions() {
   const deleteEvent = useDeleteEvent();
   const restoreEvent = useRestoreEvent();
   const restoreOccurrence = useRestoreOccurrence();
+  const setEventDone = useSetEventDone();
 
   return useMemo(() => {
     const feedOf = (entry: EntryItem): CalendarFeed | undefined =>
@@ -299,6 +303,32 @@ export function useCalendarActions() {
         feedOf(entry)?.reschedule(entry.entry.ref, date);
       },
 
+      /**
+       * Ticks an occurrence done or not done. A past one is done by itself;
+       * unticking it marks it "did not happen". Ctrl+Z puts the mark back.
+       */
+      toggleDone(item: EventItem): void {
+        const { occurrence } = item;
+        const at = now();
+        const mark = toggledMark(occurrence, at, zonedParts(at, timeZone).date);
+        const setMark = (done: boolean | null) => {
+          setEventDone.mutate({
+            id: item.event.id,
+            date: occurrence.occurrence_date,
+            done,
+            apply: (r) => applyMarkDone(r, item.event.id, occurrence.occurrence_date, done),
+          });
+        };
+        setMark(mark);
+        pushUndo({
+          label: `Changed “${item.event.title}”`,
+          silent: true,
+          undo: () => {
+            setMark(occurrence.marked_done);
+          },
+        });
+      },
+
       /** Marks another module's item done or not done. */
       toggleEntry(entry: EntryItem): void {
         if (entry.entry.projected !== true) feedOf(entry)?.toggleDone(entry.entry.ref);
@@ -314,6 +344,7 @@ export function useCalendarActions() {
     deleteEvent,
     restoreEvent,
     restoreOccurrence,
+    setEventDone,
   ]);
 }
 

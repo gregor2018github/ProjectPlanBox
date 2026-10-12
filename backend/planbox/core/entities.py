@@ -10,6 +10,7 @@ import sqlite3
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 _TYPE_RE = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 
@@ -71,6 +72,23 @@ class ActivityEvent:
     at: str
 
 
+@dataclass(frozen=True, slots=True)
+class ActivityWindow:
+    """What an activity source is asked for.
+
+    Attributes:
+        since: The earliest UTC instant of interest; earlier events may be
+            returned and are ignored.
+        now: The current UTC instant. Nothing after it has happened yet
+            (sources that derive events from a schedule stop here).
+        zone: The configured zone, for sources that expand local schedules.
+    """
+
+    since: str
+    now: str
+    zone: ZoneInfo
+
+
 def lifecycle_events(rows: Iterable[tuple[str, str | None]]) -> list[ActivityEvent]:
     """Turns ``(created_at, deleted_at)`` pairs into created and deleted events."""
     events: list[ActivityEvent] = []
@@ -84,8 +102,8 @@ def lifecycle_events(rows: Iterable[tuple[str, str | None]]) -> list[ActivityEve
 type Summarizer = Callable[[sqlite3.Connection, Sequence[str]], Mapping[str, EntitySummary]]
 type DocumentSource = Callable[[sqlite3.Connection, str | None], Iterable[SearchDocument]]
 """Documents whose ``updated_at`` is at or after the given instant (all for ``None``)."""
-type ActivitySource = Callable[[sqlite3.Connection, str], Iterable[ActivityEvent]]
-"""Activity events at or after the given instant (soft-deleted rows included)."""
+type ActivitySource = Callable[[sqlite3.Connection, ActivityWindow], Iterable[ActivityEvent]]
+"""Activity events at or after ``window.since`` (soft-deleted rows included)."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,7 +4,13 @@ import sqlite3
 from collections.abc import Sequence
 from pathlib import Path
 
-from planbox.core.entities import ActivityEvent, EntitySummary, EntityType, SearchDocument
+from planbox.core.entities import (
+    ActivityEvent,
+    ActivityWindow,
+    EntitySummary,
+    EntityType,
+    SearchDocument,
+)
 from planbox.core.module import Module
 from planbox.modules.todos.repository import (
     summarize_todos,
@@ -26,14 +32,14 @@ def _documents(conn: sqlite3.Connection, since: str | None) -> list[SearchDocume
     return [SearchDocument(*row) for row in todo_search_rows(conn, since)]
 
 
-def _activity(conn: sqlite3.Connection, since: str) -> list[ActivityEvent]:
+def _activity(conn: sqlite3.Connection, window: ActivityWindow) -> list[ActivityEvent]:
     """Todos added, completed and deleted.
 
     The next occurrence a repeating todo creates itself is not counted as
     added: nobody added it.
     """
     events: list[ActivityEvent] = []
-    for created_at, completed_at, deleted_at, spawned in todo_activity_rows(conn, since):
+    for created_at, completed_at, deleted_at, spawned in todo_activity_rows(conn, window.since):
         if not spawned:
             events.append(ActivityEvent("created", created_at))
         if completed_at is not None:

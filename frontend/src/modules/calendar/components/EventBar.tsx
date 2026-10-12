@@ -8,6 +8,7 @@ import { eventMenuEntries } from "../eventMenu";
 import { segmentLabel } from "../format";
 import type { SpanBar } from "../selectors";
 import type { CalendarActions } from "../useCalendarActions";
+import { useEventDone } from "../useEventDone";
 import { useItemDrag } from "../useItemDrag";
 
 /** Props for {@link EventBar}. */
@@ -33,6 +34,7 @@ export function EventBar({ bar, columns, top, surface, actions, compact = false 
   const { segment } = bar;
   const { ref, isDragging } = useItemDrag(surface, segment.item, actions);
   const { event } = segment.item;
+  const done = useEventDone(segment.item);
   const gutter = compact ? "px-0.5" : "px-1";
   return (
     <div
@@ -46,15 +48,16 @@ export function EventBar({ bar, columns, top, surface, actions, compact = false 
         isDragging && "opacity-50",
       )}
     >
-      <ContextMenu entries={eventMenuEntries(segment.item, actions)}>
+      <ContextMenu entries={eventMenuEntries(segment.item, actions, done)}>
         <button
           type="button"
-          aria-label={segmentLabel(segment)}
+          aria-label={`${segmentLabel(segment)}${done ? ", done" : ""}`}
           onClick={() => {
             actions.open(segment.item);
           }}
           className={cx(
-            "flex h-6 w-full min-w-0 items-center gap-1.5 rounded-sm bg-accent-subtle px-1.5 text-left text-xs text-text transition-colors duration-(--duration-fast) ease-out hover:bg-selected",
+            "flex h-6 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-left text-xs transition-colors duration-(--duration-fast) ease-out hover:bg-selected",
+            done ? "bg-hover text-text-muted" : "bg-accent-subtle text-text",
             bar.continuesBefore && "rounded-l-none",
             bar.continuesAfter && "rounded-r-none",
           )}
@@ -64,7 +67,9 @@ export function EventBar({ bar, columns, top, surface, actions, compact = false 
               {formatMinutes(segment.range.start)}
             </span>
           )}
-          <span className="min-w-0 flex-1 truncate">{event.title}</span>
+          <span className={cx("min-w-0 flex-1 truncate", done && "line-through")}>
+            {event.title}
+          </span>
           {event.rrule !== null && (
             <Repeat size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-text-muted" />
           )}

@@ -56,6 +56,26 @@ export interface paths {
         patch: operations["calendar_update_event"];
         trace?: never;
     };
+    "/api/calendar/events/{event_id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Done
+         * @description Marks one occurrence done or not done, or back to automatic (done once ended).
+         */
+        put: operations["calendar_set_done"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/calendar/events/{event_id}/occurrences/{occurrence_date}/restore": {
         parameters: {
             query?: never;
@@ -1331,6 +1351,37 @@ export interface components {
             todos: number;
         };
         /**
+         * DoneChange
+         * @description Mark one occurrence done or not done by hand; ``null`` goes back to automatic.
+         */
+        DoneChange: {
+            /** Done */
+            done: boolean | null;
+            /**
+             * Occurrence Date
+             * Format: date
+             * @description The occurrence's local start date.
+             */
+            occurrence_date: string;
+        };
+        /**
+         * DoneOut
+         * @description The occurrence's mark now and before (for undo).
+         */
+        DoneOut: {
+            /** Done */
+            done: boolean | null;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Occurrence Date
+             * Format: date
+             */
+            occurrence_date: string;
+            /** Previous */
+            previous: boolean | null;
+        };
+        /**
          * EntryCreate
          * @description Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.
          */
@@ -1860,6 +1911,11 @@ export interface components {
             end_date: string | null;
             /** Event Id */
             event_id: string;
+            /**
+             * Marked Done
+             * @description Done set by hand; null means automatic (done once it has ended).
+             */
+            marked_done: boolean | null;
             /**
              * Occurrence Date
              * Format: date
@@ -2699,6 +2755,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventsOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    calendar_set_done: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DoneChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoneOut"];
                 };
             };
             /** @description Problem details */

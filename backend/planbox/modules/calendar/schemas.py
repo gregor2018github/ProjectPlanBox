@@ -8,7 +8,7 @@ accept a client-generated ``id`` so optimistic rows are the real rows.
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EventOut(BaseModel):
@@ -37,6 +37,9 @@ class OccurrenceOut(BaseModel):
     end_at: str | None
     start_date: date | None
     end_date: date | None
+    marked_done: bool | None = Field(
+        description="Done set by hand; null means automatic (done once it has ended)."
+    )
 
 
 class CalendarRangeOut(BaseModel):
@@ -87,3 +90,19 @@ class EventPatch(BaseModel):
     scope: Literal["all", "this", "following"] = "all"
     occurrence_date: date | None = None
     split_id: str | None = None
+
+
+class DoneChange(BaseModel):
+    """Mark one occurrence done or not done by hand; ``null`` goes back to automatic."""
+
+    occurrence_date: date = Field(description="The occurrence's local start date.")
+    done: bool | None
+
+
+class DoneOut(BaseModel):
+    """The occurrence's mark now and before (for undo)."""
+
+    event_id: str
+    occurrence_date: date
+    done: bool | None
+    previous: bool | None

@@ -300,9 +300,9 @@ class EntityType:
     documents: Callable[[Connection, str | None], Iterable[SearchDocument]] | None = None
     # SearchDocument(id, title, body, deleted, updated_at) changed at/after the instant
     # (all for None); feeds the search index (§6.3)
-    activity: Callable[[Connection, str], Iterable[ActivityEvent]] | None = None
-    # ActivityEvent(action, at): created / completed / deleted at/after the instant;
-    # feeds the Insights overview (§6.4)
+    activity: Callable[[Connection, ActivityWindow], Iterable[ActivityEvent]] | None = None
+    # ActivityEvent(action, at): created / completed / deleted at/after window.since
+    # (the window also carries now and the zone); feeds the Insights overview (§6.4)
 ```
 
 The core calls `summarize` through the registry and never imports the
@@ -435,9 +435,10 @@ CREATE TABLE core_app_opens (id, created_at, updated_at, deleted_at) STRICT;
   something, each with created/completed/deleted/opens), per-type totals,
   and opens by local hour and weekday plus all-time count and first open.
   Sources: todos (added, except a repeat's self-made next occurrence;
-  completed; deleted), knowledge entries and calendar events (created,
-  deleted), habits (created, deleted, and every live check-in as a
-  completion at the moment it was ticked).
+  completed; deleted), knowledge entries (created, deleted), calendar
+  events (created, deleted, and each done occurrence as a completion: when
+  ticked, or when it ended), habits (created, deleted, and every live
+  check-in as a completion at the moment it was ticked).
 - **Frontend:** `app/InsightsPage.tsx` (`/insights`) renders the core
   `ActivitySection` (year heat grid, active-day streaks, activity by module
   and weekday, opens by hour), then each manifest's `InsightsSection`.
@@ -882,8 +883,17 @@ collapses every group again.
 ### Calendar module (phase 4, brought forward)
 
 - Tables `calendar_events` (timed: UTC `start_at`/`end_at`; all-day:
-  floating `start_date`/`end_date`, end inclusive; optional `rrule`) and
-  `calendar_exceptions` (skipped occurrences keyed by local start date).
+  floating `start_date`/`end_date`, end inclusive; optional `rrule`),
+  `calendar_exceptions` (skipped occurrences keyed by local start date) and
+  `calendar_done_marks` (migration 0002: a hand-set `done` per occurrence,
+  same key; moved along with exceptions when a series shifts or splits).
+- **Done:** an occurrence is done if its mark says so, else once it has
+  ended. `GET …/events` returns `marked_done` (null = automatic) and the
+  client applies the rule with a shared minute clock (`done.ts`,
+  `minuteClock.ts`). `PUT /api/calendar/events/{id}/done {occurrence_date,
+  done}` sets or (null) clears a mark and returns the previous one for
+  undo. The Insights activity counts done occurrences as completions: at
+  the tick for marked ones, at the end for the rest.
 - `GET /api/calendar/events?start=&end=` expands series server-side in the
   configured zone (python-dateutil + tzdata), max 100 days. PATCH/DELETE
   take `scope` = `all` | `this` | `following` plus `occurrence_date`;

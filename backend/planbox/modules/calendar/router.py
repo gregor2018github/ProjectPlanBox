@@ -10,6 +10,8 @@ from planbox.core.db.deps import ClockDep, ConnectionDep, SettingsDep
 from planbox.modules.calendar.models import Event
 from planbox.modules.calendar.schemas import (
     CalendarRangeOut,
+    DoneChange,
+    DoneOut,
     EventCreate,
     EventOut,
     EventPatch,
@@ -124,3 +126,15 @@ def restore_event(event_id: str, service: Events) -> EventOut:
 def restore_occurrence(event_id: str, occurrence_date: date, service: Events) -> EventOut:
     """Brings back one deleted occurrence of a series."""
     return _event(service.restore_occurrence(event_id, occurrence_date))
+
+
+@router.put("/events/{event_id}/done")
+def set_done(event_id: str, body: DoneChange, service: Events) -> DoneOut:
+    """Marks one occurrence done or not done, or back to automatic (done once ended)."""
+    previous = service.set_done(event_id, body.occurrence_date, body.done)
+    return DoneOut(
+        event_id=event_id,
+        occurrence_date=body.occurrence_date,
+        done=body.done,
+        previous=previous,
+    )

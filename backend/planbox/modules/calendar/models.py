@@ -39,11 +39,26 @@ class EventException:
 
 
 @dataclass(frozen=True, slots=True)
+class DoneMark:
+    """A hand-set done state of one occurrence (``updated_at`` is when it was set)."""
+
+    id: str
+    event_id: str
+    occurrence_date: str
+    done: bool
+    created_at: str
+    updated_at: str
+    deleted_at: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class Occurrence:
     """One concrete appearance of an event in the calendar.
 
     A single event has exactly one occurrence. Times follow the event's kind:
     instants for timed events, floating dates (end inclusive) for all-day.
+    ``marked_done`` is the hand-set done state; ``None`` means automatic
+    (done once it has ended).
     """
 
     event_id: str
@@ -52,6 +67,7 @@ class Occurrence:
     end_at: str | None
     start_date: str | None
     end_date: str | None
+    marked_done: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)
