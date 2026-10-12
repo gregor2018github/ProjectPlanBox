@@ -30,15 +30,24 @@ export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps)
   const children = childrenOf(todos, parent.id);
   const done = children.filter((c) => c.completed_at !== null).length;
 
+  const add = () => {
+    if (draft.trim() === "") return;
+    actions.create({
+      title: draft,
+      list_id: parent.list_id,
+      section_id: parent.section_id,
+      parent_id: parent.id,
+    });
+    setDraft("");
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && draft.trim() !== "") {
+    if (event.key === "Enter") {
       event.preventDefault();
-      actions.create({
-        title: draft,
-        list_id: parent.list_id,
-        section_id: parent.section_id,
-        parent_id: parent.id,
-      });
+      add();
+    } else if (event.key === "Escape" && draft !== "") {
+      event.preventDefault();
+      event.stopPropagation();
       setDraft("");
     }
   };
@@ -99,6 +108,10 @@ export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps)
             setDraft(event.target.value);
           }}
           onKeyDown={onKeyDown}
+          onBlur={() => {
+            // Leaving the field adds the subtask, like Enter (not when the window loses focus).
+            if (document.hasFocus()) add();
+          }}
         />
       )}
     </section>

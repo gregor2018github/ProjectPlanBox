@@ -397,4 +397,31 @@ describe("todos", () => {
       expect(patch?.body).toEqual({ tag_ids: [tag.id] });
     });
   });
+
+  it("adds the typed todo when the field loses focus, and ✕ discards", async () => {
+    const user = userEvent.setup();
+    // jsdom reports no focus once the field blurs to the body; a browser
+    // window that keeps focus says true.
+    vi.spyOn(document, "hasFocus").mockReturnValue(true);
+    const api = open("/todos/inbox");
+
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    await user.type(screen.getByRole("textbox", { name: "New todo" }), "Call Bob");
+    await user.click(screen.getByRole("heading", { name: "Inbox" }));
+
+    await waitFor(() => {
+      expect(rowTitles("Inbox")).toEqual(["Call Bob"]);
+    });
+    expect(screen.queryByRole("textbox", { name: "New todo" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Add todo" }));
+    await user.type(screen.getByRole("textbox", { name: "New todo" }), "Never mind");
+    await user.click(screen.getByRole("button", { name: "Discard new todo" }));
+
+    expect(screen.queryByRole("textbox", { name: "New todo" })).toBeNull();
+    expect(rowTitles("Inbox")).toEqual(["Call Bob"]);
+    expect(
+      api.state.requests.filter((r) => r.method === "POST" && r.path === "/api/todos/items"),
+    ).toHaveLength(1);
+  });
 });

@@ -221,6 +221,11 @@ Small iterations after a first day of use at work, one commit each:
   tag picker open (like `D` and `V`; also "Tags…" in the row menu). With a
   knowledge entry open, `L` opens that entry's tag picker. `L` as in label,
   since `T` is "due today" and `#` names a list in quick-add.
+- **Leaving the new-todo field adds the todo.** Clicking or tabbing away
+  now does what Enter does, then closes the field (Enter keeps it open for
+  the next one). A ✕ button next to the field discards, like Esc; it is
+  the same ✕ the subtask checklist uses for delete. Switching to another
+  window keeps the draft. The subtask field adds on blur as well.
 
 ## Dependencies
 

@@ -1,6 +1,7 @@
-import { Plus } from "lucide-react";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { Plus, X } from "lucide-react";
+import { useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 
+import { IconButton } from "../../../ui/IconButton";
 import { Input } from "../../../ui/Input";
 import { parseQuickAdd } from "../quickAddParser";
 import type { Placement } from "../types";
@@ -20,7 +21,8 @@ export interface NewTodoInlineProps {
 
 /**
  * "+ Add todo" at the end of a group. Enter adds and keeps the field open for
- * the next one; Esc closes. Understands the quick-add syntax.
+ * the next one; clicking or tabbing away adds and closes. Esc or the ✕
+ * button discards. Understands the quick-add syntax.
  */
 export function NewTodoInline({
   placement,
@@ -32,10 +34,12 @@ export function NewTodoInline({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const parsed = data.parseContext ? parseQuickAdd(text, data.parseContext) : null;
 
-  const submit = () => {
-    if (parsed === null || parsed.title === "") return;
+  /** Adds the typed todo; returns whether there was one to add. */
+  const submit = (): boolean => {
+    if (parsed === null || parsed.title === "") return false;
     actions.create({
       ...(parsed.place ? { ...placement, ...parsed.place } : placement),
       title: parsed.title,
@@ -47,6 +51,22 @@ export function NewTodoInline({
         placement.parent_id === null && { rrule: parsed.rrule, repeat_from: parsed.repeat_from }),
     });
     setText("");
+    return true;
+  };
+
+  const cancel = () => {
+    setText("");
+    setEditing(false);
+  };
+
+  const onBlur = (event: FocusEvent<HTMLInputElement>) => {
+    // Moving to the ✕ button is not "done typing"; its click discards instead.
+    if (event.relatedTarget !== null && event.relatedTarget === cancelRef.current) return;
+    // Switching to another window keeps the draft; focus comes back to it.
+    if (!document.hasFocus()) return;
+    // Leaving the field counts as Enter. Text that is only quick-add tokens
+    // (no title yet) stays open, as Enter would.
+    if (text.trim() === "" || submit()) setEditing(false);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -55,8 +75,7 @@ export function NewTodoInline({
       submit();
     } else if (event.key === "Escape") {
       event.preventDefault();
-      setText("");
-      setEditing(false);
+      cancel();
     }
   };
 
@@ -93,9 +112,19 @@ export function NewTodoInline({
             setText(event.target.value);
           }}
           onKeyDown={onKeyDown}
-          onBlur={() => {
-            if (text.trim() === "") setEditing(false);
+          onBlur={onBlur}
+        />
+        <IconButton
+          ref={cancelRef}
+          label="Discard new todo"
+          shortcut="Escape"
+          icon={X}
+          className="-my-1 -mr-2"
+          onPointerDown={(event) => {
+            // Keep focus in the field, so the click discards instead of the blur adding.
+            event.preventDefault();
           }}
+          onClick={cancel}
         />
       </div>
       {parsed && parsed.tokens.length > 0 && (
