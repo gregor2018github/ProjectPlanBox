@@ -8,8 +8,11 @@ import { defaultRoutes, renderApp, useDesktopViewport } from "./renderApp";
 
 const backups = { backups: [], offsite: null, scheduled: true };
 
+/** A canned answer, or a function computing it from the request. */
+type Route = ((request: Request) => unknown) | object | string | number | boolean | null;
+
 /** A fake API whose answers can change between calls, recording every request. */
-function stateful(routes: Record<string, unknown | ((request: Request) => unknown)>) {
+function stateful(routes: Record<string, Route>) {
   const calls: Request[] = [];
   const fetch: FetchFn = async (request) => {
     calls.push(request.clone());
