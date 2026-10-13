@@ -38,6 +38,9 @@ will come later.
     you finish it.
 
   **Shift+Q** adds a subtask to the selected todo.
+- **Data** (bottom of the sidebar, **G D**): the backups, the off-site
+  copy's state, **Back up now**, and export/import to move data between
+  PCs (see [Data](#data)).
 - In a list: **↑/↓** select, **Space** or **X** completes, **Enter** opens
   details, **Alt+↑/↓** moves, **Alt+→/←** makes a subtask or promotes it,
   **T/M** set the date to today or tomorrow, **D** picks a date, **S** skips
@@ -85,8 +88,8 @@ will come later.
   and design tokens, Base UI primitives, Motion and TanStack Query. It
   reaches data only through the HTTP API, and its API types are generated
   from the backend's OpenAPI schema.
-- **Data:** a single SQLite file. A backup is taken automatically before any
-  schema migration.
+- **Data:** a single SQLite file, backed up daily, weekly and before every
+  schema migration, optionally to a second disk as well.
 
 Further reading:
 
@@ -212,7 +215,7 @@ repo root. Git ignores the folder.
 private_data/
 ├── planbox.db          # your real data (serve.py), plus -wal/-shm files
 ├── settings.toml       # optional user settings (see below)
-├── backups/            # automatic pre-migration backups; the newest 10 are kept
+├── backups/            # daily (14 kept), weekly (8), manual, pre-import and pre-migration (10 each)
 ├── browser/            # the PlanBox window's own browser profile (theme etc.)
 └── dev/planbox.db      # throwaway dev database (dev.py)
 ```
@@ -220,9 +223,37 @@ private_data/
 Tests never touch `private_data/`. Each test uses a temporary directory.
 
 > **Careful:** `git clean -x` (or `-X`) deletes ignored files, and that
-> includes your database. Never run it in this repo. Backups also live in
-> `private_data/` for now, so they do not protect against losing the
-> folder. Off-machine backups are planned (see [docs/TODO.md](docs/TODO.md)).
+> includes your database. Never run it in this repo. `backups/` lives in
+> `private_data/` too, so set `offsite_backup_dir` (below) to keep copies
+> that survive losing the folder or the disk.
+
+### Backups
+
+While `py main.py` runs, PlanBox takes a backup when none exists for
+today, and one per week (Monday to Sunday); it checks on start and every
+hour. The Data page lists them and has **Back up now**. With
+`offsite_backup_dir` set, every backup is also copied there (another disk,
+a USB stick, or a OneDrive/Dropbox folder). If the folder is unreachable,
+the Data page says so and the copies catch up once it is back. Files there
+are pruned like the local ones, but never deleted because they are missing
+locally.
+
+**Restoring** a backup: stop PlanBox, rename `private_data\planbox.db` (and
+delete `planbox.db-wal` and `planbox.db-shm` if present), copy the backup to
+`private_data\planbox.db`, then start PlanBox. A backup is a complete,
+compacted database file.
+
+### Two PCs: export and import
+
+**Download export** (Data page) saves every row, deleted ones included, as
+JSON. **Import an export…** on the other PC merges it in: per item, the
+newer version wins, so deletions and edits travel too, and nothing newer is
+overwritten. A backup is taken first, and the import applies completely or
+not at all. To bring both PCs level, export on A and import on B, then
+export on B and import on A. Both need the same PlanBox version (the import
+refuses otherwise). If the same thing was created on both (a tag with the
+same name, the same habit day), one is kept and the other is stored as
+deleted; the import reports how many.
 
 ## Configuration
 
@@ -232,7 +263,12 @@ Tests never touch `private_data/`. Each test uses a temporary directory.
 ```toml
 timezone = "Europe/Amsterdam"   # the zone used to decide what "today" is
 port = 8765                     # serve.py port (dev uses 8000); the host is always 127.0.0.1
+offsite_backup_dir = "D:/PlanBox backups"  # a copy of every backup; another disk or a synced folder
 ```
+
+`offsite_backup_dir` applies only to the real database: a dev or
+`PLANBOX_DATA_DIR` scratch folder copies off-site only when
+`PLANBOX_OFFSITE_BACKUP_DIR` is set.
 
 `PLANBOX_DATA_DIR` moves the whole data folder, for example to an external
 drive.

@@ -23,8 +23,8 @@ this file records what was planned, decided and pinned.
 | Quote footer | Built 2026-10-11 (owner request) |
 | Create buttons | Built 2026-10-11 (owner request) |
 | Work-day feedback | Built 2026-10-12 (owner request) |
+| 8. Data safety and sync | Built 2026-10-13 (brought forward, before 7) |
 | **7. Mobile PWA** | **Next, not started** |
-| **8. Data safety and sync** | **Not started** |
 
 Side task (2026-10-10): Python 3.12 became the minimum, with a runtime-only
 install (no Node.js), a lock file, release zips and CI on 3.12 and 3.14.
@@ -38,13 +38,6 @@ authentication, and a touch polish pass. Binding beyond `127.0.0.1` and
 relaxing the loopback `Host` check need the owner's explicit go-ahead
 (CLAUDE.md). The theme preference moves from `localStorage` to the server so
 it follows across devices.
-
-### Phase 8: Data safety and sync
-
-Scheduled and off-machine backups, export/import, and a sync design built on
-the existing UUIDv7 IDs, timestamps and tombstones. Purging soft-deleted rows
-and a trash view wait for this design. Off-machine backups can be brought
-forward, since PlanBox is already in daily use.
 
 ## Built phases
 
@@ -264,7 +257,31 @@ Small iterations after a first day of use at work, one commit each:
     `zone`) instead of a bare `since`, since the calendar must expand
     series and stop at the present.
 
-## Dependencies
+### Phase 8: Data safety and sync (brought forward, 2026-10-13)
+
+Built before phase 7 on the owner's request. Design and rules in
+ARCHITECTURE §13; no new dependencies, no migrations.
+- **Scheduled backups** while the daily server runs: one per local day
+  (14 kept) and one per Monday week (8 kept), checked at start and hourly.
+- **Off-site copies** to `offsite_backup_dir` (settings.toml), with a
+  status on the Data page. It applies only to the real database, so tests
+  and scratch servers never write there.
+- **Data page** (`/data`, `G D`): backups, **Back up now**, export and
+  import.
+- **Export/import** as one JSON file per database. The import merges by
+  row, newest `updated_at` winning, after a backup and in one transaction.
+  This is the sync design, run by hand between the work and home PCs.
+  Decisions:
+  - **Merge, not replace.** A replacing import would be a restore, which a
+    backup file already does; merging is what two PCs need, and the same
+    rule serves a live sync later.
+  - **Same schema only.** The import refuses an export with different
+    migrations instead of mapping columns between versions.
+  - **Duplicates** on unique rules keep the local row and store the other
+    deleted, stamped so the decision travels back.
+- Deferred to TODO.md: the trash view and purging (designed in §13), an
+  in-app restore, merging the taggings of duplicate tags, live sync.
+
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
 on their own dates) and are pinned exactly. A new package needs a row here

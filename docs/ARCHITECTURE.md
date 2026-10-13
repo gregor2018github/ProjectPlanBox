@@ -32,7 +32,8 @@ ProjectPlanBox/
 │   │   │   ├── tags/         # repository / service / router / schemas
 │   │   │   ├── links/        # links between any two entities (phase 2)
 │   │   │   ├── search/       # full-text index and GET /api/search (phase 3)
-│   │   │   └── insights/     # app opens and cross-module activity (Insights page)
+│   │   │   ├── insights/     # app opens and cross-module activity (Insights page)
+│   │   │   └── data/         # scheduled/off-site backups, export, merge-import (§13)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
 │   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
@@ -231,7 +232,7 @@ bookkeeping and is never synced.
 | Primary key | `id TEXT PRIMARY KEY`: a UUIDv7, lowercase and hyphenated. It is time-ordered, so inserts stay local in the B-tree. |
 | Who creates IDs | The client may send an `id` on create (this makes optimistic creates exact and requests idempotent). Otherwise the server generates one. The server validates the format. |
 | Timestamps | `created_at`, `updated_at` and `deleted_at` (nullable), as `TEXT`. UTC ISO-8601 at fixed width with milliseconds and a `Z`: `2026-10-08T16:33:04.390Z`. Fixed width means string order equals time order. The application sets them, never SQLite defaults. |
-| Soft delete | `DELETE` endpoints set `deleted_at`. Repositories filter `deleted_at IS NULL` by default. `POST …/restore` clears it. Rows are not purged until sync is designed, so tombstones stay. |
+| Soft delete | `DELETE` endpoints set `deleted_at`. Repositories filter `deleted_at IS NULL` by default. `POST …/restore` clears it. Tombstones are how deletes travel between PCs (§13), so rows are not purged yet. |
 | Uniqueness | Partial unique indexes `WHERE deleted_at IS NULL`, so a deleted name can be reused |
 | Calendar dates | **Floating** local dates as `TEXT 'YYYY-MM-DD'`, not timestamps (see below) |
 | Ordering | `position TEXT`: fractional index keys (base-62 strings). Moving an item updates one row. The keys are sync-friendly. |
@@ -1043,3 +1044,125 @@ runs `package.py` and attaches the zip to a GitHub release.
 | Frontend logic (selectors, parser, ordering, shortcuts) | Vitest | n/a |
 | Key components | Vitest + React Testing Library + jsdom | fetch injected into the API client |
 | Smoke (from the end of phase 1) | Playwright, Chromium only | `serve.py`-style process on a temporary data dir |
+
+## 13. Data safety and sync (phase 8)
+
+`core/data/` owns everything that protects the data or moves it between
+PCs. It is core, not a module: it works on every table generically, through
+the conventions of §4, and never imports a module.
+
+### Backups
+
+Every backup is a `VACUUM INTO` copy (consistent while the app runs,
+compacted) named `planbox-<compact UTC stamp>-<label>.db` in
+`<data>/backups/`. The fixed-width stamp makes names sort by time.
+
+| Label | Taken | Kept |
+|---|---|---|
+| `daily` | when none exists for today's local date | 14 |
+| `weekly` | when none exists for this Monday-to-Sunday week | 8 |
+| `manual` | Data page, **Back up now** (`POST /api/data/backups`) | 10 |
+| `pre-import` | before every import | 10 |
+| `pre-migration` | by the migration runner (§5) | 10 |
+
+- **Schedule.** `create_app`'s lifespan starts `backup_loop` when
+  `Settings.scheduled_backups` is on, which only daily use (`serve` mode)
+  sets. It runs one pass at start and then every hour, each on its own
+  connection in a worker thread. "Due" is decided by local date, not by
+  "24 h since the last one", so a PC that is on only during office hours
+  still gets one per day without drifting. A failing pass is logged and
+  retried next hour; it never stops the app.
+- **Off-site.** `offsite_backup_dir` (settings.toml, real database only;
+  or `PLANBOX_OFFSITE_BACKUP_DIR`) receives a copy of every local backup
+  after each pass and each manual backup. Copies go to `<name>.partial`
+  and are renamed when complete, so a pulled USB stick leaves nothing that
+  looks like a backup. The folder is created if its parent exists. It is
+  pruned per label with the same counts, but files are **never** deleted
+  because they are missing locally: when this disk dies, those are the
+  copies that matter. Failures are kept in memory (`BackupState`) and
+  shown on the Data page until a copy succeeds.
+- One lock serialises the scheduled pass and the button.
+- Restoring is a manual file swap with the app stopped (README). An
+  in-app restore is in TODO.md.
+
+### Export and import
+
+`GET /api/data/export` returns every **synced table**: any table with
+`id`, `updated_at` and `deleted_at`, except derived ones (`core_search_sync`;
+the FTS index and its shadow tables have none of those columns, and
+`schema_migrations` is bookkeeping). Rows go as column lists plus value
+arrays, tombstones included, read in one transaction, together with the
+applied migrations and their checksums.
+
+`POST /api/data/import` takes that file as a JSON body (so it stays
+same-site, §9) and merges it:
+
+1. **Same schema or nothing.** The export's migrations (owner, version,
+   checksum) must equal this database's, otherwise 409. Equal migrations
+   mean equal tables, so no column mapping is ever guessed.
+2. **Validate before touching anything.** Table names must be synced
+   tables here, columns must match, and every value must have its column's
+   declared type (STRICT tables would quietly store an integer in a `TEXT`
+   column as text). Names from the file never reach SQL; only this
+   database's own names do.
+3. A `pre-import` backup.
+4. **One transaction** with `PRAGMA defer_foreign_keys`, so rows can
+   arrive in any order. Per table: rows whose id is new are inserted; rows
+   that exist are replaced when the file's `updated_at` is newer.
+   Updates run before inserts, so a row deleted on the other PC frees its
+   unique slot first. `PRAGMA foreign_key_check` before commit: a row
+   pointing at a row neither side has rolls everything back (422).
+5. The search index is rebuilt (§6.3), because merged rows can be older
+   than its watermarks.
+
+The report lists per table: inserted, updated, unchanged, conflicts.
+
+### The sync rule
+
+The import *is* the sync design; a live sync later reuses the same merge
+and only changes the transport.
+
+- **Unit:** a row. **Version:** its `updated_at`. **Winner:** the newer
+  version; on an exact tie, the row whose canonical JSON sorts higher, so
+  both sides pick the same one. Every write already bumps `updated_at`
+  (the search index relies on it too), and cascading deletes stamp every
+  affected row, so a delete travels like any other change.
+- **Why per row, not per field:** tables are small and edits on two PCs
+  between two syncs rarely touch the same row. Per-field merging would
+  need a version per column. Losing one of two concurrent edits to the
+  same todo is the accepted cost.
+- **IDs:** UUIDv7 everywhere, so rows made on two PCs never collide by id.
+- **Positions:** fractional keys (§4) merge like any column. Two PCs
+  can produce the same key; ties are broken by id when sorting, which is
+  stable.
+- **Unique rules** (live tag names, one check-in per habit and day, one
+  done mark per occurrence, one link per pair): when an incoming live row
+  collides with a different live row here, the one here stays and the
+  incoming one is stored deleted, stamped one millisecond after the
+  incoming version (or now, if later). The next export carries that
+  decision back, so the other PC converges on the same survivor even if
+  its clock runs ahead. Known cost: taggings that point at the losing tag
+  are hidden with it (TODO.md).
+- **Clocks:** versions compare wall-clock instants from two machines. A
+  PC whose clock runs behind loses ties it should win; Windows keeps clocks
+  within seconds, which is far below how fast one person switches PCs.
+- **Schema versions** must match (see step 1). Update both PCs, then sync.
+
+### Purging tombstones (designed, not built)
+
+Tombstones must outlive every copy that might still hold the live row,
+otherwise an old export would bring it back. Plan: purge rows deleted more
+than 90 days ago, and record the purge horizon in the database; an import
+refuses an export taken before the horizon (it could resurrect purged
+rows). The trash view lists tombstones younger than the horizon per entity
+type (through a registry hook like `summarize`) and restores through the
+existing `POST …/restore` endpoints.
+
+### Frontend
+
+The Data page (`/data`, bottom of the sidebar, `G D`) is a shell page like
+Insights: `core/data/BackupsSection` (off-site state, **Back up now**, the
+list) and `core/data/TransferSection` (**Download export**, **Import an
+export…** with a confirm dialog). Neither is optimistic: the server names
+the backup, and an import can change anything, so it refetches every query
+when it settles.

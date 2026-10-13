@@ -5,10 +5,16 @@ not ticked; git history keeps them.
 
 ## Data safety
 
-- [ ] Off-machine backups. Backups live inside `private_data/`, so they do
-      not survive losing that folder or the disk. Planned for phase 8; bring
-      it forward, since PlanBox is in daily use.
-- [ ] A trash view (undo covers deletes for now). Purging waits for sync.
+- [ ] A trash view and purging tombstones older than 90 days, with a
+      purge horizon that imports respect (designed in ARCHITECTURE §13).
+- [ ] Restore a backup from the Data page (now a manual file swap with
+      the app stopped; see README).
+- [ ] When an import keeps one of two duplicate tags, move the losing
+      tag's taggings to the survivor (they are hidden with it now).
+- [ ] Live sync between the PCs over the same merge (needs phase 7's
+      network binding and auth, or a shared folder as the transport).
+- [ ] Import exports from an older schema version (now refused; both PCs
+      must run the same version).
 
 ## Claude connectors (claude.ai)
 
@@ -20,8 +26,8 @@ rule.
 
 - [ ] **Google Calendar:** import or mirror events.
 - [ ] **Gmail:** turn emails into todos or knowledge entries.
-- [ ] **Google Drive:** link Drive files from knowledge, or use Drive as the
-      off-machine backup target.
+- [ ] **Google Drive:** link Drive files from knowledge. (Off-site backups
+      already work with any synced folder, including Drive for desktop.)
 
 ## Dependencies
 
