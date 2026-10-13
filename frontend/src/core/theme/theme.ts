@@ -42,9 +42,17 @@ export function resolveTheme(preference: ThemePreference, prefersDark: boolean):
   return preference;
 }
 
-/** Sets `data-theme` on <html>, which switches every token. */
+/**
+ * Sets `data-theme` on <html>, which switches every token, and gives the
+ * browser bar (phones) the page's background colour.
+ */
 export function applyTheme(theme: ResolvedTheme): void {
-  document.documentElement.dataset.theme = theme;
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  const background = getComputedStyle(root).getPropertyValue("--color-bg").trim();
+  if (background !== "") {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", background);
+  }
 }
 
 /** Calls `onChange` whenever the OS colour scheme changes; returns an unsubscribe. */

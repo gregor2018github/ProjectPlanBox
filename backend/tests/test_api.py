@@ -134,6 +134,26 @@ def test_spa_serves_files_and_falls_back_to_index(
     assert health.json()["status"] == "ok"
 
 
+def test_the_service_worker_and_manifest_are_revalidated(
+    settings: Settings, clock: FixedClock, tmp_path: Path
+) -> None:
+    """Installed phones pick up a new version on the next load; the manifest has its type."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html>app</html>", encoding="utf-8")
+    (dist / "sw.js").write_text("// sw", encoding="utf-8")
+    (dist / "manifest.webmanifest").write_text("{}", encoding="utf-8")
+
+    with TestClient(_serve_app(settings, clock, dist), base_url=LOOPBACK) as client:
+        worker = client.get("/sw.js")
+        manifest = client.get("/manifest.webmanifest")
+
+    assert worker.headers["cache-control"] == "no-cache"
+    assert "javascript" in worker.headers["content-type"]
+    assert manifest.headers["cache-control"] == "no-cache"
+    assert manifest.headers["content-type"].startswith("application/manifest+json")
+
+
 def test_unbuilt_frontend_is_reported(
     settings: Settings, clock: FixedClock, tmp_path: Path
 ) -> None:

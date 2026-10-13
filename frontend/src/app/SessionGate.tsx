@@ -7,8 +7,11 @@ import { SignInScreen } from "./SignInScreen";
 
 /**
  * Shows the app only to devices that may use it. On the PC itself that is
- * always; a phone has to pair first. When the server stops answering, the
- * app renders anyway and its connection indicator explains.
+ * always; a phone has to pair first. The app renders while the session is
+ * being checked, so the PC never waits for an extra request (an unpaired
+ * phone sees the shell for a moment, without data, before the sign-in
+ * screen). When the server stops answering, the app renders anyway and its
+ * connection indicator explains.
  */
 export function SessionGate({ children }: { children: ReactNode }) {
   const session = useSession();
@@ -26,7 +29,6 @@ export function SessionGate({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
-  if (session.isPending) return null;
   if (session.data?.signed_in === false) return <SignInScreen />;
   return children;
 }

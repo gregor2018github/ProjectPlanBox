@@ -1,6 +1,7 @@
 """Composition root: builds the FastAPI app from core and the enabled modules."""
 
 import asyncio
+import mimetypes
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -35,6 +36,12 @@ from planbox.core.tags.router import router as tags_router
 from planbox.modules import ENABLED_MODULES
 
 CORE_MIGRATIONS_DIR = Path(__file__).parent / "core" / "migrations"
+
+# Windows' registry rarely knows the web app manifest's type.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+
+NO_CACHE_FILES = frozenset({"sw.js", "manifest.webmanifest"})
+"""Revalidated on every load, so a new version reaches installed phones at once."""
 
 LOOPBACK_HOSTS = ["127.0.0.1", "localhost"]
 """Accepted Host headers. Rejecting others blocks DNS-rebinding attacks, where a
@@ -183,8 +190,11 @@ def _mount_frontend(app: FastAPI, dist: Path) -> None:
             raise NotFound("frontend is not built; run scripts/serve.py")
         candidate = (root / path).resolve()
         if path and candidate.is_file() and candidate.is_relative_to(root):
-            immutable = candidate.is_relative_to(root / "assets")
-            headers = {"Cache-Control": "public, max-age=31536000, immutable"} if immutable else {}
+            headers: dict[str, str] = {}
+            if candidate.is_relative_to(root / "assets"):
+                headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            elif path in NO_CACHE_FILES:
+                headers["Cache-Control"] = "no-cache"
             return FileResponse(candidate, headers=headers)
         return FileResponse(index, headers={"Cache-Control": "no-cache"})
 

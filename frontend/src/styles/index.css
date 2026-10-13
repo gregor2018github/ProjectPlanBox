@@ -12,6 +12,11 @@
     height: 100%;
   }
 
+  #root {
+    box-sizing: border-box;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  }
+
   body {
     background-color: var(--color-bg);
     color: var(--color-text);

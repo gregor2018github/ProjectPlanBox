@@ -8,7 +8,7 @@ export function Toaster() {
   const { toasts } = Toast.useToastManager();
   return (
     <Toast.Portal>
-      <Toast.Viewport className="fixed inset-x-4 bottom-4 z-50 flex flex-col items-stretch gap-2 outline-none md:left-auto md:w-80">
+      <Toast.Viewport className="fixed inset-x-4 bottom-(--safe-toast-bottom) z-50 flex flex-col items-stretch gap-2 outline-none md:left-auto md:w-80">
         {toasts.map((toast) => (
           <Toast.Root
             key={toast.id}
