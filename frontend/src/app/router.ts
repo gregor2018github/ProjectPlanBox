@@ -8,9 +8,10 @@ import {
 
 import type { ModuleManifest } from "../core/module";
 import { AppShell } from "./AppShell";
+import { DataPage } from "./DataPage";
 import { HomePage } from "./HomePage";
 import { InsightsPage } from "./InsightsPage";
-import { INSIGHTS_PATH } from "./paths";
+import { DATA_PATH, INSIGHTS_PATH } from "./paths";
 import { NotFoundPage } from "./NotFoundPage";
 
 /** Search params every route understands. */
@@ -46,9 +47,15 @@ export function createAppRouter(options: {
     path: INSIGHTS_PATH,
     component: InsightsPage,
   });
+  const dataRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: DATA_PATH,
+    component: DataPage,
+  });
   const routeTree = rootRoute.addChildren([
     homeRoute,
     insightsRoute,
+    dataRoute,
     ...options.modules.flatMap((module) => module.routes(rootRoute)),
   ]);
   return createRouter({

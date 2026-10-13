@@ -2,3 +2,6 @@
 
 /** The Insights page: statistics across every module. */
 export const INSIGHTS_PATH = "/insights";
+
+/** The Data page: backups, export and import. */
+export const DATA_PATH = "/data";

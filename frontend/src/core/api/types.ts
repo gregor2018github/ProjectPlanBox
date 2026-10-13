@@ -12,3 +12,15 @@ export type Health = components["schemas"]["HealthOut"];
 
 /** GET /api/meta */
 export type Meta = components["schemas"]["MetaOut"];
+
+/** GET /api/data/backups */
+export type Backups = components["schemas"]["BackupsOut"];
+
+/** One local backup. */
+export type Backup = components["schemas"]["BackupOut"];
+
+/** GET /api/data/export, and the body of POST /api/data/import */
+export type ExportFile = components["schemas"]["ExportFile"];
+
+/** POST /api/data/import */
+export type ImportReport = components["schemas"]["ImportOut"];

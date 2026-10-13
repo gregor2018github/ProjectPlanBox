@@ -5,7 +5,7 @@ import { useCommands } from "../core/commands/commandsContext";
 import type { Command } from "../core/commands/registry";
 import { useShortcut } from "../core/shortcuts/useShortcut";
 import { useTheme } from "../core/theme/useTheme";
-import { INSIGHTS_PATH } from "./paths";
+import { DATA_PATH, INSIGHTS_PATH } from "./paths";
 
 /** The shell actions that commands and shortcuts trigger. */
 export interface ShellActions {
@@ -60,6 +60,13 @@ export function useShellCommands(actions: ShellActions): void {
     group: "Navigation",
     run: () => void navigate({ to: INSIGHTS_PATH }),
   });
+  useShortcut({
+    id: "shell.data",
+    keys: "G D",
+    description: "Go to Data (backups, export, import)",
+    group: "Navigation",
+    run: () => void navigate({ to: DATA_PATH }),
+  });
   useShortcut(
     closeDetail
       ? {
@@ -103,6 +110,14 @@ export function useShellCommands(actions: ShellActions): void {
         keywords: ["statistics", "stats", "charts", "overview", "analytics"],
         shortcut: "G S",
         run: () => void navigate({ to: INSIGHTS_PATH }),
+      },
+      {
+        id: "shell.data",
+        title: "Go to Data",
+        group: "Navigation",
+        keywords: ["backup", "export", "import", "sync", "restore", "off-site"],
+        shortcut: "G D",
+        run: () => void navigate({ to: DATA_PATH }),
       },
       {
         id: "theme.system",
