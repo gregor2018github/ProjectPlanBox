@@ -1,7 +1,8 @@
 """Composition root: builds the FastAPI app from core and the enabled modules."""
 
+import asyncio
 from collections.abc import AsyncGenerator, Sequence
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,6 +13,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from planbox import __version__
 from planbox.config import Settings, load_settings, mode_from_env
 from planbox.core.clock import Clock, SystemClock
+from planbox.core.data.backups import BackupState
+from planbox.core.data.router import router as data_router
+from planbox.core.data.scheduler import backup_loop
 from planbox.core.db import connect, init_database
 from planbox.core.db.migrations import Migration, MigrationSource, migrate
 from planbox.core.entities import EntityRegistry
@@ -94,10 +98,21 @@ def create_app(
     if len(set(ids)) != len(ids):
         raise ValueError(f"duplicate module ids: {ids}")
 
+    backup_state = BackupState()
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         run_migrations(settings, modules, clock)
-        yield
+        if not settings.scheduled_backups:
+            yield
+            return
+        backups = asyncio.create_task(backup_loop(settings, clock, backup_state))
+        try:
+            yield
+        finally:
+            backups.cancel()
+            with suppress(asyncio.CancelledError):
+                await backups
 
     app = FastAPI(
         title="PlanBox",
@@ -112,6 +127,7 @@ def create_app(
     app.state.settings = settings
     app.state.clock = clock
     app.state.request_shutdown = request_shutdown
+    app.state.backup_state = backup_state
     app.state.entity_registry = EntityRegistry(t for m in modules for t in m.entity_types)
     install_error_handlers(app)
     allowed_hosts = [*LOOPBACK_HOSTS, "testserver"] if settings.mode == "test" else LOOPBACK_HOSTS
@@ -123,6 +139,7 @@ def create_app(
     app.include_router(links_router, prefix="/api")
     app.include_router(search_router, prefix="/api")
     app.include_router(insights_router, prefix="/api")
+    app.include_router(data_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

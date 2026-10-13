@@ -116,6 +116,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/data/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Backups
+         * @description The local backups, newest first, and the off-site folder's state.
+         */
+        get: operations["core_list_backups"];
+        put?: never;
+        /**
+         * Create Backup
+         * @description Takes a backup now and copies it to the off-site folder (if set).
+         */
+        post: operations["core_create_backup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Data
+         * @description Every row of every table as JSON, deleted ones included, as a download.
+         */
+        get: operations["core_export_data"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Data
+         * @description Merges an export into this database: per row, the newer version wins.
+         *
+         *     A backup is taken first; the merge applies completely or not at all.
+         */
+        post: operations["core_import_data"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/habits/days-off": {
         parameters: {
             query?: never;
@@ -1226,6 +1292,54 @@ export interface components {
             name?: string | null;
         };
         /**
+         * BackupCreate
+         * @description Body of a manual backup request (a JSON body keeps it same-site only).
+         *
+         *     Attributes:
+         *         confirm: Must be ``true``.
+         */
+        BackupCreate: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+        };
+        /**
+         * BackupOut
+         * @description One local backup.
+         */
+        BackupOut: {
+            /**
+             * Label
+             * @description daily, weekly, manual, pre-import or pre-migration.
+             */
+            label: string;
+            /** Name */
+            name: string;
+            /**
+             * Size
+             * @description Bytes.
+             */
+            size: number;
+            /** Taken At */
+            taken_at: string;
+        };
+        /**
+         * BackupsOut
+         * @description The local backups, newest first, and the off-site folder (null when not set).
+         */
+        BackupsOut: {
+            /** Backups */
+            backups: components["schemas"]["BackupOut"][];
+            offsite: components["schemas"]["OffsiteOut"] | null;
+            /**
+             * Scheduled
+             * @description Whether daily and weekly backups run by themselves.
+             */
+            scheduled: boolean;
+        };
+        /**
          * CalendarRangeOut
          * @description The events that appear in a range and their occurrences there, in start order.
          */
@@ -1569,6 +1683,32 @@ export interface components {
             events: components["schemas"]["EventOut"][];
         };
         /**
+         * ExportFile
+         * @description A whole PlanBox database as JSON: the export file, and the import body.
+         */
+        ExportFile: {
+            /** App Version */
+            app_version: string;
+            /** Exported At */
+            exported_at: string;
+            /**
+             * Format
+             * @constant
+             */
+            format: "planbox-export";
+            /**
+             * Format Version
+             * @constant
+             */
+            format_version: 1;
+            /** Migrations */
+            migrations: components["schemas"]["MigrationStampIO"][];
+            /** Tables */
+            tables: {
+                [key: string]: components["schemas"]["TableDumpIO"];
+            };
+        };
+        /**
          * ForecastOut
          * @description A later date of an open repeating todo, for showing it ahead on the calendar.
          */
@@ -1750,6 +1890,19 @@ export interface components {
             /** Version */
             version: string;
         };
+        /**
+         * ImportOut
+         * @description The outcome of an import.
+         */
+        ImportOut: {
+            /**
+             * Backup
+             * @description The backup taken just before the import.
+             */
+            backup: string;
+            /** Tables */
+            tables: components["schemas"]["TableMergeOut"][];
+        };
         /** @enum {string} */
         Kind: "note" | "link" | "snippet";
         /**
@@ -1901,6 +2054,18 @@ export interface components {
             week_starts_on: number;
         };
         /**
+         * MigrationStampIO
+         * @description One applied migration.
+         */
+        MigrationStampIO: {
+            /** Checksum */
+            checksum: string;
+            /** Owner */
+            owner: string;
+            /** Version */
+            version: number;
+        };
+        /**
          * OccurrenceOut
          * @description One appearance of an event; ``occurrence_date`` is its local start date (the key).
          */
@@ -1925,6 +2090,29 @@ export interface components {
             start_at: string | null;
             /** Start Date */
             start_date: string | null;
+        };
+        /**
+         * OffsiteOut
+         * @description The off-site backup folder.
+         */
+        OffsiteOut: {
+            /**
+             * Error
+             * @description Why the last copy failed, until one succeeds.
+             */
+            error: string | null;
+            /**
+             * Latest At
+             * @description The newest backup there.
+             */
+            latest_at: string | null;
+            /** Path */
+            path: string;
+            /**
+             * Reachable
+             * @description Whether the folder exists right now.
+             */
+            reachable: boolean;
         };
         /**
          * OpenStatsOut
@@ -2343,6 +2531,35 @@ export interface components {
              * Format: date
              */
             start: string;
+        };
+        /**
+         * TableDumpIO
+         * @description Every row of one table; each row lists its values in ``columns`` order.
+         */
+        TableDumpIO: {
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: (string | number | null)[][];
+        };
+        /**
+         * TableMergeOut
+         * @description What merging one table did.
+         */
+        TableMergeOut: {
+            /**
+             * Conflicts
+             * @description Rows that duplicated a live row here (same name, same day) and were stored deleted.
+             */
+            conflicts: number;
+            /** Inserted */
+            inserted: number;
+            /** Table */
+            table: string;
+            /** Unchanged */
+            unchanged: number;
+            /** Updated */
+            updated: number;
         };
         /**
          * TagCreate
@@ -2853,6 +3070,130 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_list_backups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupsOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_create_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_export_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportFile"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_import_data: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportFile"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportOut"];
                 };
             };
             /** @description Problem details */

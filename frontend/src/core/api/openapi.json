@@ -216,6 +216,86 @@
         "title": "AreaUpdate",
         "type": "object"
       },
+      "BackupCreate": {
+        "description": "Body of a manual backup request (a JSON body keeps it same-site only).\n\nAttributes:\n    confirm: Must be ``true``.",
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "BackupCreate",
+        "type": "object"
+      },
+      "BackupOut": {
+        "description": "One local backup.",
+        "properties": {
+          "label": {
+            "description": "daily, weekly, manual, pre-import or pre-migration.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "description": "Bytes.",
+            "title": "Size",
+            "type": "integer"
+          },
+          "taken_at": {
+            "title": "Taken At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "taken_at",
+          "size"
+        ],
+        "title": "BackupOut",
+        "type": "object"
+      },
+      "BackupsOut": {
+        "description": "The local backups, newest first, and the off-site folder (null when not set).",
+        "properties": {
+          "backups": {
+            "items": {
+              "$ref": "#/components/schemas/BackupOut"
+            },
+            "title": "Backups",
+            "type": "array"
+          },
+          "offsite": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OffsiteOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scheduled": {
+            "description": "Whether daily and weekly backups run by themselves.",
+            "title": "Scheduled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "backups",
+          "offsite",
+          "scheduled"
+        ],
+        "title": "BackupsOut",
+        "type": "object"
+      },
       "CalendarRangeOut": {
         "description": "The events that appear in a range and their occurrences there, in start order.",
         "properties": {
@@ -1149,6 +1229,53 @@
         "title": "EventsOut",
         "type": "object"
       },
+      "ExportFile": {
+        "description": "A whole PlanBox database as JSON: the export file, and the import body.",
+        "properties": {
+          "app_version": {
+            "title": "App Version",
+            "type": "string"
+          },
+          "exported_at": {
+            "title": "Exported At",
+            "type": "string"
+          },
+          "format": {
+            "const": "planbox-export",
+            "title": "Format",
+            "type": "string"
+          },
+          "format_version": {
+            "const": 1,
+            "title": "Format Version",
+            "type": "integer"
+          },
+          "migrations": {
+            "items": {
+              "$ref": "#/components/schemas/MigrationStampIO"
+            },
+            "title": "Migrations",
+            "type": "array"
+          },
+          "tables": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TableDumpIO"
+            },
+            "title": "Tables",
+            "type": "object"
+          }
+        },
+        "required": [
+          "format",
+          "format_version",
+          "app_version",
+          "exported_at",
+          "migrations",
+          "tables"
+        ],
+        "title": "ExportFile",
+        "type": "object"
+      },
       "ForecastOut": {
         "description": "A later date of an open repeating todo, for showing it ahead on the calendar.",
         "properties": {
@@ -1500,6 +1627,29 @@
         "title": "HealthOut",
         "type": "object"
       },
+      "ImportOut": {
+        "description": "The outcome of an import.",
+        "properties": {
+          "backup": {
+            "description": "The backup taken just before the import.",
+            "title": "Backup",
+            "type": "string"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/TableMergeOut"
+            },
+            "title": "Tables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "backup",
+          "tables"
+        ],
+        "title": "ImportOut",
+        "type": "object"
+      },
       "Kind": {
         "enum": [
           "note",
@@ -1829,6 +1979,30 @@
         "title": "MetaOut",
         "type": "object"
       },
+      "MigrationStampIO": {
+        "description": "One applied migration.",
+        "properties": {
+          "checksum": {
+            "title": "Checksum",
+            "type": "string"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "owner",
+          "version",
+          "checksum"
+        ],
+        "title": "MigrationStampIO",
+        "type": "object"
+      },
       "OccurrenceOut": {
         "description": "One appearance of an event; ``occurrence_date`` is its local start date (the key).",
         "properties": {
@@ -1910,6 +2084,52 @@
           "marked_done"
         ],
         "title": "OccurrenceOut",
+        "type": "object"
+      },
+      "OffsiteOut": {
+        "description": "The off-site backup folder.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the last copy failed, until one succeeds.",
+            "title": "Error"
+          },
+          "latest_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The newest backup there.",
+            "title": "Latest At"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "reachable": {
+            "description": "Whether the folder exists right now.",
+            "title": "Reachable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path",
+          "reachable",
+          "latest_at",
+          "error"
+        ],
+        "title": "OffsiteOut",
         "type": "object"
       },
       "OpenStatsOut": {
@@ -2779,6 +2999,82 @@
           "deleted"
         ],
         "title": "StatsWeekOut",
+        "type": "object"
+      },
+      "TableDumpIO": {
+        "description": "Every row of one table; each row lists its values in ``columns`` order.",
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "rows": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "columns",
+          "rows"
+        ],
+        "title": "TableDumpIO",
+        "type": "object"
+      },
+      "TableMergeOut": {
+        "description": "What merging one table did.",
+        "properties": {
+          "conflicts": {
+            "description": "Rows that duplicated a live row here (same name, same day) and were stored deleted.",
+            "title": "Conflicts",
+            "type": "integer"
+          },
+          "inserted": {
+            "title": "Inserted",
+            "type": "integer"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "table",
+          "inserted",
+          "updated",
+          "unchanged",
+          "conflicts"
+        ],
+        "title": "TableMergeOut",
         "type": "object"
       },
       "TagCreate": {
@@ -3908,6 +4204,152 @@
         "summary": "Restore Event",
         "tags": [
           "calendar"
+        ]
+      }
+    },
+    "/api/data/backups": {
+      "get": {
+        "description": "The local backups, newest first, and the off-site folder's state.",
+        "operationId": "core_list_backups",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Backups",
+        "tags": [
+          "core"
+        ]
+      },
+      "post": {
+        "description": "Takes a backup now and copies it to the off-site folder (if set).",
+        "operationId": "core_create_backup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Create Backup",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/data/export": {
+      "get": {
+        "description": "Every row of every table as JSON, deleted ones included, as a download.",
+        "operationId": "core_export_data",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportFile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Export Data",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/data/import": {
+      "post": {
+        "description": "Merges an export into this database: per row, the newer version wins.\n\nA backup is taken first; the merge applies completely or not at all.",
+        "operationId": "core_import_data",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Import Data",
+        "tags": [
+          "core"
         ]
       }
     },

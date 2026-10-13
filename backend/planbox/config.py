@@ -43,6 +43,11 @@ class Settings:
         timezone: IANA zone used to decide what "today" is.
         port: TCP port on 127.0.0.1.
         frontend_dist: Built frontend to serve, or ``None`` to serve the API only.
+        offsite_backup_dir: A folder outside ``data_dir`` (another disk, a synced
+            cloud folder, a USB stick) that receives a copy of every backup, or
+            ``None`` to keep backups on this disk only.
+        scheduled_backups: Whether the running server takes daily and weekly
+            backups by itself (daily use only).
     """
 
     mode: Mode
@@ -50,6 +55,8 @@ class Settings:
     timezone: str = "Europe/Amsterdam"
     port: int = 8765
     frontend_dist: Path | None = None
+    offsite_backup_dir: Path | None = None
+    scheduled_backups: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -58,7 +65,7 @@ class Settings:
 
     @property
     def backups_dir(self) -> Path:
-        """Directory for automatic pre-migration backups."""
+        """Directory for the local backups (pre-migration, scheduled, manual, pre-import)."""
         return self.data_dir / "backups"
 
 
@@ -105,12 +112,21 @@ def load_settings(
         except ValueError as exc:
             raise SettingsError("PLANBOX_PORT must be an integer") from exc
 
+    # The off-site folder in settings.toml belongs to the real database. Dev
+    # and scratch data dirs (tests, PLANBOX_DATA_DIR) only copy off-site when
+    # the environment asks for it, so test backups never land there.
+    real = mode == "serve" and data_dir == PRIVATE_DATA_DIR
+    offsite = _get_str(file_values, "offsite_backup_dir", "") if real else ""
+    offsite = env.get("PLANBOX_OFFSITE_BACKUP_DIR", offsite)
+
     return Settings(
         mode=mode,
         data_dir=data_dir,
         timezone=timezone,
         port=port,
         frontend_dist=FRONTEND_DIST_DIR if mode == "serve" else None,
+        offsite_backup_dir=Path(offsite) if offsite else None,
+        scheduled_backups=mode == "serve",
     )
 
 
