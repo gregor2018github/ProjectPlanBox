@@ -3,15 +3,15 @@
 A personal, local-first planner for one person on one Windows 11 desktop. It
 combines todos, knowledge collections (notes, links and snippets grouped into
 collections), a calendar and habit tracking. The app grows one module at a
-time. The desktop is the hub. Mobile access as a PWA over a private network
-will come later.
+time. The desktop is the hub; a phone can join over the home network or
+Tailscale as a home-screen app.
 
-> **Status:** phases 0–6 are built: todos (with repeats), knowledge
+> **Status:** every planned phase is built: todos (with repeats), knowledge
 > collections and links between items, search (Ctrl+K), calendar (`C` or the
 > right-edge icon; `G C` for the full page) and habits (`H`; `G B` for the
-> page), plus a Home overview (`G H`) and an Insights page with
-> statistics across all of them (`G S`). Next are the mobile PWA (phase 7) and data safety and sync (phase
-> 8). See [docs/PLAN.md](docs/PLAN.md).
+> page), a Home overview (`G H`), an Insights page with statistics across
+> all of them (`G S`), backups and export/import (`G D`), and phone access.
+> See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 
@@ -255,6 +255,30 @@ refuses otherwise). If the same thing was created on both (a tag with the
 same name, the same habit day), one is kept and the other is stored as
 deleted; the import reports how many.
 
+### Phone
+
+Phone access is off until you add `network = true` to
+`private_data/settings.toml` and restart PlanBox. Windows then asks once
+whether Python may accept connections; allow **private networks** only.
+
+1. The startup output and the Data page (**Phones**) show the address, e.g.
+   `http://192.168.2.12:8765`. Open it on the phone (same Wi-Fi, or with
+   Tailscale on both devices, from anywhere).
+2. On the PC, **Data → Pair a phone** shows a code like `ABCD-EFGH` for ten
+   minutes. Type it on the phone. It stays signed in for 400 days.
+3. Add PlanBox to the home screen (Chrome: menu → *Add to home screen* or
+   *Install app*; Safari: Share → *Add to Home Screen*).
+
+**Sign out all phones** on the Data page undoes every pairing. A phone
+cannot pair other devices or shut PlanBox down, and it works only while the
+PC runs PlanBox. The theme you pick follows every device.
+
+Over plain http, others on the same Wi-Fi could read the traffic, and the
+app cannot open offline. For https, give PlanBox a certificate the phone
+trusts: with Tailscale, `tailscale cert <name>.ts.net` and set
+`network_hostname` to that name; or use mkcert and install its root
+certificate on the phone. Then set `network_tls_cert` and `network_tls_key`.
+
 ## Configuration
 
 `private_data/settings.toml`. Every key is optional. Environment variables
@@ -264,6 +288,11 @@ deleted; the import reports how many.
 timezone = "Europe/Amsterdam"   # the zone used to decide what "today" is
 port = 8765                     # serve.py port (dev uses 8000); the host is always 127.0.0.1
 offsite_backup_dir = "D:/PlanBox backups"  # a copy of every backup; another disk or a synced folder
+network = true                  # phone access (off by default; see "Phone" above)
+network_address = "192.168.2.12"           # optional: the PC's private address (detected otherwise)
+network_hostname = "desk.tail1234.ts.net"  # optional: another name the phone may use
+network_tls_cert = "D:/certs/desk.crt"     # optional: https for the phone, with the key
+network_tls_key = "D:/certs/desk.key"
 ```
 
 `offsite_backup_dir` applies only to the real database: a dev or

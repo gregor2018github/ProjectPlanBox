@@ -33,7 +33,9 @@ ProjectPlanBox/
 │   │   │   ├── links/        # links between any two entities (phase 2)
 │   │   │   ├── search/       # full-text index and GET /api/search (phase 3)
 │   │   │   ├── insights/     # app opens and cross-module activity (Insights page)
-│   │   │   └── data/         # scheduled/off-site backups, export, merge-import (§13)
+│   │   │   ├── data/         # scheduled/off-site backups, export, merge-import (§13)
+│   │   │   ├── auth/         # phone access: pairing, sessions, the API guard (§9)
+│   │   │   └── preferences/  # preferences shared by every device (the theme)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
 │   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
@@ -914,10 +916,10 @@ collapses every group again.
 | Dev | uvicorn `--reload` on 127.0.0.1:8000 and Vite on 127.0.0.1:5173 (`/api` proxied) | 5173 |
 | Daily use, runtime-only PC (release zip) | Same as daily use, serving the prebuilt `frontend/dist` from the zip; no Node.js | 8765 |
 | Daily use (`main.py` → `scripts/serve.py`) | One in-process uvicorn on 127.0.0.1:8765 serving `/api` and the built `frontend/dist` (SPA fallback). It can be stopped from the app. | 8765 |
-| Later (PWA) | The same single process, bound to the private-network interface behind auth. A deliberate change, not a flag. | n/a |
+| Daily use with phone access (`network = true`) | The same process runs a second uvicorn server on the private address (same port, optional TLS, `lifespan="off"`) serving the same app. Every API call from a non-loopback client needs a paired session. | 8765 on both addresses |
 
-The server is single-origin in production, so the future PWA (service
-worker, manifest) needs no CORS. The dev server sends no CORS headers either,
+The server is single-origin in production, so the PWA (service worker,
+manifest) needs no CORS. The dev server sends no CORS headers either,
 because Vite proxies.
 
 ### Install modes
@@ -953,12 +955,64 @@ browser. Two cheap guards cover that:
 - **Host check.** Starlette's `TrustedHostMiddleware` accepts only
   `127.0.0.1` and `localhost` as the `Host` header. This defeats DNS
   rebinding, where a site points its own domain at 127.0.0.1 to read or
-  change local data. When the PWA arrives (phase 7) the private-network name
-  is added here, together with authentication.
+  change local data. With phone access on, exactly the configured private
+  address and `network_hostname` are added (`allowed_hosts()`).
 - **JSON-only mutations.** Write endpoints take JSON bodies. Browsers cannot
   send `application/json` cross-site without a CORS preflight, which we
   never answer. FastAPI rejects form-encoded or `text/plain` bodies for
   JSON models (422). There is a test for this on `/api/shutdown`.
+
+### Phone access (phase 7)
+
+Off by default. `network = true` in `settings.toml` (real database only;
+`PLANBOX_NETWORK*` for scratch runs) turns it on:
+
+- **Where it listens.** `network_address`, or the address of the interface
+  that routes outwards. Only private IPv4 (10/8, 172.16/12, 192.168/16) and
+  Tailscale's 100.64/10 are accepted, never `0.0.0.0`, loopback or a public
+  address. The loopback server stays exactly as it was. `serve.py` runs the
+  phone listener next to it in the same event loop, without its own signal
+  handling or lifespan, and stops it when the main server stops. If it
+  cannot bind, PlanBox keeps running for the PC.
+- **Who is local.** A client whose address is loopback. On the phone
+  listener that is never the case, so the PC's own browser counts as a
+  phone if it opens the network address.
+- **The guard.** `SessionGuard` (pure ASGI, after the Host check) answers
+  401 to every `/api/*` call from a non-local client without a valid
+  session, except `/api/auth/session` and `/api/auth/sign-in`. Pages and
+  static files stay public: the shell holds no data and must load to show
+  the sign-in screen.
+- **Pairing.** The Data page (PC only) shows an eight-character code
+  (`ABCD-EFGH`, no look-alike characters) for ten minutes. It works once,
+  and five wrong tries void it. Signing in sets `planbox_session`:
+  HttpOnly, SameSite=Strict, Secure on https, 400 days.
+- **Sessions** are `<issued ms>.<nonce>.<HMAC-SHA256>` signed with a key in
+  `<data>/network.key`, so they survive restarts. "Sign out all phones"
+  replaces the key. There is no per-device list.
+- **PC only:** pairing, signing everyone out, the phone settings, and
+  shutdown (`can_shutdown` is false for phones).
+- **TLS** is optional (`network_tls_cert`/`network_tls_key`, PEM, passed to
+  uvicorn). Over plain http the app works and can be added to the home
+  screen, but browsers refuse service workers outside secure contexts, so
+  there is no offline shell, and the traffic can be read on the network.
+  Tailscale (`tailscale cert`) or mkcert give a trusted certificate.
+- **The PWA.** `manifest.webmanifest`, icons rendered from the favicon
+  design, and `sw.js`: cache-first for the hashed `/assets/*`,
+  network-first for pages (falling back to the cached shell), never
+  `/api`. It prunes bundles the current `index.html` no longer uses.
+  `sw.js` and the manifest are served `no-cache`. It registers in
+  production builds on secure contexts only, which includes `127.0.0.1`.
+- **The gate.** `SessionGate` renders the app while the session check is
+  in flight, so the PC never waits for it; an unpaired phone sees the empty
+  shell for a moment before the sign-in screen. Any 401 re-checks the
+  session.
+- **Shared preferences.** `core_preferences` (migration `core/0005`) holds
+  the theme for every device. `localStorage` still paints the first frame
+  (index.html). `useThemeSync` applies the server's value when it answers,
+  sends local changes, and hands a device's existing choice over while the
+  server has none (`theme: null`).
+- **Safe areas.** `--safe-*` tokens (`env(safe-area-inset-*)`) pad the
+  root, the sidebar sheet and the toasts in the home-screen app.
 
 ### Shutdown
 

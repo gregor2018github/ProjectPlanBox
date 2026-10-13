@@ -29,9 +29,14 @@ treat their database as precious.
 - Never run `main.py`/`serve.py` against the real `private_data/` while
   testing. Use `PLANBOX_DATA_DIR` and `PLANBOX_PORT` pointing at a scratch
   folder and port, and `BROWSER=echo` to avoid opening tabs.
-- The server binds to `127.0.0.1` only and accepts only loopback `Host`
-  headers. Never change either without an explicit instruction. Mutating
-  endpoints take JSON bodies (cross-site protection; see ARCHITECTURE §9, Local-server protections).
+- The server binds to `127.0.0.1` and accepts only loopback `Host`
+  headers. The one exception is opt-in phone access (`network = true`): a
+  second listener on a private address, with every API call through it
+  behind a paired session (ARCHITECTURE §9, Phone access). Never widen
+  either further (other interfaces, public addresses, unauthenticated
+  routes) without an explicit instruction. Mutating endpoints take JSON
+  bodies (cross-site protection; see ARCHITECTURE §9, Local-server
+  protections).
 
 ## Hard rules
 1. **Layers:** router (HTTP only) → service (logic, transactions) →

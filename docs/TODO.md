@@ -11,10 +11,19 @@ not ticked; git history keeps them.
       the app stopped; see README).
 - [ ] When an import keeps one of two duplicate tags, move the losing
       tag's taggings to the survivor (they are hidden with it now).
-- [ ] Live sync between the PCs over the same merge (needs phase 7's
-      network binding and auth, or a shared folder as the transport).
+- [ ] Live sync between the PCs over the same merge (phase 7's listener
+      and pairing could carry it, or a shared folder).
 - [ ] Import exports from an older schema version (now refused; both PCs
       must run the same version).
+
+## Phone access
+
+- [ ] A list of paired devices with per-device sign-out (now only "Sign
+      out all phones").
+- [ ] Read cached data offline on the phone (the shell opens offline, the
+      data does not).
+- [ ] A QR code for the phone address and pairing code (needs a
+      dependency or a small encoder).
 
 ## Claude connectors (claude.ai)
 

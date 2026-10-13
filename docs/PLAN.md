@@ -24,20 +24,12 @@ this file records what was planned, decided and pinned.
 | Create buttons | Built 2026-10-11 (owner request) |
 | Work-day feedback | Built 2026-10-12 (owner request) |
 | 8. Data safety and sync | Built 2026-10-13 (brought forward, before 7) |
-| **7. Mobile PWA** | **Next, not started** |
+| 7. Mobile PWA | Built 2026-10-13 |
+
+Every planned phase is built. New work comes from TODO.md or owner requests.
 
 Side task (2026-10-10): Python 3.12 became the minimum, with a runtime-only
 install (no Node.js), a lock file, release zips and CI on 3.12 and 3.14.
-
-## Open phases
-
-### Phase 7: Mobile PWA
-
-Manifest and service worker, binding to the private network interface,
-authentication, and a touch polish pass. Binding beyond `127.0.0.1` and
-relaxing the loopback `Host` check need the owner's explicit go-ahead
-(CLAUDE.md). The theme preference moves from `localStorage` to the server so
-it follows across devices.
 
 ## Built phases
 
@@ -257,6 +249,38 @@ Small iterations after a first day of use at work, one commit each:
     `zone`) instead of a bare `since`, since the calendar must expand
     series and stop at the present.
 
+### Phase 7: Mobile PWA (2026-10-13)
+
+Built on the owner's request to implement the phase, which was the go-ahead
+for leaving `127.0.0.1` that CLAUDE.md asks for; it stays opt-in. Details in
+ARCHITECTURE §9 (Phone access). No new dependencies.
+- **Phone access**, off until `network = true`: a second listener on a
+  private address (home Wi-Fi or Tailscale), optional TLS. The loopback
+  server and its Host check are unchanged; the private address joins the
+  accepted hosts only when on.
+- **Pairing instead of passwords.** The PC shows a one-time code for ten
+  minutes; the phone gets a 400-day HMAC-signed session cookie. "Sign out
+  all phones" rotates the key. Pairing and shutdown are PC only.
+- **PWA:** manifest, icons, and a service worker for the app shell (never
+  data). Offline it opens and says the PC is unreachable.
+- **The theme follows every device** (`core_preferences`, migration
+  `core/0005`).
+- **Touch pass:** safe-area insets for the home-screen app (shell, sidebar
+  sheet, toasts). An audit found every hover-revealed control already
+  visible on coarse pointers, and touch targets already at 44 px.
+
+Decisions:
+- **A second listener, not one server on `0.0.0.0`.** The PC keeps its
+  plain loopback URL even when the phone side uses TLS, and nothing ever
+  listens on public interfaces.
+- **Local means a loopback client.** Simple and not spoofable over TCP. The
+  cost: the PC's own browser must pair too if it uses the network address.
+- **The gate renders optimistically**, so the PC never waits for the
+  session check.
+
+Deferred to TODO.md: a list of paired devices with per-device sign-out,
+offline reading of cached data, a QR code for the address.
+
 ### Phase 8: Data safety and sync (brought forward, 2026-10-13)
 
 Built before phase 7 on the owner's request. Design and rules in
@@ -367,5 +391,6 @@ parity), `concurrently` (`dev.py` does it), React Compiler.
    `settings.toml`, backups and the dev DB (`private_data/dev/`).
 9. The daily server runs on port 8765, separate from dev (8000/5173).
    Autostart at login is not in scope.
-10. The theme preference lives in `localStorage` so it applies before first
-    paint (until phase 7).
+10. The theme preference lives on the server (`core_preferences`) and
+    follows every device; `localStorage` keeps a copy so it applies before
+    first paint.
