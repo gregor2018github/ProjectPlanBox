@@ -58,6 +58,22 @@ class NotFound(DomainError):
     title = "Not found"
 
 
+class Unauthorized(DomainError):
+    """The client is not signed in (phone access, phase 7)."""
+
+    status = 401
+    code = "unauthorized"
+    title = "Not signed in"
+
+
+class Forbidden(DomainError):
+    """Only this PC may do this (pairing, shutdown)."""
+
+    status = 403
+    code = "forbidden"
+    title = "Forbidden"
+
+
 class Conflict(DomainError):
     """The request conflicts with the current state."""
 

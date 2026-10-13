@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from planbox.core.auth.deps import AuthDep, ClientHostDep
 from planbox.core.db.deps import ConnectionDep, SettingsDep
 from planbox.core.lifecycle.deps import LifecycleDep
 from planbox.core.meta.repository import MetaRepository
@@ -13,8 +14,16 @@ from planbox.core.meta.service import MetaService
 router = APIRouter(tags=["core"])
 
 
-def _service(conn: ConnectionDep, settings: SettingsDep, lifecycle: LifecycleDep) -> MetaService:
-    return MetaService(MetaRepository(conn), settings, can_shutdown=lifecycle.can_shutdown)
+def _service(
+    conn: ConnectionDep,
+    settings: SettingsDep,
+    lifecycle: LifecycleDep,
+    auth: AuthDep,
+    client: ClientHostDep,
+) -> MetaService:
+    # A phone never gets the power button: stopping is for the PC it runs on.
+    can_shutdown = lifecycle.can_shutdown and auth.is_local(client)
+    return MetaService(MetaRepository(conn), settings, can_shutdown=can_shutdown)
 
 
 ServiceDep = Annotated[MetaService, Depends(_service)]

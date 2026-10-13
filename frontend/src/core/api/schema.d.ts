@@ -4,6 +4,126 @@
  */
 
 export interface paths {
+    "/api/auth/pairing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Pairing
+         * @description Shows a new pairing code, valid for ten minutes and one phone (this PC only).
+         */
+        post: operations["core_start_pairing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/phones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Phone Access
+         * @description Phone access settings and the current pairing code (this PC only).
+         */
+        get: operations["core_get_phone_access"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Session
+         * @description Whether this device is signed in (always true on this PC).
+         */
+        get: operations["core_get_session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign In
+         * @description Trades a pairing code for a session cookie that lasts 400 days.
+         */
+        post: operations["core_sign_in"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign Out
+         * @description Forgets this device's session.
+         */
+        post: operations["core_sign_out"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sign-out-everywhere": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign Out Everywhere
+         * @description Signs every phone out; each has to pair again (this PC only).
+         */
+        post: operations["core_sign_out_everywhere"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/calendar/events": {
         parameters: {
             query?: never;
@@ -594,6 +714,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Preferences
+         * @description Preferences shared by every device.
+         */
+        get: operations["core_get_preferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Preferences
+         * @description Changes preferences for every device.
+         */
+        patch: operations["core_patch_preferences"];
+        trace?: never;
+    };
     "/api/search": {
         parameters: {
             query?: never;
@@ -625,7 +769,7 @@ export interface paths {
         put?: never;
         /**
          * Shutdown
-         * @description Stops the server after this response has been sent.
+         * @description Stops the server after this response has been sent (this PC only).
          */
         post: operations["core_shutdown"];
         delete?: never;
@@ -1406,6 +1550,20 @@ export interface components {
             name: string;
         };
         /**
+         * Confirm
+         * @description Body of an action without parameters (a JSON body keeps it same-site only).
+         *
+         *     Attributes:
+         *         confirm: Must be ``true``.
+         */
+        Confirm: {
+            /**
+             * Confirm
+             * @constant
+             */
+            confirm: true;
+        };
+        /**
          * DayActivityOut
          * @description Counts for one local day (days without any activity are left out).
          */
@@ -2140,6 +2298,58 @@ export interface components {
             in_range: number;
         };
         /**
+         * PairingOut
+         * @description A pairing code to type on the phone.
+         */
+        PairingOut: {
+            /**
+             * Code
+             * @description Shown as ABCD-EFGH.
+             */
+            code: string;
+            /** Expires At */
+            expires_at: string;
+        };
+        /**
+         * PhoneAccessOut
+         * @description Phone access as this PC sees it.
+         */
+        PhoneAccessOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** @description The code currently shown, if any. */
+            pairing: components["schemas"]["PairingOut"] | null;
+            /**
+             * Tls
+             * @description Whether the phone connection uses https.
+             */
+            tls: boolean;
+            /**
+             * Urls
+             * @description What to open on the phone.
+             */
+            urls: string[];
+        };
+        /**
+         * PreferencesOut
+         * @description Every preference.
+         */
+        PreferencesOut: {
+            /**
+             * Theme
+             * @enum {string}
+             */
+            theme: "system" | "light" | "dark";
+        };
+        /**
+         * PreferencesPatch
+         * @description Preferences to change; leave a field out to keep it.
+         */
+        PreferencesPatch: {
+            /** Theme */
+            theme?: ("system" | "light" | "dark") | null;
+        };
+        /**
          * Problem
          * @description An RFC 9457 problem document.
          *
@@ -2251,6 +2461,24 @@ export interface components {
             updated_at: string;
         };
         /**
+         * SessionOut
+         * @description Whether this device may use PlanBox.
+         */
+        SessionOut: {
+            /**
+             * Local
+             * @description True on the PC running PlanBox (never needs to sign in).
+             */
+            local: boolean;
+            /**
+             * Phone Access
+             * @description Whether phone access is turned on.
+             */
+            phone_access: boolean;
+            /** Signed In */
+            signed_in: boolean;
+        };
+        /**
          * ShutdownIn
          * @description Body of a shutdown request.
          *
@@ -2280,6 +2508,14 @@ export interface components {
              * @constant
              */
             status: "stopping";
+        };
+        /**
+         * SignIn
+         * @description A pairing code typed on the phone, e.g. ``ABCD-EFGH``.
+         */
+        SignIn: {
+            /** Code */
+            code: string;
         };
         /**
          * StatsAreaOut
@@ -2818,6 +3054,196 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    core_start_pairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_get_phone_access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneAccessOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_get_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_sign_out: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_sign_out_everywhere: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhoneAccessOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     calendar_list_events: {
         parameters: {
             query: {
@@ -4060,6 +4486,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetaOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_get_preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_patch_preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesOut"];
                 };
             };
             /** @description Problem details */

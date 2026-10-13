@@ -5,7 +5,9 @@ defaults, ``private_data/settings.toml``, then ``PLANBOX_*`` environment
 variables.
 """
 
+import ipaddress
 import os
+import socket
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -33,6 +35,31 @@ class SettingsError(ValueError):
     """Raised when settings.toml or the environment holds an invalid value."""
 
 
+_TAILSCALE = ipaddress.ip_network("100.64.0.0/10")
+
+
+@dataclass(frozen=True, slots=True)
+class NetworkSettings:
+    """Phone access: a second listener on a private-network address (phase 7).
+
+    Attributes:
+        address: The private IPv4 address to listen on (home Wi-Fi or Tailscale).
+        hostname: An extra name the phone may use, e.g. ``desk.tail1234.ts.net``.
+        tls_cert: Certificate (PEM) for https; with ``tls_key``, or neither.
+        tls_key: Its private key (PEM).
+    """
+
+    address: str
+    hostname: str | None = None
+    tls_cert: Path | None = None
+    tls_key: Path | None = None
+
+    @property
+    def tls(self) -> bool:
+        """Whether the network listener speaks https."""
+        return self.tls_cert is not None
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Resolved, immutable application settings.
@@ -48,6 +75,7 @@ class Settings:
             ``None`` to keep backups on this disk only.
         scheduled_backups: Whether the running server takes daily and weekly
             backups by itself (daily use only).
+        network: Phone access, or ``None`` (the default) for this PC only.
     """
 
     mode: Mode
@@ -57,6 +85,7 @@ class Settings:
     frontend_dist: Path | None = None
     offsite_backup_dir: Path | None = None
     scheduled_backups: bool = False
+    network: NetworkSettings | None = None
 
     @property
     def db_path(self) -> Path:
@@ -127,7 +156,82 @@ def load_settings(
         frontend_dist=FRONTEND_DIST_DIR if mode == "serve" else None,
         offsite_backup_dir=Path(offsite) if offsite else None,
         scheduled_backups=mode == "serve",
+        network=_network_settings(file_values if real else {}, env),
     )
+
+
+def _network_settings(
+    values: Mapping[str, object], env: Mapping[str, str]
+) -> NetworkSettings | None:
+    """Phone access from settings.toml (real database only) or ``PLANBOX_NETWORK*``.
+
+    Off unless ``network = true``. Leaving this PC is a deliberate step, so
+    only private addresses are accepted (CLAUDE.md, ARCHITECTURE §9).
+    """
+    enabled = values.get("network", False)
+    if not isinstance(enabled, bool):
+        raise SettingsError("settings.toml: network must be true or false")
+    if "PLANBOX_NETWORK" in env:
+        enabled = env["PLANBOX_NETWORK"].lower() in {"1", "true", "yes"}
+    if not enabled:
+        return None
+
+    address = env.get("PLANBOX_NETWORK_ADDRESS", _get_str(values, "network_address", ""))
+    address = address or detect_private_address()
+    if address is None:
+        raise SettingsError(
+            "network = true, but this PC has no private network address. "
+            "Set network_address in settings.toml."
+        )
+    check_private_address(address)
+    hostname = env.get("PLANBOX_NETWORK_HOSTNAME", _get_str(values, "network_hostname", ""))
+    cert = env.get("PLANBOX_NETWORK_TLS_CERT", _get_str(values, "network_tls_cert", ""))
+    key = env.get("PLANBOX_NETWORK_TLS_KEY", _get_str(values, "network_tls_key", ""))
+    if bool(cert) != bool(key):
+        raise SettingsError("network_tls_cert and network_tls_key go together")
+    return NetworkSettings(
+        address=address,
+        hostname=hostname or None,
+        tls_cert=Path(cert) if cert else None,
+        tls_key=Path(key) if key else None,
+    )
+
+
+def check_private_address(address: str) -> None:
+    """Accepts private IPv4 addresses (and Tailscale's 100.64.0.0/10) only.
+
+    Raises:
+        SettingsError: For anything else: public, loopback or wildcard addresses.
+    """
+    try:
+        ip = ipaddress.IPv4Address(address)
+    except ValueError as exc:
+        raise SettingsError(f"network_address {address!r} is not an IPv4 address") from exc
+    private = ip.is_private or ip in _TAILSCALE
+    if not private or ip.is_loopback or ip.is_unspecified or ip.is_link_local:
+        raise SettingsError(
+            f"network_address {address} is not a private network address "
+            "(192.168.x.x, 10.x.x.x, 172.16-31.x.x or a Tailscale 100.x address)"
+        )
+
+
+def detect_private_address() -> str | None:
+    """The private IPv4 address of the interface that routes outwards, if any.
+
+    Connecting a UDP socket sends nothing; it only asks the OS which local
+    address it would use.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        try:
+            sock.connect(("192.0.2.1", 9))  # TEST-NET-1: never actually contacted
+            address = str(sock.getsockname()[0])
+        except OSError:
+            return None
+    try:
+        check_private_address(address)
+    except SettingsError:
+        return None
+    return address
 
 
 def mode_from_env(env: Mapping[str, str] | None = None) -> Mode:

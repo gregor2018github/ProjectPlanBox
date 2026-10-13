@@ -447,6 +447,21 @@
         "title": "CollectionRename",
         "type": "object"
       },
+      "Confirm": {
+        "description": "Body of an action without parameters (a JSON body keeps it same-site only).\n\nAttributes:\n    confirm: Must be ``true``.",
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "Confirm",
+        "type": "object"
+      },
       "DayActivityOut": {
         "description": "Counts for one local day (days without any activity are left out).",
         "properties": {
@@ -2182,6 +2197,109 @@
         "title": "OpenStatsOut",
         "type": "object"
       },
+      "PairingOut": {
+        "description": "A pairing code to type on the phone.",
+        "properties": {
+          "code": {
+            "description": "Shown as ABCD-EFGH.",
+            "title": "Code",
+            "type": "string"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "expires_at"
+        ],
+        "title": "PairingOut",
+        "type": "object"
+      },
+      "PhoneAccessOut": {
+        "description": "Phone access as this PC sees it.",
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "pairing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PairingOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The code currently shown, if any."
+          },
+          "tls": {
+            "description": "Whether the phone connection uses https.",
+            "title": "Tls",
+            "type": "boolean"
+          },
+          "urls": {
+            "description": "What to open on the phone.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Urls",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "urls",
+          "tls",
+          "pairing"
+        ],
+        "title": "PhoneAccessOut",
+        "type": "object"
+      },
+      "PreferencesOut": {
+        "description": "Every preference.",
+        "properties": {
+          "theme": {
+            "enum": [
+              "system",
+              "light",
+              "dark"
+            ],
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "title": "PreferencesOut",
+        "type": "object"
+      },
+      "PreferencesPatch": {
+        "description": "Preferences to change; leave a field out to keep it.",
+        "properties": {
+          "theme": {
+            "anyOf": [
+              {
+                "enum": [
+                  "system",
+                  "light",
+                  "dark"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          }
+        },
+        "title": "PreferencesPatch",
+        "type": "object"
+      },
       "Problem": {
         "description": "An RFC 9457 problem document.\n\nAttributes:\n    type: URI reference identifying the problem type (``about:blank`` here).\n    title: Short, human-readable summary of the problem type.\n    status: The HTTP status code.\n    detail: Explanation specific to this occurrence.\n    code: Stable machine-readable code, e.g. ``not_found``.\n    errors: Field-level details for validation problems.",
         "properties": {
@@ -2405,6 +2523,32 @@
         "title": "SectionOut",
         "type": "object"
       },
+      "SessionOut": {
+        "description": "Whether this device may use PlanBox.",
+        "properties": {
+          "local": {
+            "description": "True on the PC running PlanBox (never needs to sign in).",
+            "title": "Local",
+            "type": "boolean"
+          },
+          "phone_access": {
+            "description": "Whether phone access is turned on.",
+            "title": "Phone Access",
+            "type": "boolean"
+          },
+          "signed_in": {
+            "title": "Signed In",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "signed_in",
+          "local",
+          "phone_access"
+        ],
+        "title": "SessionOut",
+        "type": "object"
+      },
       "ShutdownIn": {
         "description": "Body of a shutdown request.\n\nRequiring a JSON body means a plain HTML form or a \"simple\" cross-site\nrequest cannot trigger a shutdown.\n\nAttributes:\n    confirm: Must be ``true``.",
         "properties": {
@@ -2433,6 +2577,22 @@
           "status"
         ],
         "title": "ShutdownOut",
+        "type": "object"
+      },
+      "SignIn": {
+        "description": "A pairing code typed on the phone, e.g. ``ABCD-EFGH``.",
+        "properties": {
+          "code": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "SignIn",
         "type": "object"
       },
       "StatsAreaOut": {
@@ -3793,6 +3953,238 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/auth/pairing": {
+      "post": {
+        "description": "Shows a new pairing code, valid for ten minutes and one phone (this PC only).",
+        "operationId": "core_start_pairing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Start Pairing",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/auth/phones": {
+      "get": {
+        "description": "Phone access settings and the current pairing code (this PC only).",
+        "operationId": "core_get_phone_access",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Phone Access",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "description": "Whether this device is signed in (always true on this PC).",
+        "operationId": "core_get_session",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/auth/sign-in": {
+      "post": {
+        "description": "Trades a pairing code for a session cookie that lasts 400 days.",
+        "operationId": "core_sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Sign In",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/auth/sign-out": {
+      "post": {
+        "description": "Forgets this device's session.",
+        "operationId": "core_sign_out",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Sign Out",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/auth/sign-out-everywhere": {
+      "post": {
+        "description": "Signs every phone out; each has to pair again (this PC only).",
+        "operationId": "core_sign_out_everywhere",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneAccessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Sign Out Everywhere",
+        "tags": [
+          "core"
+        ]
+      }
+    },
     "/api/calendar/events": {
       "get": {
         "description": "Events and their occurrences in ``[start, end)``, recurring series expanded.",
@@ -5556,6 +5948,78 @@
         ]
       }
     },
+    "/api/preferences": {
+      "get": {
+        "description": "Preferences shared by every device.",
+        "operationId": "core_get_preferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Preferences",
+        "tags": [
+          "core"
+        ]
+      },
+      "patch": {
+        "description": "Changes preferences for every device.",
+        "operationId": "core_patch_preferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferencesPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Patch Preferences",
+        "tags": [
+          "core"
+        ]
+      }
+    },
     "/api/search": {
       "get": {
         "description": "Live items whose title or text contains every word, best first.",
@@ -5621,7 +6085,7 @@
     },
     "/api/shutdown": {
       "post": {
-        "description": "Stops the server after this response has been sent.",
+        "description": "Stops the server after this response has been sent (this PC only).",
         "operationId": "core_shutdown",
         "requestBody": {
           "content": {

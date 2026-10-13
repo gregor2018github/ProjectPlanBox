@@ -7,9 +7,15 @@ Usage:
 
 The app's "Shut down" button stops this process and closes the app window;
 closing the app window stops this process.
+
+With phone access on (``network = true`` in settings.toml), a second
+listener serves the same app on the private network address, where every
+API call needs a paired session (ARCHITECTURE §9).
 """
 
 import argparse
+import asyncio
+import contextlib
 import json
 import socket
 import subprocess
@@ -18,9 +24,9 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from _common import (
     FRONTEND,
@@ -34,6 +40,9 @@ from _common import (
     run,
 )
 from app_window import close_app, open_app, wait_until_closed
+
+if TYPE_CHECKING:
+    import uvicorn
 
 BUILD_INPUTS = ("src", "public", "index.html", "package-lock.json", "vite.config.ts")
 STARTUP_TIMEOUT_S = 30.0
@@ -137,8 +146,27 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
 
     app = create_app(settings, request_shutdown=request_shutdown)
     server = uvicorn.Server(uvicorn.Config(app, host=HOST, port=settings.port, log_level="warning"))
+    phone: uvicorn.Server | None = None
+    if settings.network is not None:
+        network = settings.network
+        phone = _secondary_server(
+            uvicorn.Config(
+                app,
+                host=network.address,
+                port=settings.port,
+                log_level="warning",
+                lifespan="off",  # migrations and the backup loop run once, on the main server
+                ssl_certfile=None if network.tls_cert is None else str(network.tls_cert),
+                ssl_keyfile=None if network.tls_key is None else str(network.tls_key),
+            )
+        )
 
     heading(f"PlanBox on {url}")
+    if settings.network is not None:
+        scheme = "https" if settings.network.tls else "http"
+        print(
+            f"Phones: {scheme}://{settings.network.address}:{settings.port} (pair on the Data page)"
+        )
     print(f"Database: {settings.db_path}")
     print("Stop it with the power button in the app, by closing its window, or Ctrl+C here.")
     windows: list[subprocess.Popen[bytes]] = []
@@ -149,11 +177,52 @@ def serve(*, open_browser: bool, build: bool = True) -> int:
             args=(server, url, profile, windows, request_shutdown),
             daemon=True,
         ).start()
-    server.run()
+    asyncio.run(_serve_all(server, phone))
     for window in windows:
         close_app(window)
     print("PlanBox stopped.")
     return 0
+
+
+def _secondary_server(config: "uvicorn.Config") -> "uvicorn.Server":
+    """A uvicorn server that leaves Ctrl+C to the main one.
+
+    Only one server can own the signal handlers; the main server stops the
+    phone listener when it stops (see ``_serve_all``).
+    """
+    import uvicorn  # noqa: PLC0415 - needs the venv
+
+    class Secondary(uvicorn.Server):
+        @contextlib.contextmanager
+        def capture_signals(self) -> Generator[None]:
+            yield
+
+    return Secondary(config)
+
+
+async def _serve_all(main: "uvicorn.Server", phone: "uvicorn.Server | None") -> None:
+    """Runs the loopback server, and the phone listener alongside it.
+
+    The loopback server owns Ctrl+C and the shutdown hook; when it stops, the
+    phone listener stops too. If the phone listener cannot start (the address
+    is gone), PlanBox keeps running for this PC.
+    """
+    if phone is None:
+        await main.serve()
+        return
+    task = asyncio.create_task(phone.serve())
+    task.add_done_callback(_report_phone_exit)
+    try:
+        await main.serve()
+    finally:
+        phone.should_exit = True
+        with contextlib.suppress(BaseException):
+            await task
+
+
+def _report_phone_exit(task: "asyncio.Task[None]") -> None:
+    if not task.cancelled() and task.exception() is not None:
+        print(f"Phone access could not start: {task.exception()!r}. This PC still works.")
 
 
 def _open_when_ready(
