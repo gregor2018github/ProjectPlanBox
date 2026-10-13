@@ -2332,14 +2332,11 @@ export interface components {
         };
         /**
          * PreferencesOut
-         * @description Every preference.
+         * @description Every preference; ``null`` means never set (each device keeps its own until then).
          */
         PreferencesOut: {
-            /**
-             * Theme
-             * @enum {string}
-             */
-            theme: "system" | "light" | "dark";
+            /** Theme */
+            theme: ("system" | "light" | "dark") | null;
         };
         /**
          * PreferencesPatch

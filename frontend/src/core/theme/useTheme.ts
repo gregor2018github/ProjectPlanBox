@@ -6,6 +6,7 @@ import {
   resolveTheme,
   subscribeToSystemTheme,
   systemPrefersDark,
+  THEME_EVENT,
   writeThemePreference,
   type ResolvedTheme,
   type ThemePreference,
@@ -17,8 +18,6 @@ export interface ThemeState {
   resolved: ResolvedTheme;
   setPreference: (preference: ThemePreference) => void;
 }
-
-const THEME_EVENT = "planbox:theme";
 
 /**
  * Reads and controls the theme. Every caller stays in sync, and the

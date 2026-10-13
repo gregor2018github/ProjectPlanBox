@@ -24,3 +24,12 @@ export type ExportFile = components["schemas"]["ExportFile"];
 
 /** POST /api/data/import */
 export type ImportReport = components["schemas"]["ImportOut"];
+
+/** GET /api/auth/session */
+export type Session = components["schemas"]["SessionOut"];
+
+/** GET /api/auth/phones */
+export type PhoneAccess = components["schemas"]["PhoneAccessOut"];
+
+/** GET /api/preferences */
+export type Preferences = components["schemas"]["PreferencesOut"];

@@ -2259,16 +2259,23 @@
         "type": "object"
       },
       "PreferencesOut": {
-        "description": "Every preference.",
+        "description": "Every preference; ``null`` means never set (each device keeps its own until then).",
         "properties": {
           "theme": {
-            "enum": [
-              "system",
-              "light",
-              "dark"
+            "anyOf": [
+              {
+                "enum": [
+                  "system",
+                  "light",
+                  "dark"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Theme",
-            "type": "string"
+            "title": "Theme"
           }
         },
         "required": [

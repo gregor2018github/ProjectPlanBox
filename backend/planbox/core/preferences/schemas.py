@@ -6,9 +6,9 @@ from pydantic import BaseModel
 
 
 class PreferencesOut(BaseModel):
-    """Every preference."""
+    """Every preference; ``null`` means never set (each device keeps its own until then)."""
 
-    theme: Literal["system", "light", "dark"]
+    theme: Literal["system", "light", "dark"] | None
 
 
 class PreferencesPatch(BaseModel):

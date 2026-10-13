@@ -1,7 +1,8 @@
 /**
  * Theme preference: `system` follows the OS, `light`/`dark` pin it.
  * index.html applies the stored preference before first paint; keep the key
- * and logic there in sync with this file.
+ * and logic there in sync with this file. localStorage is this device's copy;
+ * the server holds the shared one (see useThemeSync).
  */
 import { readStorage, writeStorage } from "../storage";
 
@@ -15,6 +16,9 @@ export type ResolvedTheme = "light" | "dark";
 export const THEME_STORAGE_KEY = "planbox.theme";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+/** Fired on window whenever the stored preference changes. */
+export const THEME_EVENT = "planbox:theme";
 
 /** Reads the stored preference, defaulting to `system`. */
 export function readThemePreference(): ThemePreference {

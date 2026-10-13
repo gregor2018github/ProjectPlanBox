@@ -4,7 +4,7 @@ import { render } from "@testing-library/react";
 
 import { App } from "../app/App";
 import { createApiClient, type FetchFn } from "../core/api/client";
-import type { Health, Meta } from "../core/api/types";
+import type { Health, Meta, Session } from "../core/api/types";
 import type { ModuleManifest } from "../core/module";
 import { installMatchMedia } from "./matchMedia";
 
@@ -20,6 +20,7 @@ export const defaultRoutes: Routes = {
     week_starts_on: 1,
     can_shutdown: false,
   } satisfies Meta,
+  "/api/auth/session": { signed_in: true, local: true, phone_access: false } satisfies Session,
 };
 
 /** A fetch that answers from `routes` and 404s everything else. */

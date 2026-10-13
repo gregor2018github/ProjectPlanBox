@@ -259,7 +259,7 @@ def test_without_phone_access_nothing_changes(client: TestClient) -> None:
 
 def test_the_theme_follows_every_device(desk: TestClient, phone: TestClient) -> None:
     """Set on one device, read on another."""
-    assert ok(desk.get("/api/preferences")) == {"theme": "system"}
+    assert ok(desk.get("/api/preferences")) == {"theme": None}
     assert ok(desk.patch("/api/preferences", json={"theme": "dark"})) == {"theme": "dark"}
     pair(desk, phone)
     assert ok(phone.get("/api/preferences")) == {"theme": "dark"}

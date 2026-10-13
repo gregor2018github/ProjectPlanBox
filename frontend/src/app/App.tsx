@@ -20,6 +20,7 @@ import { ToastProvider } from "../ui/ToastProvider";
 import { TooltipProvider } from "../ui/TooltipProvider";
 import { ModulesContext } from "./modulesContext";
 import { createAppRouter } from "./router";
+import { SessionGate } from "./SessionGate";
 
 /** Props for {@link App}; everything is injectable for tests. */
 export interface AppProps {
@@ -50,7 +51,9 @@ export function App({ apiClient, queryClient, history, modules = MODULES }: AppP
                     <CommandsContext value={commands}>
                       <CalendarFeedsContext value={calendarFeeds}>
                         <LinkablesContext value={linkables}>
-                          <RouterProvider router={router} />
+                          <SessionGate>
+                            <RouterProvider router={router} />
+                          </SessionGate>
                         </LinkablesContext>
                       </CalendarFeedsContext>
                     </CommandsContext>

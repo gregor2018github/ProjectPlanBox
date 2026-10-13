@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useMeta } from "../core/api/coreQueries";
 import { CommandPalette } from "../core/commands/CommandPalette";
 import { useRecordAppOpen } from "../core/insights/insightsQueries";
+import { useThemeSync } from "../core/theme/useThemeSync";
 import { ShortcutsDialog } from "../core/shortcuts/ShortcutsDialog";
 import { DESKTOP_QUERY, PANE_INLINE_QUERY, useMediaQuery } from "../core/useMediaQuery";
 import { DndRoot } from "../ui/DndRoot";
@@ -35,6 +36,7 @@ import { useSidebarCollapsed } from "./useSidebarCollapsed";
 export function AppShell() {
   const modules = useModules();
   useRecordAppOpen();
+  useThemeSync();
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   const [railOpen, toggleRail, closeRail] = useRailPane();

@@ -20,9 +20,11 @@ class Preferences:
 
     Attributes:
         theme: ``system`` follows the device; ``light``/``dark`` pin it everywhere.
+            ``None`` until first set, so a device can hand over the choice it
+            kept locally before preferences moved to the server.
     """
 
-    theme: Theme = "system"
+    theme: Theme | None = None
 
 
 class PreferenceService:
@@ -38,8 +40,8 @@ class PreferenceService:
     def get(self) -> Preferences:
         """The current preferences (unknown stored values fall back to defaults)."""
         stored = self._repo.all_live()
-        theme = stored.get("theme", "system")
-        return Preferences(theme=theme if theme in THEMES else "system")
+        theme = stored.get("theme")
+        return Preferences(theme=theme if theme in THEMES else None)
 
     def set_theme(self, theme: Theme) -> Preferences:
         """Stores the theme for every device."""
