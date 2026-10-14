@@ -21,6 +21,13 @@ const PAGES: [path: string, component: RouteComponent][] = [
 /** The module's routes, attached under the app's root route. */
 export function todoRoutes(parent: AnyRoute): AnyRoute[] {
   return PAGES.map(([path, component]) =>
-    createRoute({ getParentRoute: () => parent, path, component }),
+    createRoute({
+      getParentRoute: () => parent,
+      path,
+      component,
+      // A fresh page per list or area: otherwise the new todos animate in as if
+      // just added while the old ones animate out, and everything jumps.
+      remountDeps: ({ params }): unknown => params,
+    }),
   );
 }
