@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { droppedDate } from "../../../core/calendar/dateDrop";
 import { cx } from "../../../ui/cx";
-import { useSortableItem } from "../../../ui/dnd";
+import { useSortableItem, type DropInfo } from "../../../ui/dnd";
 import { durations, easings, springs } from "../../../ui/motion";
 import { reorderedIds, resolveTodoDrop, type TodoDropData } from "../dropRules";
 import type { Todo } from "../types";
@@ -21,6 +21,13 @@ export interface SortableTodoItemProps {
   actions: TodoActions;
   /** Views that store their whole order (Today) get the group's ids after a drop instead of a move. */
   onReorder?: (ids: string[]) => void;
+  /** A view's own drop rule, tried first; returns true when it handled the drop. */
+  onDropOn?: (info: DropInfo) => boolean;
+  /**
+   * Marks the row as the insert point while something that does not sort
+   * itself (an unsorted todo in "My order") hovers over it.
+   */
+  dropHint?: boolean;
   children: ReactNode;
 }
 
@@ -37,9 +44,11 @@ export function SortableTodoItem({
   data,
   actions,
   onReorder,
+  onDropOn,
+  dropHint = false,
   children,
 }: SortableTodoItemProps) {
-  const { ref, isDragging } = useSortableItem({
+  const { ref, isDragging, isDropTarget } = useSortableItem({
     id: todo.id,
     index,
     group: group ?? "static",
@@ -54,6 +63,7 @@ export function SortableTodoItem({
         if (todo.due_date !== date) actions.setDue(todo, date);
         return;
       }
+      if (onDropOn?.(info) === true) return;
       if (onReorder) {
         const ids = reorderedIds(todo.id, info);
         if (ids) onReorder(ids);
@@ -76,6 +86,10 @@ export function SortableTodoItem({
       className={cx(
         "touch-manipulation",
         isDragging && "relative z-10 rounded-md bg-surface shadow-md",
+        dropHint &&
+          isDropTarget &&
+          !isDragging &&
+          "relative before:absolute before:inset-x-3 before:-top-px before:h-0.5 before:rounded-full before:bg-accent",
       )}
     >
       {children}

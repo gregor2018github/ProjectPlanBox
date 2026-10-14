@@ -187,6 +187,7 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         recurrence_anchor: b.rrule ? ((b.due_date as string | null | undefined) ?? null) : null,
         repeat_from: (b.repeat_from as Todo["repeat_from"] | undefined) ?? "due",
         today_position: null,
+        rank_position: null,
       };
       state.todos.push(todo);
       return json(todo, 201);
@@ -202,6 +203,26 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         if (!row) return problem(404, "No todo with this id.");
         if (row.today_position !== key) {
           Object.assign(row, { today_position: key, updated_at: state.now });
+          changed.push(strip(row));
+        }
+      }
+      return json({ todos: changed });
+    }
+
+    if (path === "/api/todos/rank-order" && method === "POST") {
+      const wanted = new Map<string, string | null>();
+      let key: string | null = null;
+      for (const todoId of (b.ids as string[] | undefined) ?? []) {
+        key = keyBetween(key, null);
+        wanted.set(todoId, key);
+      }
+      for (const todoId of (b.unranked as string[] | undefined) ?? []) wanted.set(todoId, null);
+      const changed: Todo[] = [];
+      for (const [todoId, rank] of wanted) {
+        const row = state.todos.find((t) => t.id === todoId && !t.deleted_at);
+        if (!row) return problem(404, "No todo with this id.");
+        if (row.rank_position !== rank) {
+          Object.assign(row, { rank_position: rank, updated_at: state.now });
           changed.push(strip(row));
         }
       }

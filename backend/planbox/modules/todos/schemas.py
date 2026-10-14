@@ -114,7 +114,8 @@ class TodoOut(BaseModel):
     next date follows that schedule (``due``) or is counted from the day it
     was done (``completion``). ``today_position`` is its place in
     Today's manual order (null until Today is reordered, and after the due
-    date changes).
+    date changes). ``rank_position`` is its place in "My order" in All todos
+    (null while it is unsorted).
     """
 
     id: str
@@ -134,6 +135,7 @@ class TodoOut(BaseModel):
     recurrence_anchor: date | None
     repeat_from: Literal["due", "completion"]
     today_position: str | None
+    rank_position: str | None
 
 
 class TodoCreate(BaseModel):
@@ -186,6 +188,13 @@ class TodayOrder(BaseModel):
     """The todos of one group in Today, top to bottom."""
 
     ids: list[str] = Field(max_length=2000)
+
+
+class RankOrder(BaseModel):
+    """The "My order" ranking in All todos: ranked todos top to bottom, and todos to unrank."""
+
+    ids: list[str] = Field(max_length=5000)
+    unranked: list[str] = Field(default_factory=list[str], max_length=5000)
 
 
 class ForecastOut(BaseModel):

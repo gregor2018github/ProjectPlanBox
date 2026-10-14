@@ -12,6 +12,7 @@ import type { Todo } from "../types";
 import { todoUi, useTodoUi } from "../uiStore";
 import type { TodoActions } from "../useTodoActions";
 import type { TodoLookup } from "../useTodoData";
+import { isOwnControl } from "../rowClick";
 import { TodoMeta } from "./TodoMeta";
 
 /** Props for {@link TodoRow}. */
@@ -155,16 +156,4 @@ export function TodoRow({
       </div>
     </ContextMenu>
   );
-}
-
-/**
- * True when a click belongs to something other than the row itself: one of
- * its controls (checkbox, ⋯ menu, subtask toggle) or a portalled menu, whose
- * React events still bubble up here.
- */
-function isOwnControl(target: EventTarget, row: HTMLElement): boolean {
-  if (!(target instanceof Node) || !row.contains(target)) return true;
-  const element = target instanceof Element ? target : target.parentElement;
-  const control = element ? element.closest("button, a, input, [role='checkbox']") : null;
-  return control !== null && control !== row;
 }

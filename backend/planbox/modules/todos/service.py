@@ -794,6 +794,40 @@ class TodoService:
                     changed.append(todo_id)
             return self._records(self._repos.todos.get_many(changed))
 
+    def set_rank_order(
+        self, todo_ids: Sequence[str], unranked: Sequence[str] = ()
+    ) -> list[TodoRecord]:
+        """Stores "My order" (the ranked todos, top to bottom) and unranks others.
+
+        Every todo in ``todo_ids`` gets a key in that order; every todo in
+        ``unranked`` loses its key and goes back to "unsorted". Ranked todos
+        not listed keep their key. Rows that are already right are left alone,
+        so the returned records are only the changed ones.
+
+        Raises:
+            ValidationFailed: If an id is listed twice (in either list or both).
+            NotFound: If an id is not a live todo.
+        """
+        listed = [*todo_ids, *unranked]
+        if len(set(listed)) != len(listed):
+            raise ValidationFailed("Each todo can appear only once in the order.")
+        with transaction(self._conn):
+            todos = {t.id: t for t in self._repos.todos.get_many(listed)}
+            now = utc_now_iso(self._clock)
+            wanted: list[tuple[str, str | None]] = []
+            key: str | None = None
+            for todo_id in todo_ids:
+                key = key_between(key, None)
+                wanted.append((todo_id, key))
+            wanted += [(todo_id, None) for todo_id in unranked]
+            changed: list[str] = []
+            for todo_id, rank in wanted:
+                todo = _live(todos.get(todo_id), "todo")
+                if todo.rank_position != rank:
+                    self._repos.todos.update(todo_id, {"rank_position": rank}, now)
+                    changed.append(todo_id)
+            return self._records(self._repos.todos.get_many(changed))
+
     def delete(self, todo_id: str) -> Deletion:
         """Deletes a todo with its subtasks."""
         with transaction(self._conn):

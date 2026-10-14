@@ -17,6 +17,7 @@ import {
   applyMove,
   applyPatch,
   applyReopen,
+  applyRankOrder,
   applyTodayOrder,
   buildTodo,
   mergeTodos,
@@ -222,6 +223,22 @@ export function useSetTodayOrder() {
       merge(todos);
     },
     errorTitle: "Could not reorder Today",
+  });
+}
+
+/** Stores "My order" in All todos (the ranked ids top to bottom) and unranks todos. */
+export function useSetRankOrder() {
+  const client = useApiClient();
+  const merge = useMergeTodos();
+  return useOptimisticMutation<Todo[], { ids: string[]; unranked: string[] }, Todo[]>({
+    cacheKey: todoKeys.items,
+    mutationFn: async ({ ids, unranked }) =>
+      (await unwrap(client.POST("/api/todos/rank-order", { body: { ids, unranked } }))).todos,
+    apply: (todos, { ids, unranked }) => applyRankOrder(todos, ids, unranked, now()),
+    onSuccess: (todos) => {
+      merge(todos);
+    },
+    errorTitle: "Could not change your order",
   });
 }
 

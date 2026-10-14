@@ -118,6 +118,62 @@ test("Today reorders by drag and drop, and the order survives a reload", async (
   await expect.poll(ours).toEqual([c, a, b]);
 });
 
+test("My order: drag in from Unsorted, reorder, drag back out; the order survives a reload", async ({
+  page,
+}) => {
+  const id = tag();
+  const [a, b, c] = [`Alpha ${id}`, `Bravo ${id}`, `Charlie ${id}`];
+  await page.goto("/todos/inbox");
+  for (const title of [a, b, c]) await addInline(page, title);
+  await page.goto("/todos/all");
+  await page.getByRole("button", { name: "My order" }).click();
+  const unsorted = page.getByRole("list", { name: "Unsorted todos" });
+  const ranked = page.getByRole("list", { name: "My order" });
+  const ours = async (list: Locator) => (await titles(list)).filter((t) => t.endsWith(id));
+  const row = (list: Locator, title: string) => list.locator("li", { hasText: title });
+
+  for (const title of [a, b]) {
+    await row(unsorted, title).getByRole("button", { name: "Add to my order" }).click();
+  }
+  await expect.poll(() => ours(ranked)).toEqual([a, b]);
+
+  // An unsorted todo dropped onto a ranked row goes in right there.
+  await row(unsorted, c).scrollIntoViewIfNeeded();
+  await dragOnto(page, row(unsorted, c), ranked.getByText(a, { exact: true }));
+  await expect.poll(() => ours(ranked)).toEqual([c, a, b]);
+  await expect(page.getByText("Drop here to put it last")).toHaveCount(0);
+  // Let the drop animation finish before the next drag (a hand is never this quick).
+  await page.waitForTimeout(300);
+
+  // Ranked rows sort among themselves.
+  const from = await ranked.getByText(b, { exact: true }).boundingBox();
+  const to = await ranked.getByText(a, { exact: true }).boundingBox();
+  if (!from || !to) throw new Error("rows not visible");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, from.y - 10, { steps: 5 });
+  await page.mouse.move(to.x + to.width / 2, to.y + 2, { steps: 15 });
+  await page.mouse.up();
+  await expect.poll(() => ours(ranked)).toEqual([c, b, a]);
+  await page.waitForTimeout(300);
+
+  // Dropped onto the Unsorted box, a todo leaves the ranking.
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith("/api/todos/rank-order") && r.request().method() === "POST",
+  );
+  await dragOnto(
+    page,
+    ranked.getByText(a, { exact: true }),
+    page.getByRole("region", { name: "Unsorted" }).getByText("Unsorted", { exact: true }),
+  );
+  await expect.poll(() => ours(ranked)).toEqual([c, b]);
+  expect(await ours(unsorted)).toContain(a);
+  expect((await saved).ok()).toBe(true);
+
+  await page.reload();
+  await expect.poll(() => ours(page.getByRole("list", { name: "My order" }))).toEqual([c, b]);
+});
+
 /** Drags `source` onto the middle of `target` with the mouse. */
 async function dragOnto(page: Page, source: Locator, target: Locator): Promise<void> {
   const from = await source.boundingBox();

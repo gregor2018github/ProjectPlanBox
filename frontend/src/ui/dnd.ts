@@ -38,13 +38,13 @@ export interface SortableItemOptions {
 
 /** Makes an element a sortable item; spread `ref` on it (and `handleRef` on a grip, if any). */
 export function useSortableItem({ onDragEnd, data, ...options }: SortableItemOptions) {
-  const { ref, handleRef, isDragging } = useSortable({
+  const { ref, handleRef, isDragging, isDropTarget } = useSortable({
     ...options,
     disabled: options.disabled ?? false,
     data: { ...data, onDragEnd },
     transition: { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
   });
-  return { ref, handleRef, isDragging };
+  return { ref, handleRef, isDragging, isDropTarget };
 }
 
 /** Options for {@link useDropTarget}. */

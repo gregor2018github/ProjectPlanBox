@@ -593,6 +593,24 @@ that can be enforced in SQL are also CHECK constraints.
   Todos with a key come first in key order, and the rest follow
   auto-sorted. Changing the due date clears the key, and so does creating
   a repeat's next occurrence, so a todo arriving in Today lands at the end.
+- **My order (owner request, 2026-10-14):** migration
+  `0006_add_rank_position.sql` adds a nullable `rank_position`, one
+  ranking over every todo and subtask regardless of place, for "All todos"
+  in its **My order** mode (the other mode, **By place**, is unchanged; the
+  choice is remembered per browser). A null key means **unsorted**: new
+  todos start there, in a box above the ranking, and a ranked todo dragged
+  back onto that box (or "Back to unsorted") loses its key.
+  `POST /api/todos/rank-order` takes `{ids, unranked}`: the whole ranking
+  top to bottom (key sequence written only where a row differs, as for
+  Today) and ids to unrank. The client always sends the ranking computed
+  from every cached todo (`rankedIds`, `placeInRanking`), not the rows on
+  screen, so a tag filter never scrambles hidden ones. Unlike Today's key,
+  nothing clears it: edits, moves, completing and reopening keep the
+  place, and a repeat's next occurrence (and its subtasks) inherit it.
+  A subtask in the ranking shows as "Subtask ↳ Parent", since it can sit
+  far from its parent. Unsorted rows are plain draggables, not sortables,
+  so dnd-kit never moves DOM nodes between the two lists behind React; they
+  drop onto a ranked row (insert before it) or the end zone.
 - **Area colours (owner request, 2026-10-11):** migration
   `0005_add_area_hue.sql` adds `hue`, an OKLCH angle (0–359). Only the hue
   is stored. Lightness and chroma come from the theme's tint tokens
@@ -622,6 +640,7 @@ that can be enforced in SQL are also CHECK constraints.
 | GET | `/api/todos/forecast?start=&end=` | `[{todo_id, date}]`: later dates of open repeating todos in the range (inclusive, at most 400 days), for the calendar. |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
 | POST | `/api/todos/today-order` | `{ids}`: one Today group, top to bottom. Returns the todos whose `today_position` changed. |
+| POST | `/api/todos/rank-order` | `{ids, unranked?}`: "My order" in All todos, the whole ranking top to bottom, plus ids to send back to unsorted. Returns the todos whose `rank_position` changed. |
 | DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |
 | GET/POST/PATCH/DELETE | `/api/todos/areas[/{id}]`, `…/move`, `…/restore` | Areas |
 | GET/POST/PATCH/DELETE | `/api/todos/lists[/{id}]`, `…/move` (`{area_id, before_id?, after_id?}`), `…/restore` | Lists |

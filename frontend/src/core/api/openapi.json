@@ -2356,6 +2356,32 @@
         "title": "Problem",
         "type": "object"
       },
+      "RankOrder": {
+        "description": "The \"My order\" ranking in All todos: ranked todos top to bottom, and todos to unrank.",
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5000,
+            "title": "Ids",
+            "type": "array"
+          },
+          "unranked": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5000,
+            "title": "Unranked",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "RankOrder",
+        "type": "object"
+      },
       "Rename": {
         "description": "Rename an area, list or section.",
         "properties": {
@@ -3549,7 +3575,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes).",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes). ``rank_position`` is its place in \"My order\" in All todos\n(null while it is unsorted).",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -3617,6 +3643,17 @@
             "minimum": 0.0,
             "title": "Priority",
             "type": "integer"
+          },
+          "rank_position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank Position"
           },
           "recurrence_anchor": {
             "anyOf": [
@@ -3704,7 +3741,8 @@
           "rrule",
           "recurrence_anchor",
           "repeat_from",
-          "today_position"
+          "today_position",
+          "rank_position"
         ],
         "title": "TodoOut",
         "type": "object"
@@ -7446,6 +7484,48 @@
           }
         },
         "summary": "Restore List",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/rank-order": {
+      "post": {
+        "description": "Stores \"My order\" in All todos (and unranks todos); returns the todos that changed.",
+        "operationId": "todos_set_rank_order",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RankOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodosOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Set Rank Order",
         "tags": [
           "todos"
         ]

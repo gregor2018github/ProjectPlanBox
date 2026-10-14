@@ -25,6 +25,7 @@ this file records what was planned, decided and pinned.
 | Work-day feedback | Built 2026-10-12 (owner request) |
 | 8. Data safety and sync | Built 2026-10-13 (brought forward, before 7) |
 | 7. Mobile PWA | Built 2026-10-13 |
+| My order (All todos) | Built 2026-10-14 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -280,6 +281,31 @@ Decisions:
 
 Deferred to TODO.md: a list of paired devices with per-device sign-out,
 offline reading of cached data, a QR code for the address.
+
+### My order in All todos (owner request, 2026-10-14)
+
+A second mode for All todos, for going through priorities with a manager:
+**By place** (as before) or **My order**, switched at the top and
+remembered per browser. My order is one flat, hand-sorted ranking of every
+open todo and subtask, two uniform lines per row (title, with a subtask as
+"Subtask ↳ Parent"; then place, date and flags), numbered. Details in
+ARCHITECTURE §7 (My order); migration `todos/0006`, no new dependencies.
+- **Unsorted box on top.** New todos land there (not silently at the
+  bottom). Drag one onto a ranked row to insert it there, use its ＋ (touch,
+  no drag needed) or "Add all to my order"; drag a ranked todo back onto
+  the box, or "Back to unsorted" in its menu, to take it out.
+- Reordering: drag, Alt+↑/↓, or Move to top/bottom in the row menu; undo
+  with Ctrl+Z. The order is stored on the server, so it is the same after
+  a restart and on the phone.
+
+Decisions:
+- **The ranking is kept through edits and completion.** Unlike Today's
+  order it is not about dates, so nothing clears it; a repeating todo's
+  next occurrence keeps its rank instead of reappearing as unsorted.
+- **Every write is the whole ranking from the full cache**, so a tag
+  filter hides rows without disturbing their place.
+- The unsorted box follows the places' order (as By place), each parent
+  followed by its subtasks, so a long first box is easy to work through.
 
 ### Phase 8: Data safety and sync (brought forward, 2026-10-13)
 

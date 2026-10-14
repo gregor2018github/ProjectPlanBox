@@ -1214,6 +1214,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/rank-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Rank Order
+         * @description Stores "My order" in All todos (and unranks todos); returns the todos that changed.
+         */
+        post: operations["todos_set_rank_order"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/todos/sections": {
         parameters: {
             query?: never;
@@ -2378,6 +2398,16 @@ export interface components {
             type?: string;
         };
         /**
+         * RankOrder
+         * @description The "My order" ranking in All todos: ranked todos top to bottom, and todos to unrank.
+         */
+        RankOrder: {
+            /** Ids */
+            ids: string[];
+            /** Unranked */
+            unranked?: string[];
+        };
+        /**
          * Rename
          * @description Rename an area, list or section.
          */
@@ -2911,7 +2941,8 @@ export interface components {
          *     next date follows that schedule (``due``) or is counted from the day it
          *     was done (``completion``). ``today_position`` is its place in
          *     Today's manual order (null until Today is reordered, and after the due
-         *     date changes).
+         *     date changes). ``rank_position`` is its place in "My order" in All todos
+         *     (null while it is unsorted).
          */
         TodoOut: {
             /** Completed At */
@@ -2932,6 +2963,8 @@ export interface components {
             position: string;
             /** Priority */
             priority: number;
+            /** Rank Position */
+            rank_position: string | null;
             /** Recurrence Anchor */
             recurrence_anchor: string | null;
             /**
@@ -5545,6 +5578,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_set_rank_order: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodosOut"];
                 };
             };
             /** @description Problem details */

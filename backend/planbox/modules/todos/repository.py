@@ -13,7 +13,7 @@ _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
     "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, "
     "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id, "
-    "today_position, repeat_from"
+    "today_position, repeat_from, rank_position"
 )
 _TODO_EDITABLE = frozenset(
     {
@@ -29,6 +29,7 @@ _TODO_EDITABLE = frozenset(
         "recurrence_anchor",
         "today_position",
         "repeat_from",
+        "rank_position",
     }
 )
 
@@ -328,7 +329,7 @@ class TodoRepository:
             ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, "
             ":position, :completed_at, :created_at, :updated_at, :deleted_at, "
             ":rrule, :recurrence_anchor, :recurs_from_id, :today_position, "
-            ":repeat_from)",
+            ":repeat_from, :rank_position)",
             _asdict(todo),
         )
 

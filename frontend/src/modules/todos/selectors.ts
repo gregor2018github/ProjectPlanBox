@@ -267,3 +267,77 @@ export function allView(
     subtasksOpen: todos.filter((t) => isOpen(t) && !isTopLevel(t)).length,
   };
 }
+
+/** "My order": ranked todos by their key (ids break ties, as on the server). */
+export function byRank(a: Todo, b: Todo): number {
+  const ka = a.rank_position ?? "";
+  const kb = b.rank_position ?? "";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/** The two parts of "My order" in All todos. */
+export interface RankViewData {
+  /** Todos not ranked yet (new ones, or taken out), in place order. */
+  unsorted: Todo[];
+  /** The ranked todos and subtasks, top to bottom. */
+  ranked: Todo[];
+}
+
+/**
+ * "My order": every open todo and subtask in one flat ranking, plus the
+ * unsorted ones waiting to be pulled in. Unsorted todos follow the places
+ * (as in the sidebar), each parent followed by its unsorted subtasks.
+ * `keep` holds just-completed todos that stay in place for a moment.
+ */
+export function rankView(
+  todos: readonly Todo[],
+  areas: readonly Area[],
+  lists: readonly TodoList[],
+  sections: readonly Section[],
+  keep: ReadonlySet<string> = new Set(),
+): RankViewData {
+  const shown = todos.filter((t) => isOpen(t) || keep.has(t.id));
+  const ranked = shown.filter((t) => t.rank_position !== null).sort(byRank);
+  // Place order through allView, which only looks at open todos.
+  const asOpen = shown.map((t) => (isOpen(t) ? t : { ...t, completed_at: null }));
+  const original = new Map(shown.map((t) => [t.id, t]));
+  const placed = allView(asOpen, areas, lists, sections).groups.flatMap((g) =>
+    g.todos.flatMap((t) => [t, ...childrenOf(asOpen, t.id)]),
+  );
+  const placedIds = new Set(placed.map((t) => t.id));
+  const order = [
+    ...placed,
+    ...asOpen.filter((t) => !isTopLevel(t) && !placedIds.has(t.id)).sort(byPosition),
+  ];
+  const unsorted = order
+    .map((t) => original.get(t.id))
+    .filter((t): t is Todo => t?.rank_position === null);
+  return { unsorted, ranked };
+}
+
+/** The ids of every open ranked todo, top to bottom (ignores any tag filter). */
+export function rankedIds(todos: readonly Todo[]): string[] {
+  return todos
+    .filter((t) => isOpen(t) && t.rank_position !== null)
+    .sort(byRank)
+    .map((t) => t.id);
+}
+
+/**
+ * The ranking `ids` with `id` placed right before `beforeId`, else right
+ * after `afterId`, else at the end. The neighbours come from what is on
+ * screen, which a tag filter can thin out; the rest keeps its order.
+ */
+export function placeInRanking(
+  ids: readonly string[],
+  id: string,
+  beforeId: string | null,
+  afterId: string | null,
+): string[] {
+  const rest = ids.filter((x) => x !== id);
+  const before = beforeId === null ? -1 : rest.indexOf(beforeId);
+  const after = afterId === null ? -1 : rest.indexOf(afterId);
+  const at = before !== -1 ? before : after !== -1 ? after + 1 : rest.length;
+  return [...rest.slice(0, at), id, ...rest.slice(at)];
+}

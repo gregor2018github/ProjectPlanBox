@@ -21,6 +21,7 @@ import {
   useMoveTodo,
   useRestoreTodo,
   useSetCompleted,
+  useSetRankOrder,
   useSetTodayOrder,
   useSkipTodo,
   useUpdateTodo,
@@ -50,6 +51,7 @@ export function useTodoActions() {
   const skipTodo = useSkipTodo();
   const moveTodo = useMoveTodo();
   const setTodayOrder = useSetTodayOrder();
+  const setRankOrder = useSetRankOrder();
   const deleteTodo = useDeleteTodo();
   const restoreTodo = useRestoreTodo();
   const { show } = useToast();
@@ -251,6 +253,23 @@ export function useTodoActions() {
         });
       },
 
+      /**
+       * Stores "My order" in All todos: `ids` is the whole ranking top to
+       * bottom, `unranked` go back to "Unsorted", and `before` is the ranking
+       * this replaces (what undo goes back to, unsorting what it added).
+       */
+      reorderRanked(ids: string[], unranked: string[], before: readonly string[]): void {
+        setRankOrder.mutate({ ids, unranked });
+        const was = new Set(before);
+        pushUndo({
+          label: "Changed my order",
+          silent: true,
+          undo: () => {
+            setRankOrder.mutate({ ids: [...before], unranked: ids.filter((id) => !was.has(id)) });
+          },
+        });
+      },
+
       /** Places a todo at the end of another container (top level). */
       moveTo(t: Todo, target: Omit<Placement, "parent_id">): void {
         move(t, { ...target, parent_id: null }, null, null);
@@ -315,6 +334,7 @@ export function useTodoActions() {
     skipTodo,
     moveTodo,
     setTodayOrder,
+    setRankOrder,
     deleteTodo,
     restoreTodo,
     show,

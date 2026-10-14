@@ -51,7 +51,8 @@ class Todo:
     ``recurs_from_id`` names the occurrence whose completion created it.
     ``repeat_from`` is ``"due"`` (the next date follows the schedule) or
     ``"completion"`` (it is counted from the day this one was done).
-    ``today_position`` orders it inside Today once Today was reordered.
+    ``today_position`` orders it inside Today once Today was reordered;
+    ``rank_position`` is its place in "My order" (None while unsorted).
     """
 
     id: str
@@ -72,6 +73,7 @@ class Todo:
     recurs_from_id: str | None = None
     today_position: str | None = None
     repeat_from: str = "due"
+    rank_position: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -23,6 +23,7 @@ from planbox.modules.todos.schemas import (
     ListMove,
     ListOut,
     LogbookOut,
+    RankOrder,
     Rename,
     SectionCreate,
     SectionMove,
@@ -109,6 +110,7 @@ def _todo(record: TodoRecord) -> TodoOut:
         recurrence_anchor=_date(t.recurrence_anchor),
         repeat_from="completion" if t.repeat_from == "completion" else "due",
         today_position=t.today_position,
+        rank_position=t.rank_position,
     )
 
 
@@ -361,6 +363,12 @@ def move_item(todo_id: str, body: TodoMove, service: Todos) -> TodosOut:
 def set_today_order(body: TodayOrder, service: Todos) -> TodosOut:
     """Stores the manual order of one group in Today; returns the todos that changed."""
     return _todos_out(service.set_today_order(body.ids))
+
+
+@router.post("/rank-order")
+def set_rank_order(body: RankOrder, service: Todos) -> TodosOut:
+    """Stores "My order" in All todos (and unranks todos); returns the todos that changed."""
+    return _todos_out(service.set_rank_order(body.ids, body.unranked))
 
 
 @router.delete("/items/{todo_id}")

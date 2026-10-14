@@ -61,6 +61,7 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     recurrence_anchor: vars.rrule ? (vars.due_date ?? null) : null,
     repeat_from: vars.rrule ? (vars.repeat_from ?? "due") : "due",
     today_position: null,
+    rank_position: null,
   };
 }
 
@@ -159,6 +160,31 @@ export function applyTodayOrder(
     return wanted === undefined || wanted === t.today_position
       ? t
       : { ...t, today_position: wanted, updated_at: now };
+  });
+}
+
+/**
+ * Stores "My order" like the server: the ranked ids get keys in order (the
+ * same key sequence, written only where it differs), `unranked` lose theirs.
+ */
+export function applyRankOrder(
+  todos: readonly Todo[],
+  ids: readonly string[],
+  unranked: readonly string[],
+  now: string,
+): Todo[] {
+  const keys = new Map<string, string | null>();
+  let key: string | null = null;
+  for (const id of ids) {
+    key = keyBetween(key, null);
+    keys.set(id, key);
+  }
+  for (const id of unranked) keys.set(id, null);
+  return todos.map((t) => {
+    const wanted = keys.get(t.id);
+    return wanted === undefined || wanted === t.rank_position
+      ? t
+      : { ...t, rank_position: wanted, updated_at: now };
   });
 }
 
