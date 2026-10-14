@@ -20,7 +20,7 @@ def test_health_reports_ok_and_creates_the_database(client: TestClient, settings
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["version"] == "0.2.0"
+    assert body["version"] == "0.2.1"
     assert isinstance(body["schema_versions"], dict)
     assert settings.db_path.is_file()
 
@@ -30,7 +30,7 @@ def test_meta_exposes_timezone_and_week_start(client: TestClient) -> None:
     body = client.get("/api/meta").json()
 
     assert body == {
-        "version": "0.2.0",
+        "version": "0.2.1",
         "mode": "test",
         "timezone": "Europe/Amsterdam",
         "week_starts_on": 1,
