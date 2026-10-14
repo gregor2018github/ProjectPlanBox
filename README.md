@@ -115,6 +115,37 @@ Both run the same app, the same API and the same database format. CI tests
 the backend on Python 3.12.10 and 3.14 on every push, so the two machines
 cannot drift apart unnoticed.
 
+A third way needs nothing installed at all: the **Windows exe** below.
+
+### Windows exe (no Python, no Node.js)
+
+1. Get `PlanBox-<version>-windows.zip` (from the releases page, or build it
+   with `py scripts\package.py --exe`). Send it zipped; virus scanners
+   distrust a bare exe that arrives through chat.
+2. Extract it somewhere local and writable, e.g. `C:\PlanBox` (not
+   Program Files, and not a OneDrive folder: syncing a live database can
+   corrupt it). You get a `PlanBox` folder with `PlanBox.exe` and
+   `_internal\`.
+3. Double-click `PlanBox.exe`. For a shortcut, right-click it and choose
+   *Pin to Start* or *Send to > Desktop*.
+
+There is no console window. PlanBox opens in its app window; stop it with
+the power button or by closing the window. Your data lives in
+`private_data\` next to `PlanBox.exe`. It is created on the first start;
+if a `private_data` folder is already there (copied from another install,
+say), PlanBox uses it. What PlanBox prints goes to
+`private_data\planbox.log`. If it cannot start, a message box shows why.
+
+**Updating:** stop PlanBox, extract the new zip over the `PlanBox` folder
+(*Replace the files in the destination*), start it again. The zip never
+contains `private_data`, so your data stays. New migrations run after an
+automatic backup, as with the other installs.
+
+**Moving from the Python install:** extract the exe zip into your existing
+`PlanBox` folder. `PlanBox.exe` then sits next to your `private_data` and
+uses it. You can delete `main.py`, `scripts\`, `backend\`, `frontend\` and
+`.venv\` afterwards, but never `private_data\`.
+
 ### Runtime-only PC (no Node.js)
 
 1. Download `PlanBox-<version>.zip` from the
@@ -203,7 +234,7 @@ own, so you do not need to activate it first.
 | `py scripts\migrate.py` | Applies pending migrations (with backup) without starting the server. `--dev` targets the dev database. |
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
 | `py scripts\lock.py` | Regenerates `requirements.lock.txt` (every runtime package, exact versions, resolved with Python 3.12) after you change `[project].dependencies`. `check.py` fails while it is out of date. |
-| `py scripts\package.py` | Builds `release\PlanBox-<version>.zip` for runtime-only PCs. Pushing a tag such as `v0.2.0` does the same in CI and attaches the zip to a GitHub release (the tag must match the version in `pyproject.toml` and `backend/planbox/__init__.py`). |
+| `py scripts\package.py` | Builds `release\PlanBox-<version>.zip` for runtime-only PCs. `--exe` also builds `release\PlanBox-<version>-windows.zip` (PlanBox.exe with its own Python, smoke-tested before it is zipped). Pushing a tag such as `v0.2.0` builds both in CI and attaches them to a GitHub release (the tag must match the version in `pyproject.toml` and `backend/planbox/__init__.py`). |
 | `py scripts\serve.py` | What `main.py` runs, without opening the app window (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
 
 ## Data

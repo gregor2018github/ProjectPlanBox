@@ -18,6 +18,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx==0.28.1",
+    "pyinstaller==6.22.3",
+    "pyinstaller-hooks-contrib==2026.8",
     "pyright==1.1.414",
     "pytest==9.1.1",
     "ruff==0.16.10",

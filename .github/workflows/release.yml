@@ -1,4 +1,5 @@
-# Push a tag like v0.2.0 to publish PlanBox-0.2.0.zip as a GitHub release.
+# Push a tag like v0.2.0 to publish PlanBox-0.2.0.zip (needs Python) and
+# PlanBox-0.2.0-windows.zip (PlanBox.exe, needs nothing) as a GitHub release.
 # The tag must match the version in pyproject.toml and planbox/__init__.py.
 name: Release
 
@@ -11,8 +12,12 @@ permissions:
 
 jobs:
   package:
-    name: Build and publish the release zip
-    runs-on: ubuntu-latest
+    name: Build and publish the release zips
+    # PyInstaller builds only for the OS it runs on.
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -22,7 +27,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12.10"
+          # PlanBox.exe bundles this interpreter (the home PC's version).
+          python-version: "3.14"
       - name: Tag matches the app version
         run: |
           version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
@@ -30,14 +36,17 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match version ${version} in pyproject.toml." >&2
             exit 1
           fi
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend --no-fund --no-audit
-      - name: Package
-        run: python scripts/package.py --out release
+      - name: Install (dev, pinned by the lock file; includes PyInstaller)
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install --disable-pip-version-check --quiet -c requirements.lock.txt -e . --group dev
+          npm ci --prefix frontend --no-fund --no-audit
+      - name: Package (and smoke-test PlanBox.exe)
+        run: .venv/Scripts/python scripts/package.py --exe --out release
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" release/PlanBox-*.zip \
             --title "PlanBox ${GITHUB_REF_NAME#v}" \
-            --notes "Unpack over your existing PlanBox folder (your data in private_data/ is kept), then run: py main.py. Needs Python 3.12 or newer; Node.js is not needed."
+            --notes "PlanBox-${GITHUB_REF_NAME#v}-windows.zip: PlanBox.exe, needs nothing installed. Extract it and double-click PlanBox.exe. PlanBox-${GITHUB_REF_NAME#v}.zip: needs Python 3.12 or newer (no Node.js); run py main.py. Either way, extract over your existing PlanBox folder to update; your data in private_data/ is kept."

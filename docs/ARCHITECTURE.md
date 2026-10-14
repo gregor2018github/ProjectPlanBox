@@ -934,6 +934,7 @@ collapses every group again.
 |---|---|---|
 | Dev | uvicorn `--reload` on 127.0.0.1:8000 and Vite on 127.0.0.1:5173 (`/api` proxied) | 5173 |
 | Daily use, runtime-only PC (release zip) | Same as daily use, serving the prebuilt `frontend/dist` from the zip; no Node.js | 8765 |
+| Daily use, PlanBox.exe (windows zip) | Same as daily use, from a PyInstaller build with its own Python: no console, output in `private_data/planbox.log` | 8765 |
 | Daily use (`main.py` → `scripts/serve.py`) | One in-process uvicorn on 127.0.0.1:8765 serving `/api` and the built `frontend/dist` (SPA fallback). It can be stopped from the app. | 8765 |
 | Daily use with phone access (`network = true`) | The same process runs a second uvicorn server on the private address (same port, optional TLS, `lifespan="off"`) serving the same app. Every API call from a non-loopback client needs a paired session. | 8765 on both addresses |
 
@@ -965,6 +966,34 @@ files, `backend/planbox`, the runtime scripts and a source-map-free
 `frontend/dist` carrying `BUILD_INFO.json`. A verify step rejects
 `private_data`, `.venv`, `node_modules`, tests and source maps, so
 extracting a newer zip over an install keeps the data.
+
+### PlanBox.exe
+
+`package.py --exe` (Windows, run from `.venv`) also builds
+`PlanBox-<version>-windows.zip`: a PyInstaller one-folder, windowed build
+(`PlanBox/PlanBox.exe` and `_internal/`) of `scripts/launcher.py`. It bundles
+the interpreter, the runtime packages, `planbox` with its `.sql` migrations
+and the built frontend.
+
+- **Paths.** `config.app_paths` sees `sys.frozen`. `private_data/` then sits
+  next to `PlanBox.exe` (created on first start, or an existing one used),
+  and the frontend is served from the bundle (`sys._MEIPASS`). Module
+  migrations resolve through `__file__` as from source. `serve.py` skips the
+  `frontend/dist` check when frozen.
+- **No console.** A windowed exe has no stdout/stderr, so the launcher
+  points both at `private_data/planbox.log` (line-buffered, moved to
+  `planbox.log.1` past 1 MB) before uvicorn sets up its logging. A start that
+  fails (port taken, bad settings, an exception) shows a message box with
+  that run's last log lines. `taskkill` (closing the app window) runs with
+  `CREATE_NO_WINDOW` so no console flashes up.
+- **Checks.** A verify step rejects `private_data`, `.venv`, `node_modules`
+  and database files and requires the exe, the frontend and the migrations.
+  A smoke test then starts the exe with `--no-window` on a scratch data
+  folder and free port, checks `/api/health` and the app page, and shuts it
+  down through `/api/shutdown`. That catches what only fails when frozen: a
+  missed module, missing data files, the zone database.
+- The Windows icon is made from `frontend/public/icon-512.png` by a small
+  PNG-to-ICO converter in `package.py`, so the build needs no Pillow.
 
 ### Local-server protections
 
@@ -1102,8 +1131,9 @@ changes.
   drift check.
 - **Playwright** smoke suite.
 
-`release.yml` runs on `v*` tags: it checks the tag against the app version,
-runs `package.py` and attaches the zip to a GitHub release.
+`release.yml` runs on `v*` tags on Windows: it checks the tag against the
+app version, runs `package.py --exe` in a dev `.venv` on Python 3.14 and
+attaches both zips to a GitHub release.
 
 ## 12. Testing architecture
 

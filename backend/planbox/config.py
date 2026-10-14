@@ -8,19 +8,47 @@ variables.
 import ipaddress
 import os
 import socket
+import sys
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-"""The repository root (``backend/planbox/config.py`` -> three levels up)."""
+
+def app_paths(
+    *, frozen: bool, executable: Path, bundle: Path | None, source_file: Path
+) -> tuple[Path, Path]:
+    """Where PlanBox keeps its data and finds its built frontend.
+
+    Args:
+        frozen: Running as PlanBox.exe (a PyInstaller build sets ``sys.frozen``).
+        executable: ``sys.executable``; in the exe, PlanBox.exe itself.
+        bundle: The exe's bundled files (``sys._MEIPASS``), or None from source.
+        source_file: This file, for the repository layout.
+
+    Returns:
+        The folder that holds ``private_data/``, and the built frontend. From
+        source that is the repository root and ``frontend/dist``. In the exe it
+        is the folder of PlanBox.exe, and the frontend packed inside it.
+    """
+    if frozen and bundle is not None:
+        return executable.resolve().parent, bundle / "frontend" / "dist"
+    root = source_file.resolve().parents[2]  # backend/planbox/config.py -> three levels up
+    return root, root / "frontend" / "dist"
+
+
+_bundle: str | None = getattr(sys, "_MEIPASS", None)
+REPO_ROOT, FRONTEND_DIST_DIR = app_paths(
+    frozen=bool(getattr(sys, "frozen", False)),
+    executable=Path(sys.executable),
+    bundle=None if _bundle is None else Path(_bundle),
+    source_file=Path(__file__),
+)
+"""The repository root (the exe's folder in PlanBox.exe), and the built frontend."""
 
 PRIVATE_DATA_DIR = REPO_ROOT / "private_data"
 """Everything that must not leave this PC lives here (gitignored)."""
-
-FRONTEND_DIST_DIR = REPO_ROOT / "frontend" / "dist"
 
 HOST = "127.0.0.1"
 """The only interface the server ever binds to. Deliberately not configurable."""

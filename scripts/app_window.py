@@ -140,11 +140,13 @@ def close_app(process: subprocess.Popen[bytes]) -> None:
         return
     if sys.platform == "win32":
         # Without /F, taskkill asks the window to close (WM_CLOSE), like clicking X.
+        # CREATE_NO_WINDOW: PlanBox.exe has no console, so one would flash up.
         subprocess.run(
             ["taskkill", "/PID", str(process.pid)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
     else:
         process.terminate()

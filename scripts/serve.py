@@ -85,11 +85,14 @@ def probe(host: str, port: int) -> Literal["free", "planbox", "other"]:
 def prepare_frontend(*, build: bool) -> bool:
     """Makes sure there is a frontend to serve; rebuilds it on a dev PC when stale.
 
-    Without Node.js (runtime install) the prebuilt frontend/dist is used as is.
+    Without Node.js (runtime install) the prebuilt frontend/dist is used as is,
+    and PlanBox.exe carries its own (see launcher.py).
 
     Returns:
         False when there is nothing to serve.
     """
+    if getattr(sys, "frozen", False):
+        return True
     if install_mode() == "runtime":
         if not has_built_frontend():
             print(NO_FRONTEND_MESSAGE)

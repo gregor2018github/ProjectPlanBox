@@ -26,6 +26,7 @@ this file records what was planned, decided and pinned.
 | 8. Data safety and sync | Built 2026-10-13 (brought forward, before 7) |
 | 7. Mobile PWA | Built 2026-10-13 |
 | My order (All todos) | Built 2026-10-14 (owner request) |
+| PlanBox.exe (windows zip) | Built 2026-10-14 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -307,6 +308,26 @@ Decisions:
 - The unsorted box follows the places' order (as By place), each parent
   followed by its subtasks, so a long first box is easy to work through.
 
+### PlanBox.exe (owner request, 2026-10-14)
+
+A second release download for the work PC, so it runs as an application
+instead of through a venv and a terminal: `PlanBox-<version>-windows.zip`,
+built by `py scripts\package.py --exe` and by the release workflow.
+Details in ARCHITECTURE §9 (PlanBox.exe).
+- A PyInstaller **one-folder, windowed** build (`PlanBox.exe` and
+  `_internal/`), with its own Python, so the PC needs nothing installed. A
+  one-file exe was rejected because it unpacks itself to `%TEMP%` on every
+  start: a slower start, and a virus scan each time.
+- `private_data/` sits next to `PlanBox.exe`: created on first start, or an
+  existing one is used, so the exe can be dropped into a Python install's
+  folder and take over its data.
+- No console: output goes to `private_data/planbox.log`; a failed start
+  shows a message box with the reason.
+- Every build is smoke-tested (start on scratch data, health, app page,
+  shutdown) before it is zipped.
+- The exe is unsigned. The owner checked that the work PC runs it; it
+  should travel zipped, because chat tools' virus scanners flag a bare exe.
+
 ### Phase 8: Data safety and sync (brought forward, 2026-10-13)
 
 Built before phase 7 on the owner's request. Design and rules in
@@ -357,6 +378,8 @@ first (CLAUDE.md rule 9).
 | ruff | 0.16.10 | dev. Lint and format. |
 | pyright | 1.1.414 | dev. Same engine as Pylance, so the editor and the gate agree. |
 | pytest | 9.1.1 | dev |
+| pyinstaller | 6.22.3 | dev (2026-10-14). Builds PlanBox.exe (`package.py --exe`). Freezing an interpreter with its DLLs is far from ours to write; the standard tool, released monthly. |
+| pyinstaller-hooks-contrib | 2026.8 | dev (2026-10-14). PyInstaller's hooks for third-party packages (uvicorn, tzdata). Pinned so builds repeat; same maintainers. |
 | httpx | 0.28.1 | dev. FastAPI's `TestClient` needs it. Starlette 1.7 prefers `httpx2` and warns; we filter that warning and relax pyright for `backend/tests`. Switching needs approval (TODO.md). |
 
 Not used: SQLAlchemy/SQLModel (ARCHITECTURE §3), pydantic-settings (a small
