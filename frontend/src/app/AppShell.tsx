@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
+import { Outlet, useMatches, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 
 import { useMeta } from "../core/api/coreQueries";
@@ -52,6 +52,10 @@ export function AppShell() {
     setNavPath(pathname);
     setMobileNavOpen(false);
   }
+  // Only views the tag filter narrows show its bar (not Habits, Calendar or Data).
+  const tagFilter = useMatches({
+    select: (matches) => matches.some((match) => match.staticData.tagFilter === true),
+  });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [shutdownOpen, setShutdownOpen] = useState(false);
@@ -148,7 +152,7 @@ export function AppShell() {
               onToggleRail={toggleRail}
             />
           )}
-          <TagFilterBar />
+          {tagFilter && <TagFilterBar />}
           <div
             className="min-h-0 flex-1 overflow-y-auto"
             onClick={(event) => {

@@ -40,3 +40,6 @@ export function formatDelta(current: number, previous: number, period: string): 
 export function plural(count: number, one: string, many = `${one}s`): string {
   return `${formatCount(count)} ${count === 1 ? one : many}`;
 }
+
+/** Appended to a section's subtitle when the tag filter is on but cannot narrow it. */
+export const UNFILTERED_NOTE = "The tag filter does not apply here.";

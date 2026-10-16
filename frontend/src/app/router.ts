@@ -41,11 +41,13 @@ export function createAppRouter(options: {
     getParentRoute: () => rootRoute,
     path: "/",
     component: HomePage,
+    staticData: { tagFilter: true },
   });
   const insightsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: INSIGHTS_PATH,
     component: InsightsPage,
+    staticData: { tagFilter: true },
   });
   const dataRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -71,5 +73,9 @@ export type AppRouter = ReturnType<typeof createAppRouter>;
 declare module "@tanstack/react-router" {
   interface Register {
     router: AppRouter;
+  }
+  interface StaticDataRouteOption {
+    /** Shows the global tag filter bar above the page (only where the filter applies). */
+    tagFilter?: boolean;
   }
 }

@@ -7,6 +7,7 @@ import {
   formatPercent,
   plural,
 } from "../../../core/insights/format";
+import { useTagFilter } from "../../../core/tags/tagFilter";
 import { useTags } from "../../../core/tags/tagQueries";
 import { WEEKDAYS_SHORT } from "../../../core/time";
 import { BarList } from "../../../ui/BarList";
@@ -25,7 +26,8 @@ const ID = "insights-todos";
 
 /** The todos block of the Insights page: flow, lead times, buckets and habits of work. */
 export function TodoInsights() {
-  const { data: stats } = useTodoStats();
+  const { tagIds } = useTagFilter();
+  const { data: stats } = useTodoStats(tagIds);
   const { data: tags = [] } = useTags();
 
   if (!stats) return <InsightSection id={ID} title="Todos" subtitle="Loading…" />;

@@ -218,3 +218,22 @@ def test_subtask_completions_count_and_show_on_their_own(client: TestClient) -> 
     assert body["recent"]["subtasks_completed_7"] == 1
     assert body["weeks"][-1]["completed"] == 1
     assert body["streaks"]["current"] == 1
+
+
+def test_stats_follow_the_tag_filter(client: TestClient) -> None:
+    """With ``tags``, only todos carrying every filter tag count; deleted ones keep theirs."""
+    work = ok(client.post("/api/tags", json={"name": "work"}), 201)["id"]
+    home = ok(client.post("/api/tags", json={"name": "home"}), 201)["id"]
+    todo(client, "Both", tag_ids=[work, home])
+    todo(client, "Work only", tag_ids=[work])
+    todo(client, "Untagged")
+    gone = todo(client, "Deleted work", tag_ids=[work])["id"]
+    client.delete(f"/api/todos/items/{gone}")
+
+    assert stats(client)["totals"]["added"] == 4
+    narrowed = ok(client.get(f"/api/todos/stats?tags={work}"))
+    assert narrowed["totals"]["added"] == 3
+    assert narrowed["totals"]["open"] == 2
+    assert {t["tag_id"]: t["open"] for t in narrowed["tags"]} == {work: 2, home: 1}
+    both = ok(client.get(f"/api/todos/stats?tags={work},{home}"))
+    assert both["totals"]["added"] == 1

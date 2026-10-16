@@ -295,9 +295,16 @@ def forecast(
 
 
 @router.get("/stats")
-def get_stats(service: Todos) -> TodoStatsOut:
+def get_stats(
+    service: Todos,
+    tags: Annotated[
+        str | None,
+        Query(description="Comma-separated tag ids: count only todos carrying every one."),
+    ] = None,
+) -> TodoStatsOut:
     """Statistics over every todo: flows, lead times, buckets, priorities, streaks."""
-    return TodoStatsOut.model_validate(dataclasses.asdict(service.stats()))
+    tag_filter = [t for t in (tags or "").split(",") if t]
+    return TodoStatsOut.model_validate(dataclasses.asdict(service.stats(tag_filter)))
 
 
 @router.get("/items/{todo_id}")

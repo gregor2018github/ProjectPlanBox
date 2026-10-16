@@ -13,6 +13,6 @@ const PAGES: [path: string, component: RouteComponent][] = [
 /** The module's routes, attached under the app's root route. */
 export function knowledgeRoutes(parent: AnyRoute): AnyRoute[] {
   return PAGES.map(([path, component]) =>
-    createRoute({ getParentRoute: () => parent, path, component }),
+    createRoute({ getParentRoute: () => parent, path, component, staticData: { tagFilter: true } }),
   );
 }

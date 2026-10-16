@@ -21,6 +21,19 @@ describe("app shell", () => {
     expect(await screen.findByText("Connected")).toBeInTheDocument();
   });
 
+  it("shows the tag filter only on views it narrows", async () => {
+    useDesktopViewport();
+    renderApp({ path: "/insights" });
+    expect(await screen.findByRole("search", { name: "Tag filter" })).toBeInTheDocument();
+  });
+
+  it("leaves the tag filter out of the Data view", async () => {
+    useDesktopViewport();
+    renderApp({ path: "/data" });
+    await screen.findByText("Connected");
+    expect(screen.queryByRole("search", { name: "Tag filter" })).toBeNull();
+  });
+
   it("reports an unreachable server", async () => {
     useDesktopViewport();
     renderApp({ fetch: () => Promise.reject(new TypeError("Failed to fetch")) });

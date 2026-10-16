@@ -1,4 +1,5 @@
-import { formatCount, formatPercent, plural } from "../../../core/insights/format";
+import { formatCount, formatPercent, plural, UNFILTERED_NOTE } from "../../../core/insights/format";
+import { useTagFilter } from "../../../core/tags/tagFilter";
 import {
   formatDayShort,
   formatMonthShort,
@@ -18,6 +19,7 @@ const ID = "insights-habits";
 /** The habits block of the Insights page: consistency, streaks and check-ins over time. */
 export function HabitInsights() {
   const { habits, today, loading } = useHabitData();
+  const tagFilter = useTagFilter();
 
   if (today === null || loading) {
     return <InsightSection id={ID} title="Habits" subtitle="Loading…" />;
@@ -36,7 +38,7 @@ export function HabitInsights() {
     <InsightSection
       id={ID}
       title="Habits"
-      subtitle="How consistently scheduled days get done, from the last 26 weeks."
+      subtitle={`How consistently scheduled days get done, from the last 26 weeks.${tagFilter.active ? ` ${UNFILTERED_NOTE}` : ""}`}
       tiles={
         <>
           <StatTile label="Habits" value={formatCount(habits.length)} />

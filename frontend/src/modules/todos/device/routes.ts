@@ -146,7 +146,8 @@ export const todoHandlers: Handlers = {
     todos(ctx)
       .forecast(dateDay(query.start), dateDay(query.end))
       .map((f) => ({ todo_id: f.todoId, date: isoDate(f.date) })),
-  todos_get_stats: (_, ctx) => todos(ctx).stats(),
+  todos_get_stats: ({ query }, ctx) =>
+    todos(ctx).stats((query.tags ?? "").split(",").filter((t) => t !== "")),
   todos_get_item: ({ path }, ctx) => todoOut(todos(ctx).get(path.todo_id)),
   todos_create_item: ({ body }, ctx) => {
     const [record, isNew] = todos(ctx).create({

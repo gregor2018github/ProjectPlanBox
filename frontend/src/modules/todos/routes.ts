@@ -25,6 +25,7 @@ export function todoRoutes(parent: AnyRoute): AnyRoute[] {
       getParentRoute: () => parent,
       path,
       component,
+      staticData: { tagFilter: true },
       // A fresh page per list or area: otherwise the new todos animate in as if
       // just added while the old ones animate out, and everything jumps.
       remountDeps: ({ params }): unknown => params,

@@ -33,7 +33,8 @@ function bars(counts: readonly Count[], one: string, many?: string) {
 
 /** The knowledge block of the Insights page: what is kept, where, and how it grows. */
 export function KnowledgeInsights() {
-  const { allEntries: entries, collections, loading, tagName } = useKnowledgeData();
+  // The tag-filtered entries, so the numbers follow the global tag filter.
+  const { entries, collections, loading, tagName } = useKnowledgeData();
   const today = useToday();
   const { data: meta } = useMeta();
 

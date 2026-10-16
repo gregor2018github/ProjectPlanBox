@@ -514,15 +514,23 @@ class TodoService:
             next_cursor = f"{last.completed_at}|{last.id}"
         return LogbookPage(self._records(page), next_cursor)
 
-    def stats(self) -> TodoStats:
-        """Statistics over every todo, for the Insights page (see ``stats.py``)."""
+    def stats(self, tag_filter: Sequence[str] = ()) -> TodoStats:
+        """Statistics over every todo, for the Insights page (see ``stats.py``).
+
+        Args:
+            tag_filter: Tag ids; when given, only todos carrying every one count
+                (the global tag filter). A deleted todo keeps its tags.
+        """
         todos = self._repos.todos.list_all()
-        live_ids = [t.id for t in todos if t.deleted_at is None]
+        tag_ids = self._tags.tags_for(ENTITY_TYPE, [t.id for t in todos])
+        if tag_filter:
+            wanted = set(tag_filter)
+            todos = [t for t in todos if wanted <= set(tag_ids.get(t.id, ()))]
         return compute_stats(
             todos,
             lists=self._repos.lists.list_live(),
             areas=self._repos.areas.list_live(),
-            tag_ids=self._tags.tags_for(ENTITY_TYPE, live_ids),
+            tag_ids={t.id: tag_ids.get(t.id, []) for t in todos if t.deleted_at is None},
             now=self._clock.now(),
             zone=self._zone,
         )

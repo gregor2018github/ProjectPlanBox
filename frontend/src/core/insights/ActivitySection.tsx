@@ -8,6 +8,7 @@ import { InsightCard } from "../../ui/InsightCard";
 import { InsightSection } from "../../ui/InsightSection";
 import { StatTile } from "../../ui/StatTile";
 import { WEEKDAYS_SHORT } from "../time";
+import { useTagFilter } from "../tags/tagFilter";
 import { useToday } from "../useToday";
 import {
   activeStreaks,
@@ -16,7 +17,7 @@ import {
   busiestWeekday,
   weekdayTotals,
 } from "./activity";
-import { formatCount, formatPercent, plural } from "./format";
+import { formatCount, formatPercent, plural, UNFILTERED_NOTE } from "./format";
 import { useActivity } from "./insightsQueries";
 
 /** Props for {@link ActivitySection}. */
@@ -32,6 +33,7 @@ const WEEKDAY_ROWS = ["Mon", "", "Wed", "", "Fri", "", ""];
  * streaks, where the work happens and when the app gets opened.
  */
 export function ActivitySection({ typeLabel }: ActivitySectionProps) {
+  const tagFilter = useTagFilter();
   const today = useToday();
   const range = today === null ? null : activityRange(today);
   const { data } = useActivity(range);
@@ -63,7 +65,7 @@ export function ActivitySection({ typeLabel }: ActivitySectionProps) {
     <InsightSection
       id="insights-overview"
       title="Overview"
-      subtitle="Everything you added, completed and deleted in the last 12 months, across every module."
+      subtitle={`Everything you added, completed and deleted in the last 12 months, across every module.${tagFilter.active ? ` ${UNFILTERED_NOTE}` : ""}`}
       tiles={
         <>
           <StatTile

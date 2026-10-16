@@ -6306,7 +6306,10 @@ export interface operations {
     };
     todos_get_stats: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated tag ids: count only todos carrying every one. */
+                tags?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;

@@ -516,13 +516,24 @@ export class TodoService {
     return { records: this.records(page), nextCursor };
   }
 
-  stats(): TodoStats {
-    const todos = this.repos.todos.listAll();
-    const liveIds = todos.filter((t) => t.deleted_at === null).map((t) => t.id);
+  /** Statistics; with `tagFilter`, only todos carrying every one of those tags count. */
+  stats(tagFilter: readonly string[] = []): TodoStats {
+    const all = this.repos.todos.listAll();
+    const tagIds = this.tags.tagsFor(
+      ENTITY_TYPE,
+      all.map((t) => t.id),
+    );
+    const todos =
+      tagFilter.length === 0
+        ? all
+        : all.filter((t) => tagFilter.every((tag) => tagIds.get(t.id)?.includes(tag) === true));
+    const liveTagIds = new Map(
+      todos.filter((t) => t.deleted_at === null).map((t) => [t.id, tagIds.get(t.id) ?? []]),
+    );
     return computeStats(todos, {
       lists: this.repos.lists.listLive(),
       areas: this.repos.areas.listLive(),
-      tagIds: this.tags.tagsFor(ENTITY_TYPE, liveIds),
+      tagIds: liveTagIds,
       now: this.clock.now(),
       zone: this.zone,
     });

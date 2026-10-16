@@ -256,6 +256,8 @@ def tags_links_search() -> list[Step]:
         req("POST", "/api/links", {"source": "todos.todo:nope", "target": f"todos.todo:{todo}"}),
         req("POST", "/api/links", {"source": "nonsense", "target": f"todos.todo:{todo}"}),
         req("GET", f"/api/links?entity=todos.todo:{todo}"),
+        req("GET", f"/api/todos/stats?tags={cid(42)}"),
+        req("GET", f"/api/todos/stats?tags={cid(42)},{cid(43)}"),
         req("GET", "/api/search?q=cafe"),
         req("GET", "/api/search?q=caf ord"),
         req("GET", "/api/search?q=%22"),

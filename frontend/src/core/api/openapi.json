@@ -8359,6 +8359,26 @@
       "get": {
         "description": "Statistics over every todo: flows, lead times, buckets, priorities, streaks.",
         "operationId": "todos_get_stats",
+        "parameters": [
+          {
+            "description": "Comma-separated tag ids: count only todos carrying every one.",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated tag ids: count only todos carrying every one.",
+              "title": "Tags"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

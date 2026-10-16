@@ -1,5 +1,6 @@
 import {
   infiniteQueryOptions,
+  keepPreviousData,
   queryOptions,
   useInfiniteQuery,
   useQueries,
@@ -141,12 +142,19 @@ export function useTodo(id: string, enabled: boolean) {
   });
 }
 
-/** Statistics over every todo for the Insights page; fetched fresh on each visit. */
-export function useTodoStats() {
+/**
+ * Statistics over every todo for the Insights page; fetched fresh on each
+ * visit. With `tagIds` (the global tag filter) only todos carrying every one
+ * of those tags count.
+ */
+export function useTodoStats(tagIds: readonly string[] = []) {
   const client = useApiClient();
+  const tags = tagIds.join(",");
   return useQuery({
-    queryKey: todoKeys.stats,
-    queryFn: () => unwrap(client.GET("/api/todos/stats")),
+    queryKey: [...todoKeys.stats, tags],
+    queryFn: () =>
+      unwrap(client.GET("/api/todos/stats", { params: { query: tags === "" ? {} : { tags } } })),
     staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 }
