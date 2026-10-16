@@ -1,11 +1,12 @@
 /**
- * Changes to "My order" in All todos. Each one is computed over the whole
- * ranking (every open ranked todo, whatever the tag filter hides), so
- * reordering what is on screen never scrambles what is not.
+ * Changes to a "My order" ranking (All todos' or Today's). Each one is
+ * computed over the whole ranking (every open ranked todo, whatever the tag
+ * filter hides), so reordering what is on screen never scrambles what is not.
  */
 import { useMemo } from "react";
 
 import { placeInRanking, rankedIds } from "./selectors";
+import { RANK_KEY, type RankScope, type Todo } from "./types";
 import type { TodoActions } from "./useTodoActions";
 import type { TodoData } from "./useTodoData";
 
@@ -14,6 +15,10 @@ export const RANK_DRAG = "rank";
 
 /** What {@link useRanking} offers. */
 export interface Ranking {
+  /** Which ranking this is. */
+  scope: RankScope;
+  /** Whether a todo has a place in this ranking (else it is unsorted). */
+  isRanked(todo: Todo): boolean;
   /** Puts a todo right before `beforeId`, else right after `afterId`, else last. */
   place(id: string, beforeId: string | null, afterId: string | null): void;
   /** Puts a todo first. */
@@ -25,25 +30,34 @@ export interface Ranking {
 }
 
 /** "My order" changes, each one undoable. */
-export function useRanking(data: TodoData, actions: TodoActions): Ranking {
+export function useRanking(
+  data: TodoData,
+  actions: TodoActions,
+  scope: RankScope = "all",
+): Ranking {
   return useMemo(() => {
-    const full = rankedIds(data.allTodos);
+    const full = rankedIds(data.allTodos, scope, data.today);
+    const reorder = (ids: string[], unranked: string[]) => {
+      actions.reorderRanked(ids, unranked, full, scope);
+    };
     const place = (id: string, beforeId: string | null, afterId: string | null) => {
       const next = placeInRanking(full, id, beforeId, afterId);
-      if (next.join() !== full.join()) actions.reorderRanked(next, [], full);
+      if (next.join() !== full.join()) reorder(next, []);
     };
     return {
+      scope,
+      isRanked: (todo) => todo[RANK_KEY[scope]] !== null,
       place,
       toTop(id) {
         place(id, full.find((x) => x !== id) ?? null, null);
       },
       unrank(id) {
-        actions.reorderRanked([], [id], full);
+        reorder([], [id]);
       },
       append(ids) {
         const added = ids.filter((id) => !full.includes(id));
-        if (added.length > 0) actions.reorderRanked([...full, ...added], [], full);
+        if (added.length > 0) reorder([...full, ...added], []);
       },
     };
-  }, [data.allTodos, actions]);
+  }, [data.allTodos, data.today, actions, scope]);
 }

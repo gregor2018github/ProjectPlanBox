@@ -25,6 +25,7 @@ export function makeTodo(overrides: Partial<Todo> = {}): Todo {
     repeat_from: "due",
     today_position: null,
     rank_position: null,
+    today_rank_position: null,
     ...overrides,
   };
 }

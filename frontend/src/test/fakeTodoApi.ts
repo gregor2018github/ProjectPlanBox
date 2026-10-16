@@ -188,6 +188,7 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         repeat_from: (b.repeat_from as Todo["repeat_from"] | undefined) ?? "due",
         today_position: null,
         rank_position: null,
+        today_rank_position: null,
       };
       state.todos.push(todo);
       return json(todo, 201);
@@ -217,12 +218,13 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         wanted.set(todoId, key);
       }
       for (const todoId of (b.unranked as string[] | undefined) ?? []) wanted.set(todoId, null);
+      const field = b.scope === "today" ? "today_rank_position" : "rank_position";
       const changed: Todo[] = [];
       for (const [todoId, rank] of wanted) {
         const row = state.todos.find((t) => t.id === todoId && !t.deleted_at);
         if (!row) return problem(404, "No todo with this id.");
-        if (row.rank_position !== rank) {
-          Object.assign(row, { rank_position: rank, updated_at: state.now });
+        if (row[field] !== rank) {
+          Object.assign(row, { [field]: rank, updated_at: state.now });
           changed.push(strip(row));
         }
       }

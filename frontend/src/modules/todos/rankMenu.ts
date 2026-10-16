@@ -6,7 +6,7 @@ import type { Ranking } from "./useRanking";
 
 /** The "My order" actions for a todo: for ranked ones moves, for unsorted ones adding it. */
 export function rankMenuEntries(todo: Todo, ranking: Ranking): MenuEntry[] {
-  if (todo.rank_position === null) {
+  if (!ranking.isRanked(todo)) {
     return [
       {
         id: "rank-add",

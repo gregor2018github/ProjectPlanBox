@@ -16,6 +16,7 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from planbox.core import recurrence
@@ -586,7 +587,8 @@ class TodoService:
         date or repeat rule. A new rule is anchored on the due date (its first
         date from today if there is none). Moving the due date of a repeating todo moves only
         this occurrence; clearing it stops the repeat. A new due date drops
-        the todo's place in Today's manual order (it arrives at the end).
+        the todo's place in Today's manual order (it arrives at the end), and
+        one after today (or none) also its place in Today's "My order".
         """
         fields: dict[str, object] = {}
         for key, value in changes.items():
@@ -609,7 +611,7 @@ class TodoService:
             todo = _live(self._repos.todos.get(todo_id), "todo")
             fields |= self._repeat_fields(todo, changes)
             if "due_date" in fields and fields["due_date"] != todo.due_date:
-                fields["today_position"] = None
+                fields |= self._redated_keys(fields["due_date"])
             if fields:
                 self._repos.todos.update(todo_id, fields, utc_now_iso(self._clock))
             tag_ids = changes.get("tag_ids")
@@ -795,14 +797,19 @@ class TodoService:
             return self._records(self._repos.todos.get_many(changed))
 
     def set_rank_order(
-        self, todo_ids: Sequence[str], unranked: Sequence[str] = ()
+        self,
+        todo_ids: Sequence[str],
+        unranked: Sequence[str] = (),
+        scope: Literal["all", "today"] = "all",
     ) -> list[TodoRecord]:
         """Stores "My order" (the ranked todos, top to bottom) and unranks others.
 
         Every todo in ``todo_ids`` gets a key in that order; every todo in
         ``unranked`` loses its key and goes back to "unsorted". Ranked todos
         not listed keep their key. Rows that are already right are left alone,
-        so the returned records are only the changed ones.
+        so the returned records are only the changed ones. ``scope`` picks the
+        ranking: All todos' (``rank_position``) or Today's
+        (``today_rank_position``).
 
         Raises:
             ValidationFailed: If an id is listed twice (in either list or both).
@@ -820,11 +827,12 @@ class TodoService:
                 key = key_between(key, None)
                 wanted.append((todo_id, key))
             wanted += [(todo_id, None) for todo_id in unranked]
+            column = "rank_position" if scope == "all" else "today_rank_position"
             changed: list[str] = []
             for todo_id, rank in wanted:
                 todo = _live(todos.get(todo_id), "todo")
-                if todo.rank_position != rank:
-                    self._repos.todos.update(todo_id, {"rank_position": rank}, now)
+                if getattr(todo, column) != rank:
+                    self._repos.todos.update(todo_id, {column: rank}, now)
                     changed.append(todo_id)
             return self._records(self._repos.todos.get_many(changed))
 
@@ -902,6 +910,17 @@ class TodoService:
 
     def _today(self) -> date:
         return self._clock.now().astimezone(self._zone).date()
+
+    def _redated_keys(self, due: object) -> dict[str, object]:
+        """The order keys a todo loses when its due date becomes ``due``.
+
+        Today's group order always goes; Today's "My order" only when the
+        todo leaves Today (a later date, or none).
+        """
+        keys: dict[str, object] = {"today_position": None}
+        if not isinstance(due, str) or due > self._today().isoformat():
+            keys["today_rank_position"] = None
+        return keys
 
     def _normalize_rule(self, rule: str, anchor: date) -> str:
         try:

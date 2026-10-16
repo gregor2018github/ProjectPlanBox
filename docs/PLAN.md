@@ -27,6 +27,7 @@ this file records what was planned, decided and pinned.
 | 7. Mobile PWA | Built 2026-10-13 |
 | My order (All todos) | Built 2026-10-14 (owner request) |
 | PlanBox.exe (windows zip) | Built 2026-10-14 (owner request) |
+| My order (Today) | Built 2026-10-16 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -307,6 +308,26 @@ Decisions:
   filter hides rows without disturbing their place.
 - The unsorted box follows the places' order (as By place), each parent
   followed by its subtasks, so a long first box is easy to work through.
+
+### My order in Today (owner request, 2026-10-16)
+
+Today gets the same switch as All todos: **By date** (as before, Overdue
+and Due today as separate groups) or **My order**, one hand-sorted list of
+everything in Today, overdue and due today mixed, with the Unsorted box on
+top. Remembered per browser. Details in ARCHITECTURE §7 (My order in
+Today); migration `todos/0007`, no new dependencies.
+
+Decisions:
+- **Its own order**, not All todos' ranking and not By date's: planning a
+  day is a different question from ranking priorities, and switching modes
+  never disturbs the other order.
+- **Todos new to Today wait in Unsorted** (as in All todos), so each
+  morning's arrivals are visible instead of silently at the bottom.
+- **The place is kept while the todo stays in Today.** Moving an overdue
+  todo to today keeps it; moving it to a later day, or removing the date,
+  drops it. A repeating todo's next occurrence keeps the place, so a daily
+  routine returns to the same spot.
+- Home's Today card keeps the By date order.
 
 ### PlanBox.exe (owner request, 2026-10-14)
 

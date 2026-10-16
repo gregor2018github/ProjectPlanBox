@@ -1225,7 +1225,7 @@ export interface paths {
         put?: never;
         /**
          * Set Rank Order
-         * @description Stores "My order" in All todos (and unranks todos); returns the todos that changed.
+         * @description Stores "My order" in All todos or Today (and unranks todos); returns the changed todos.
          */
         post: operations["todos_set_rank_order"];
         delete?: never;
@@ -2399,11 +2399,19 @@ export interface components {
         };
         /**
          * RankOrder
-         * @description The "My order" ranking in All todos: ranked todos top to bottom, and todos to unrank.
+         * @description A "My order" ranking: ranked todos top to bottom, and todos to unrank.
+         *
+         *     ``scope`` says which one: ``all`` (All todos) or ``today`` (Today).
          */
         RankOrder: {
             /** Ids */
             ids: string[];
+            /**
+             * Scope
+             * @default all
+             * @enum {string}
+             */
+            scope?: "all" | "today";
             /** Unranked */
             unranked?: string[];
         };
@@ -2942,7 +2950,9 @@ export interface components {
          *     was done (``completion``). ``today_position`` is its place in
          *     Today's manual order (null until Today is reordered, and after the due
          *     date changes). ``rank_position`` is its place in "My order" in All todos
-         *     (null while it is unsorted).
+         *     (null while it is unsorted); ``today_rank_position`` is its place in
+         *     Today's "My order" (null while unsorted, and after it is moved out of
+         *     Today).
          */
         TodoOut: {
             /** Completed At */
@@ -2982,6 +2992,8 @@ export interface components {
             title: string;
             /** Today Position */
             today_position: string | null;
+            /** Today Rank Position */
+            today_rank_position: string | null;
             /** Updated At */
             updated_at: string;
         };

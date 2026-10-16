@@ -4,7 +4,8 @@
  * the response arrives; the response then replaces the touched rows.
  */
 import { byPosition, keyBetween, placeAmong } from "../../core/ordering";
-import type { Placement, RepeatFrom, Todo } from "./types";
+import type { IsoDate } from "../../core/time";
+import { RANK_KEY, type Placement, type RankScope, type RepeatFrom, type Todo } from "./types";
 
 /** Live siblings in a container, sorted, optionally excluding one todo. */
 export function siblingsOf(todos: readonly Todo[], p: Placement, excludeId?: string): Todo[] {
@@ -62,6 +63,7 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     repeat_from: vars.rrule ? (vars.repeat_from ?? "due") : "due",
     today_position: null,
     rank_position: null,
+    today_rank_position: null,
   };
 }
 
@@ -74,18 +76,28 @@ export type TodoPatch = Partial<
  * Applies a field patch to one todo. Like the server, clearing the date or
  * the rule stops the repeat; a new rule is anchored on the due date (the
  * server fills in today when there is none). A new due date drops the todo's
- * place in Today's manual order.
+ * place in Today's manual order, and one after `today` (or none) also its
+ * place in Today's "My order" (without `today`, any new date does).
  */
 export function applyPatch(
   todos: readonly Todo[],
   id: string,
   patch: TodoPatch,
   now: string,
+  today: IsoDate | null = null,
 ): Todo[] {
   return todos.map((t) => {
     if (t.id !== id) return t;
     const redated = patch.due_date !== undefined && patch.due_date !== t.due_date;
-    const next = { ...t, ...patch, updated_at: now, ...(redated && { today_position: null }) };
+    const leavesToday =
+      redated && (patch.due_date == null || today === null || patch.due_date > today);
+    const next = {
+      ...t,
+      ...patch,
+      updated_at: now,
+      ...(redated && { today_position: null }),
+      ...(leavesToday && { today_rank_position: null }),
+    };
     if (patch.due_date === null || patch.rrule === null) {
       return { ...next, rrule: null, recurrence_anchor: null, repeat_from: "due" as const };
     }
@@ -164,15 +176,18 @@ export function applyTodayOrder(
 }
 
 /**
- * Stores "My order" like the server: the ranked ids get keys in order (the
- * same key sequence, written only where it differs), `unranked` lose theirs.
+ * Stores a "My order" ranking (`scope`) like the server: the ranked ids get
+ * keys in order (the same key sequence, written only where it differs),
+ * `unranked` lose theirs.
  */
 export function applyRankOrder(
   todos: readonly Todo[],
   ids: readonly string[],
   unranked: readonly string[],
   now: string,
+  scope: RankScope = "all",
 ): Todo[] {
+  const field = RANK_KEY[scope];
   const keys = new Map<string, string | null>();
   let key: string | null = null;
   for (const id of ids) {
@@ -182,9 +197,9 @@ export function applyRankOrder(
   for (const id of unranked) keys.set(id, null);
   return todos.map((t) => {
     const wanted = keys.get(t.id);
-    return wanted === undefined || wanted === t.rank_position
+    return wanted === undefined || wanted === t[field]
       ? t
-      : { ...t, rank_position: wanted, updated_at: now };
+      : { ...t, [field]: wanted, updated_at: now };
   });
 }
 

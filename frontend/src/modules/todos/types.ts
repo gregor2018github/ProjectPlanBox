@@ -25,6 +25,12 @@ export type Section = components["schemas"]["SectionOut"];
 /** What a cascading delete touched. */
 export type Deleted = components["schemas"]["DeletedOut"];
 
+/** Which "My order" ranking: All todos' or Today's. */
+export type RankScope = "all" | "today";
+
+/** The field that holds a todo's key in each "My order" ranking. */
+export const RANK_KEY = { all: "rank_position", today: "today_rank_position" } as const;
+
 /** Where a todo lives. */
 export type Placement = Pick<Todo, "list_id" | "section_id" | "parent_id">;
 

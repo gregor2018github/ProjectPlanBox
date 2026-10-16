@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { applyRankOrder } from "./apply";
-import { placeInRanking, rankedIds, rankView } from "./selectors";
+import { placeInRanking, rankedIds, rankView, todayRankView } from "./selectors";
 import { makeTodo } from "./testData";
 import type { TodoList } from "./types";
 
@@ -94,5 +94,41 @@ describe("applyRankOrder", () => {
     expect(result.map((t) => t.rank_position)).toEqual(["a0", "a1", null, "a9"]);
     expect(result[0]).toBe(a);
     expect(result[1]?.updated_at).toBe(NOW);
+  });
+});
+
+describe("Today's My order", () => {
+  const TODAY = "2026-10-08";
+
+  it("mixes overdue and due today in one ranking; the rest waits unsorted, overdue first", () => {
+    const late = makeTodo({ title: "Late", due_date: "2026-10-01", today_rank_position: "a1" });
+    const now = makeTodo({ title: "Now", due_date: TODAY, today_rank_position: "a0" });
+    const newLate = makeTodo({ title: "New late", due_date: "2026-10-05" });
+    const newNow = makeTodo({ title: "New now", due_date: TODAY, priority: 3 });
+    const tomorrow = makeTodo({
+      title: "Tomorrow",
+      due_date: "2026-10-09",
+      today_rank_position: "a2",
+    });
+    const ranked = makeTodo({ title: "All only", due_date: TODAY, rank_position: "a0" });
+
+    const view = todayRankView([late, now, newLate, newNow, tomorrow, ranked], TODAY);
+
+    expect(view.ranked.map((t) => t.title)).toEqual(["Now", "Late"]);
+    expect(view.unsorted.map((t) => t.title)).toEqual(["New late", "New now", "All only"]);
+    expect(rankedIds([late, now, newLate, tomorrow, ranked], "today", TODAY)).toEqual([
+      now.id,
+      late.id,
+    ]);
+  });
+
+  it("writes Today's keys without touching All todos' ranking", () => {
+    const a = makeTodo({ rank_position: "a5" });
+    const b = makeTodo({ today_rank_position: "a3" });
+
+    const [ra, rb] = applyRankOrder([a, b], [a.id], [b.id], NOW, "today");
+
+    expect(ra).toMatchObject({ today_rank_position: "a0", rank_position: "a5" });
+    expect(rb?.today_rank_position).toBeNull();
   });
 });

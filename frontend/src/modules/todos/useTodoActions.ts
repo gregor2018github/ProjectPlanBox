@@ -27,7 +27,7 @@ import {
   useUpdateTodo,
 } from "./mutations";
 import { todoKeys } from "./queries";
-import type { Placement, RepeatFrom, Todo } from "./types";
+import type { Placement, RankScope, RepeatFrom, Todo } from "./types";
 import { todoUi, type PendingPicker } from "./uiStore";
 
 /** Input for creating a todo; tags named in `new_tags` are created first. */
@@ -254,18 +254,28 @@ export function useTodoActions() {
       },
 
       /**
-       * Stores "My order" in All todos: `ids` is the whole ranking top to
-       * bottom, `unranked` go back to "Unsorted", and `before` is the ranking
-       * this replaces (what undo goes back to, unsorting what it added).
+       * Stores a "My order" ranking (All todos' or Today's): `ids` is the
+       * whole ranking top to bottom, `unranked` go back to "Unsorted", and
+       * `before` is the ranking this replaces (what undo goes back to,
+       * unsorting what it added).
        */
-      reorderRanked(ids: string[], unranked: string[], before: readonly string[]): void {
-        setRankOrder.mutate({ ids, unranked });
+      reorderRanked(
+        ids: string[],
+        unranked: string[],
+        before: readonly string[],
+        scope: RankScope = "all",
+      ): void {
+        setRankOrder.mutate({ ids, unranked, scope });
         const was = new Set(before);
         pushUndo({
           label: "Changed my order",
           silent: true,
           undo: () => {
-            setRankOrder.mutate({ ids: [...before], unranked: ids.filter((id) => !was.has(id)) });
+            setRankOrder.mutate({
+              ids: [...before],
+              unranked: ids.filter((id) => !was.has(id)),
+              scope,
+            });
           },
         });
       },

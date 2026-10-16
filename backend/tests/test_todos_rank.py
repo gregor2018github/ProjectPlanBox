@@ -1,4 +1,4 @@
-"""Todos: "My order" in All todos (``rank_position``)."""
+"""Todos: "My order" in All todos (``rank_position``) and Today (``today_rank_position``)."""
 
 from fastapi.testclient import TestClient
 from todos_helpers import by_id, current, ok, todo, todo_list
@@ -108,3 +108,58 @@ def test_rejects_duplicates_and_unknown_or_deleted_todos(client: TestClient) -> 
     assert both.status_code == 422
     assert deleted.status_code == 404
     assert keys(client, a["id"])[0] is None
+
+
+def rank_today(
+    client: TestClient, *ids: str, unranked: tuple[str, ...] = ()
+) -> list[dict[str, object]]:
+    """Stores Today's "My order" (and unranks); returns the changed todos."""
+    body = {"ids": list(ids), "unranked": list(unranked), "scope": "today"}
+    return ok(client.post("/api/todos/rank-order", json=body))["todos"]
+
+
+def today_keys(client: TestClient, *ids: str) -> list[object]:
+    """Today's rank keys of these todos, in the given order."""
+    rows = by_id(current(client))
+    return [rows[i]["today_rank_position"] for i in ids]
+
+
+def test_today_order_is_separate_from_all_todos(client: TestClient) -> None:
+    """Today's ranking mixes overdue and due today and leaves All todos' alone."""
+    late = todo(client, "Late", due_date="2026-10-01")
+    now = todo(client, "Now", due_date=TODAY)
+    assert now["today_rank_position"] is None
+
+    changed = rank_today(client, now["id"], late["id"])
+
+    assert {t["id"] for t in changed} == {now["id"], late["id"]}
+    ranked = today_keys(client, now["id"], late["id"])
+    assert ranked == sorted(ranked)  # pyright: ignore[reportArgumentType]
+    assert keys(client, now["id"], late["id"]) == [None, None]
+    assert rank_today(client, unranked=(late["id"],))[0]["today_rank_position"] is None
+
+
+def test_today_key_stays_while_the_todo_stays_in_today(client: TestClient) -> None:
+    """Moving an overdue todo to today keeps its place; moving it later or undating drops it."""
+    a = todo(client, "A", due_date="2026-10-01")
+    b = todo(client, "B", due_date=TODAY)
+    rank_today(client, a["id"], b["id"])
+
+    ok(client.patch(f"/api/todos/items/{a['id']}", json={"due_date": TODAY}))
+    ok(client.patch(f"/api/todos/items/{b['id']}", json={"due_date": "2026-10-09"}))
+
+    assert today_keys(client, a["id"])[0] is not None
+    assert today_keys(client, b["id"])[0] is None
+    ok(client.patch(f"/api/todos/items/{a['id']}", json={"due_date": None}))
+    assert today_keys(client, a["id"])[0] is None
+
+
+def test_next_occurrence_keeps_its_place_in_today(client: TestClient) -> None:
+    """A daily routine comes back to the same spot in Today's order."""
+    daily = todo(client, "Water plants", due_date=TODAY, rrule="FREQ=DAILY")
+    rank_today(client, daily["id"])
+
+    changed = ok(client.post(f"/api/todos/items/{daily['id']}/complete"))["todos"]
+
+    nxt = next(t for t in changed if t["id"] != daily["id"])
+    assert nxt["today_rank_position"] == today_keys(client, daily["id"])[0]

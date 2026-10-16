@@ -115,7 +115,9 @@ class TodoOut(BaseModel):
     was done (``completion``). ``today_position`` is its place in
     Today's manual order (null until Today is reordered, and after the due
     date changes). ``rank_position`` is its place in "My order" in All todos
-    (null while it is unsorted).
+    (null while it is unsorted); ``today_rank_position`` is its place in
+    Today's "My order" (null while unsorted, and after it is moved out of
+    Today).
     """
 
     id: str
@@ -136,6 +138,7 @@ class TodoOut(BaseModel):
     repeat_from: Literal["due", "completion"]
     today_position: str | None
     rank_position: str | None
+    today_rank_position: str | None
 
 
 class TodoCreate(BaseModel):
@@ -191,10 +194,14 @@ class TodayOrder(BaseModel):
 
 
 class RankOrder(BaseModel):
-    """The "My order" ranking in All todos: ranked todos top to bottom, and todos to unrank."""
+    """A "My order" ranking: ranked todos top to bottom, and todos to unrank.
+
+    ``scope`` says which one: ``all`` (All todos) or ``today`` (Today).
+    """
 
     ids: list[str] = Field(max_length=5000)
     unranked: list[str] = Field(default_factory=list[str], max_length=5000)
+    scope: Literal["all", "today"] = "all"
 
 
 class ForecastOut(BaseModel):

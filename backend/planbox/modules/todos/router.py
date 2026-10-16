@@ -111,6 +111,7 @@ def _todo(record: TodoRecord) -> TodoOut:
         repeat_from="completion" if t.repeat_from == "completion" else "due",
         today_position=t.today_position,
         rank_position=t.rank_position,
+        today_rank_position=t.today_rank_position,
     )
 
 
@@ -367,8 +368,8 @@ def set_today_order(body: TodayOrder, service: Todos) -> TodosOut:
 
 @router.post("/rank-order")
 def set_rank_order(body: RankOrder, service: Todos) -> TodosOut:
-    """Stores "My order" in All todos (and unranks todos); returns the todos that changed."""
-    return _todos_out(service.set_rank_order(body.ids, body.unranked))
+    """Stores "My order" in All todos or Today (and unranks todos); returns the changed todos."""
+    return _todos_out(service.set_rank_order(body.ids, body.unranked, body.scope))
 
 
 @router.delete("/items/{todo_id}")

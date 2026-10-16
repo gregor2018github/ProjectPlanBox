@@ -5,7 +5,7 @@ import { plural } from "../../../core/insights/format";
 import { PageHeader } from "../../../ui/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../../ui/SegmentedControl";
 import { ViewLayout } from "../../../ui/ViewLayout";
-import { useAllTodosMode, type AllTodosMode } from "../allTodosMode";
+import { useAllTodosMode, type AllTodosMode } from "../viewModes";
 import { AllByPlace } from "../components/AllByPlace";
 import { EmptyHint } from "../components/EmptyHint";
 import { MyOrderView } from "../components/MyOrderView";

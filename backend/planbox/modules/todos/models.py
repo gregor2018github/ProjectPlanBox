@@ -52,7 +52,8 @@ class Todo:
     ``repeat_from`` is ``"due"`` (the next date follows the schedule) or
     ``"completion"`` (it is counted from the day this one was done).
     ``today_position`` orders it inside Today once Today was reordered;
-    ``rank_position`` is its place in "My order" (None while unsorted).
+    ``rank_position`` is its place in "My order" (None while unsorted), and
+    ``today_rank_position`` its place in Today's "My order".
     """
 
     id: str
@@ -74,6 +75,7 @@ class Todo:
     today_position: str | None = None
     repeat_from: str = "due"
     rank_position: str | None = None
+    today_rank_position: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

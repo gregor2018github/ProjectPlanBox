@@ -5,7 +5,14 @@
 import { byPosition } from "../../core/ordering";
 import { matchesTagFilter } from "../../core/tags/tagFilter";
 import type { IsoDate } from "../../core/time";
-import type { Area, Section, Todo, TodoList } from "./types";
+import {
+  RANK_KEY,
+  type Area,
+  type RankScope,
+  type Section,
+  type Todo,
+  type TodoList,
+} from "./types";
 
 const isOpen = (t: Todo) => t.completed_at === null;
 const isTopLevel = (t: Todo) => t.parent_id === null;
@@ -268,17 +275,23 @@ export function allView(
   };
 }
 
-/** "My order": ranked todos by their key (ids break ties, as on the server). */
-export function byRank(a: Todo, b: Todo): number {
-  const ka = a.rank_position ?? "";
-  const kb = b.rank_position ?? "";
-  if (ka !== kb) return ka < kb ? -1 : 1;
-  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+/** A "My order" ranking: todos by their key in `scope` (ids break ties, as on the server). */
+export function byRankIn(scope: RankScope) {
+  const field = RANK_KEY[scope];
+  return (a: Todo, b: Todo): number => {
+    const ka = a[field] ?? "";
+    const kb = b[field] ?? "";
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  };
 }
 
-/** The two parts of "My order" in All todos. */
+/** All todos' "My order". */
+export const byRank = byRankIn("all");
+
+/** The two parts of a "My order" view (All todos or Today). */
 export interface RankViewData {
-  /** Todos not ranked yet (new ones, or taken out), in place order. */
+  /** Todos not ranked yet (new ones, or taken out), in their usual order. */
   unsorted: Todo[];
   /** The ranked todos and subtasks, top to bottom. */
   ranked: Todo[];
@@ -316,11 +329,46 @@ export function rankView(
   return { unsorted, ranked };
 }
 
-/** The ids of every open ranked todo, top to bottom (ignores any tag filter). */
-export function rankedIds(todos: readonly Todo[]): string[] {
+/** Whether a todo shows in Today (due today or earlier). */
+function inToday(t: Todo, today: IsoDate | null): boolean {
+  return today !== null && t.due_date !== null && t.due_date <= today;
+}
+
+/**
+ * Today's "My order": everything in Today (overdue and due today mixed) in
+ * one ranking, plus the unsorted ones waiting to be pulled in, overdue first
+ * as in "By date". `keep` holds just-completed todos that stay for a moment.
+ */
+export function todayRankView(
+  todos: readonly Todo[],
+  today: IsoDate | null,
+  keep: ReadonlySet<string> = new Set(),
+): RankViewData {
+  const shown = todos.filter((t) => inToday(t, today) && (isOpen(t) || keep.has(t.id)));
+  const late = (t: Todo) => (t.due_date ?? "") < (today ?? "");
+  const unsorted = shown
+    .filter((t) => t.today_rank_position === null)
+    .sort(
+      (a, b) =>
+        Number(late(b)) - Number(late(a)) || (late(a) ? overdueOrder(a, b) : dueTodayOrder(a, b)),
+    );
+  const ranked = shown.filter((t) => t.today_rank_position !== null).sort(byRankIn("today"));
+  return { unsorted, ranked };
+}
+
+/**
+ * The ids of every open ranked todo in `scope`, top to bottom (ignores any
+ * tag filter). Today's ranking only counts what is in Today on `today`.
+ */
+export function rankedIds(
+  todos: readonly Todo[],
+  scope: RankScope = "all",
+  today: IsoDate | null = null,
+): string[] {
+  const field = RANK_KEY[scope];
   return todos
-    .filter((t) => isOpen(t) && t.rank_position !== null)
-    .sort(byRank)
+    .filter((t) => isOpen(t) && t[field] !== null && (scope === "all" || inToday(t, today)))
+    .sort(byRankIn(scope))
     .map((t) => t.id);
 }
 

@@ -2357,7 +2357,7 @@
         "type": "object"
       },
       "RankOrder": {
-        "description": "The \"My order\" ranking in All todos: ranked todos top to bottom, and todos to unrank.",
+        "description": "A \"My order\" ranking: ranked todos top to bottom, and todos to unrank.\n\n``scope`` says which one: ``all`` (All todos) or ``today`` (Today).",
         "properties": {
           "ids": {
             "items": {
@@ -2366,6 +2366,15 @@
             "maxItems": 5000,
             "title": "Ids",
             "type": "array"
+          },
+          "scope": {
+            "default": "all",
+            "enum": [
+              "all",
+              "today"
+            ],
+            "title": "Scope",
+            "type": "string"
           },
           "unranked": {
             "items": {
@@ -3575,7 +3584,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes). ``rank_position`` is its place in \"My order\" in All todos\n(null while it is unsorted).",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes). ``rank_position`` is its place in \"My order\" in All todos\n(null while it is unsorted); ``today_rank_position`` is its place in\nToday's \"My order\" (null while unsorted, and after it is moved out of\nToday).",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -3719,6 +3728,17 @@
             ],
             "title": "Today Position"
           },
+          "today_rank_position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Today Rank Position"
+          },
           "updated_at": {
             "title": "Updated At",
             "type": "string"
@@ -3742,7 +3762,8 @@
           "recurrence_anchor",
           "repeat_from",
           "today_position",
-          "rank_position"
+          "rank_position",
+          "today_rank_position"
         ],
         "title": "TodoOut",
         "type": "object"
@@ -7491,7 +7512,7 @@
     },
     "/api/todos/rank-order": {
       "post": {
-        "description": "Stores \"My order\" in All todos (and unranks todos); returns the todos that changed.",
+        "description": "Stores \"My order\" in All todos or Today (and unranks todos); returns the changed todos.",
         "operationId": "todos_set_rank_order",
         "requestBody": {
           "content": {

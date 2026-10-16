@@ -120,6 +120,16 @@ describe("patch, delete and merge", () => {
     expect(applyPatch([t], t.id, { due_date: "2026-10-09" }, NOW)[0]?.today_position).toBeNull();
   });
 
+  it("keeps Today's My order key while the todo stays in Today", () => {
+    const t = makeTodo({ due_date: "2026-10-01", today_rank_position: "a0" });
+    const key = (due: string | null, today: string | null = "2026-10-08") =>
+      applyPatch([t], t.id, { due_date: due }, NOW, today)[0]?.today_rank_position;
+    expect(key("2026-10-08")).toBe("a0");
+    expect(key("2026-10-09")).toBeNull();
+    expect(key(null)).toBeNull();
+    expect(key("2026-10-08", null)).toBeNull();
+  });
+
   it("deletes a todo with its subtasks", () => {
     const parent = makeTodo();
     const child = makeTodo({ parent_id: parent.id });

@@ -5,8 +5,8 @@ import { Button } from "../../../ui/Button";
 import { cx } from "../../../ui/cx";
 import { useDropTarget, type DropInfo } from "../../../ui/dnd";
 import { rankMenuEntries } from "../rankMenu";
-import { rankView } from "../selectors";
-import type { Todo } from "../types";
+import { rankView, todayRankView } from "../selectors";
+import type { RankScope, Todo } from "../types";
 import { useTodoUi } from "../uiStore";
 import { RANK_DRAG, useRanking } from "../useRanking";
 import type { TodoActions } from "../useTodoActions";
@@ -20,22 +20,28 @@ import { UnsortedItem } from "./UnsortedItem";
 export interface MyOrderViewProps {
   data: TodoData;
   actions: TodoActions;
+  /** Which ranking: every open todo (All todos, the default) or what is in Today. */
+  scope?: RankScope;
 }
 
 /**
- * "My order": one flat ranking of every open todo and subtask, sorted by
- * hand (drag, Alt+↑/↓, or the row menu) and stored, so it is the same on
- * the next visit and on every device. New todos wait in "Unsorted" on top
- * until they are pulled into the ranking; a ranked todo dragged back onto
- * that box leaves the ranking again.
+ * "My order": one flat ranking of every open todo and subtask (or, in
+ * Today, of everything overdue or due today), sorted by hand (drag, Alt+↑/↓,
+ * or the row menu) and stored, so it is the same on the next visit and on
+ * every device. New todos wait in "Unsorted" on top until they are pulled
+ * into the ranking; a ranked todo dragged back onto that box leaves the
+ * ranking again.
  */
-export function MyOrderView({ data, actions }: MyOrderViewProps) {
+export function MyOrderView({ data, actions, scope = "all" }: MyOrderViewProps) {
   const lingering = useTodoUi((s) => s.lingering);
   const view = useMemo(
-    () => rankView(data.todos, data.areas, data.lists, data.sections, lingering),
-    [data.todos, data.areas, data.lists, data.sections, lingering],
+    () =>
+      scope === "today"
+        ? todayRankView(data.todos, data.today, lingering)
+        : rankView(data.todos, data.areas, data.lists, data.sections, lingering),
+    [scope, data.todos, data.today, data.areas, data.lists, data.sections, lingering],
   );
-  const ranking = useRanking(data, actions);
+  const ranking = useRanking(data, actions, scope);
   const [pulling, setPulling] = useState<string | null>(null);
   const onDragging = useCallback((id: string, dragging: boolean) => {
     setPulling((current) => (dragging ? id : current === id ? null : current));
@@ -102,7 +108,9 @@ export function MyOrderView({ data, actions }: MyOrderViewProps) {
         </h2>
         {view.unsorted.length === 0 ? (
           <p className="px-3 pb-2 text-sm text-text-muted">
-            New todos land here. Drag a todo here to take it out of your order.
+            {scope === "today"
+              ? "Todos arriving in Today land here. Drag a todo here to take it out of your order."
+              : "New todos land here. Drag a todo here to take it out of your order."}
           </p>
         ) : (
           <ul aria-label="Unsorted todos" className="flex max-h-80 flex-col overflow-y-auto pb-1">

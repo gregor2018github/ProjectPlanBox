@@ -10,6 +10,7 @@ import { useApiClient } from "../../core/api/apiContext";
 import { unwrap } from "../../core/api/client";
 import { insightKeys } from "../../core/insights/insightsQueries";
 import { byPosition, placeAmong } from "../../core/ordering";
+import { useToday } from "../../core/useToday";
 import { useToast } from "../../ui/useToast";
 import {
   applyComplete,
@@ -25,7 +26,7 @@ import {
   type TodoPatch,
 } from "./apply";
 import { todoKeys } from "./queries";
-import type { Area, Placement, Section, Todo, TodoList } from "./types";
+import type { Area, Placement, RankScope, Section, Todo, TodoList } from "./types";
 
 const SCOPE = { id: "todos" };
 
@@ -109,6 +110,7 @@ export function useCreateTodo() {
 export function useUpdateTodo() {
   const client = useApiClient();
   const merge = useMergeTodos();
+  const today = useToday();
   return useOptimisticMutation<Todo[], { id: string; patch: TodoPatch }, Todo>({
     cacheKey: todoKeys.items,
     mutationFn: ({ id, patch }) =>
@@ -118,7 +120,7 @@ export function useUpdateTodo() {
           body: patch,
         }),
       ),
-    apply: (todos, { id, patch }) => applyPatch(todos, id, patch, now()),
+    apply: (todos, { id, patch }) => applyPatch(todos, id, patch, now(), today),
     onSuccess: (todo) => {
       merge([todo]);
     },
@@ -226,15 +228,19 @@ export function useSetTodayOrder() {
   });
 }
 
-/** Stores "My order" in All todos (the ranked ids top to bottom) and unranks todos. */
+/** Stores a "My order" ranking (the ranked ids top to bottom) and unranks todos. */
 export function useSetRankOrder() {
   const client = useApiClient();
   const merge = useMergeTodos();
-  return useOptimisticMutation<Todo[], { ids: string[]; unranked: string[] }, Todo[]>({
+  return useOptimisticMutation<
+    Todo[],
+    { ids: string[]; unranked: string[]; scope: RankScope },
+    Todo[]
+  >({
     cacheKey: todoKeys.items,
-    mutationFn: async ({ ids, unranked }) =>
-      (await unwrap(client.POST("/api/todos/rank-order", { body: { ids, unranked } }))).todos,
-    apply: (todos, { ids, unranked }) => applyRankOrder(todos, ids, unranked, now()),
+    mutationFn: async (body) =>
+      (await unwrap(client.POST("/api/todos/rank-order", { body }))).todos,
+    apply: (todos, { ids, unranked, scope }) => applyRankOrder(todos, ids, unranked, now(), scope),
     onSuccess: (todos) => {
       merge(todos);
     },

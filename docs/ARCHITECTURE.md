@@ -611,6 +611,20 @@ that can be enforced in SQL are also CHECK constraints.
   far from its parent. Unsorted rows are plain draggables, not sortables,
   so dnd-kit never moves DOM nodes between the two lists behind React; they
   drop onto a ranked row (insert before it) or the end zone.
+- **My order in Today (owner request, 2026-10-16):** migration
+  `0007_add_today_rank_position.sql` adds a nullable
+  `today_rank_position`, a second ranking for Today's **My order** mode:
+  one list of everything overdue and due today, mixed. The other mode,
+  **By date**, keeps its two groups and `today_position`; the two orders
+  are independent. It uses the same endpoint with `scope: "today"` and the
+  same view (`MyOrderView`, `scope` prop), so the Unsorted box, drag, menu
+  and undo behave as in All todos; todos arriving in Today start unsorted
+  (overdue first, then as "By date" sorts them). The key is kept while the
+  todo stays in Today: a new due date of today or earlier keeps it, a later
+  one (or none) clears it. A repeat's next occurrence inherits it, so a
+  daily routine comes back to its spot. The client counts only todos in
+  Today as the ranking (`rankedIds(todos, "today", today)`), so a stale
+  key on a future occurrence is ignored until it is due.
 - **Area colours (owner request, 2026-10-11):** migration
   `0005_add_area_hue.sql` adds `hue`, an OKLCH angle (0–359). Only the hue
   is stored. Lightness and chroma come from the theme's tint tokens
@@ -640,7 +654,7 @@ that can be enforced in SQL are also CHECK constraints.
 | GET | `/api/todos/forecast?start=&end=` | `[{todo_id, date}]`: later dates of open repeating todos in the range (inclusive, at most 400 days), for the calendar. |
 | POST | `/api/todos/items/{id}/move` | `{list_id, section_id, parent_id, before_id?, after_id?}`. One endpoint for reorder, move to another list or section, and indent/outdent. The server validates the invariants and computes `position`. |
 | POST | `/api/todos/today-order` | `{ids}`: one Today group, top to bottom. Returns the todos whose `today_position` changed. |
-| POST | `/api/todos/rank-order` | `{ids, unranked?}`: "My order" in All todos, the whole ranking top to bottom, plus ids to send back to unsorted. Returns the todos whose `rank_position` changed. |
+| POST | `/api/todos/rank-order` | `{ids, unranked?, scope?}`: a "My order" ranking (`scope` `all`, the default, for All todos; `today` for Today), the whole ranking top to bottom, plus ids to send back to unsorted. Returns the todos whose `rank_position` (or `today_rank_position`) changed. |
 | DELETE | `/api/todos/items/{id}` · POST `…/restore` | Soft delete (with subtasks), undo |
 | GET/POST/PATCH/DELETE | `/api/todos/areas[/{id}]`, `…/move`, `…/restore` | Areas |
 | GET/POST/PATCH/DELETE | `/api/todos/lists[/{id}]`, `…/move` (`{area_id, before_id?, after_id?}`), `…/restore` | Lists |
