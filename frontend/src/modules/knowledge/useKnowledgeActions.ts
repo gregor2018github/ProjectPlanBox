@@ -6,6 +6,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { newId } from "../../core/ids";
 import { useTagFilter } from "../../core/tags/tagFilter";
 import { useUndo } from "../../core/undo/undoContext";
@@ -73,13 +74,19 @@ export function useKnowledgeActions() {
       },
 
       remove(entry: Entry): void {
-        deleteEntry.mutate({ id: entry.id });
-        pushUndo({
-          label: `Deleted ${KIND_LABELS[entry.kind].toLowerCase()} “${entry.title}”`,
-          undo: () => {
-            restoreEntry.mutate({ id: entry.id });
+        const noun = KIND_LABELS[entry.kind].toLowerCase();
+        confirmDelete(
+          { title: `Delete ${noun}?`, description: `“${entry.title}” will be deleted.` },
+          () => {
+            deleteEntry.mutate({ id: entry.id });
+            pushUndo({
+              label: `Deleted ${noun} “${entry.title}”`,
+              undo: () => {
+                restoreEntry.mutate({ id: entry.id });
+              },
+            });
           },
-        });
+        );
       },
 
       /** Opens an entry in the detail panel. */
@@ -117,19 +124,27 @@ export function useKnowledgeActions() {
       },
 
       removeCollection(collection: Collection): void {
-        deleteCollection.mutate(
-          { id: collection.id },
+        confirmDelete(
           {
-            onSuccess: ({ entries }) => {
-              const inside =
-                entries > 0 ? ` and ${entries} entr${entries === 1 ? "y" : "ies"}` : "";
-              pushUndo({
-                label: `Deleted collection “${collection.name}”${inside}`,
-                undo: () => {
-                  restoreCollection.mutate({ id: collection.id });
+            title: "Delete collection?",
+            description: `“${collection.name}” and the entries in it will be deleted.`,
+          },
+          () => {
+            deleteCollection.mutate(
+              { id: collection.id },
+              {
+                onSuccess: ({ entries }) => {
+                  const inside =
+                    entries > 0 ? ` and ${entries} entr${entries === 1 ? "y" : "ies"}` : "";
+                  pushUndo({
+                    label: `Deleted collection “${collection.name}”${inside}`,
+                    undo: () => {
+                      restoreCollection.mutate({ id: collection.id });
+                    },
+                  });
                 },
-              });
-            },
+              },
+            );
           },
         );
       },

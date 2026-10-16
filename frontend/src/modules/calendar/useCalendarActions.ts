@@ -6,6 +6,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { useMeta } from "../../core/api/coreQueries";
 import type { CalendarFeed } from "../../core/calendar/feed";
 import { useCalendarFeeds } from "../../core/calendar/feedContext";
@@ -269,10 +270,18 @@ export function useCalendarActions() {
         return change(item, { timing: placeLike(timing, date, timeZone) });
       },
 
-      /** Deletes an occurrence, asking "which events?" first for a series. */
+      /**
+       * Deletes an occurrence, asking "which events?" first for a series
+       * (that question also serves as the touch screen's confirmation).
+       */
       async remove(item: EventItem): Promise<void> {
         if (item.event.rrule === null) {
-          removeWith(item, "all");
+          confirmDelete(
+            { title: "Delete event?", description: `“${item.event.title}” will be deleted.` },
+            () => {
+              removeWith(item, "all");
+            },
+          );
           return;
         }
         const scope = await calendarUi.askScope("delete");

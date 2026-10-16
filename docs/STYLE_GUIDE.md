@@ -383,5 +383,7 @@ live in `tokens.css`. Do not inline magic numbers.
   offset). Dialogs trap focus and return it on close (Base UI does this).
 - **Feedback:** no spinners for local operations. Errors appear as a toast
   with the server's message and, where possible, "Retry". Destructive
-  actions are undoable rather than confirmed. Confirmation is reserved for
-  irreversible bulk actions.
+  actions are undoable rather than confirmed, except on touch screens:
+  there every delete asks first through `confirmDelete`, because the undo
+  toast is easy to miss and there is no Ctrl+Z. Otherwise, confirmation is
+  reserved for irreversible bulk actions.

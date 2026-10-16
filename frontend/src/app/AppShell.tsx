@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useMeta } from "../core/api/coreQueries";
 import { useBackHandler } from "../core/back";
 import { CommandPalette } from "../core/commands/CommandPalette";
+import { ConfirmDeleteDialog } from "../core/confirm/ConfirmDeleteDialog";
 import { useRecordAppOpen } from "../core/insights/insightsQueries";
 import { useThemeSync } from "../core/theme/useThemeSync";
 import { ShortcutsDialog } from "../core/shortcuts/ShortcutsDialog";
@@ -181,6 +182,7 @@ export function AppShell() {
         )}
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
         <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        <ConfirmDeleteDialog />
         <ShutdownDialog open={shutdownOpen} onOpenChange={setShutdownOpen} onStopped={stop} />
         <Toaster />
       </div>

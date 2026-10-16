@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { useTagFilter } from "../../core/tags/tagFilter";
 import { newTagVars, useCreateTag } from "../../core/tags/tagQueries";
 import { addDays, formatRelativeDay, isoWeekday } from "../../core/time";
@@ -223,17 +224,23 @@ export function useTodoActions() {
 
       remove(t: Todo): void {
         const subtasks = cache().filter((c) => c.parent_id === t.id).length;
-        deleteTodo.mutate({ id: t.id });
-        if (todoUi.get().selectedId === t.id) todoUi.select(null);
-        pushUndo({
-          label:
-            subtasks > 0
-              ? `Deleted “${t.title}” and ${subtasks} subtask${subtasks === 1 ? "" : "s"}`
-              : `Deleted “${t.title}”`,
-          undo: () => {
-            restoreTodo.mutate({ id: t.id });
+        const also = subtasks > 0 ? ` and ${subtasks} subtask${subtasks === 1 ? "" : "s"}` : "";
+        confirmDelete(
+          {
+            title: t.parent_id === null ? "Delete todo?" : "Delete subtask?",
+            description: `“${t.title}”${also} will be deleted.`,
           },
-        });
+          () => {
+            deleteTodo.mutate({ id: t.id });
+            if (todoUi.get().selectedId === t.id) todoUi.select(null);
+            pushUndo({
+              label: `Deleted “${t.title}”${also}`,
+              undo: () => {
+                restoreTodo.mutate({ id: t.id });
+              },
+            });
+          },
+        );
       },
 
       move,

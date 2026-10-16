@@ -121,6 +121,30 @@ describe("habits", () => {
     expect(within(list).getByText("Journal")).toBeInTheDocument();
   });
 
+  it("asks before deleting on a touch screen", async () => {
+    installMatchMedia((query) => query.includes("min-width") || query.includes("coarse"));
+    const user = userEvent.setup();
+    const habit = makeFakeHabit("Journal", today);
+    const api = open(`/habits?item=habits.habit:${habit.row.id}`, [habit]);
+
+    const details = await screen.findByRole("complementary", { name: "Details" });
+    await user.click(await within(details).findByRole("button", { name: "Delete" }));
+    let question = await screen.findByRole("dialog", { name: "Delete habit?" });
+    expect(question).toHaveTextContent("“Journal” and its check-ins will be deleted.");
+    await user.click(within(question).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Delete habit?" })).not.toBeInTheDocument();
+    });
+    expect(api.state.habits[0]?.deleted).toBeFalsy();
+
+    await user.click(within(details).getByRole("button", { name: "Delete" }));
+    question = await screen.findByRole("dialog", { name: "Delete habit?" });
+    await user.click(within(question).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(api.state.habits[0]?.deleted).toBe(true);
+    });
+  });
+
   it("excludes weekdays with the toggles in the detail panel", async () => {
     const user = userEvent.setup();
     const habit = makeFakeHabit("Standup", addDays(today, -3));

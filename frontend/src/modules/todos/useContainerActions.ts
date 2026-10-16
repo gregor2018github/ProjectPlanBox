@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { newId } from "../../core/ids";
 import { useUndo } from "../../core/undo/undoContext";
 import { nextAreaHue } from "./areaHues";
@@ -66,21 +67,29 @@ export function useContainerActions() {
         move.mutate(vars);
       },
       remove(kind: ContainerKind, id: string, name: string): void {
-        remove.mutate(
-          { kind, id },
+        confirmDelete(
           {
-            onSuccess: (deleted) => {
-              const inside =
-                deleted.todos > 0
-                  ? ` and ${deleted.todos} todo${deleted.todos === 1 ? "" : "s"}`
-                  : "";
-              pushUndo({
-                label: `Deleted ${NOUN[kind]} “${name}”${inside}`,
-                undo: () => {
-                  restore.mutate({ kind, id });
+            title: `Delete ${NOUN[kind]}?`,
+            description: `“${name}” and everything in it will be deleted.`,
+          },
+          () => {
+            remove.mutate(
+              { kind, id },
+              {
+                onSuccess: (deleted) => {
+                  const inside =
+                    deleted.todos > 0
+                      ? ` and ${deleted.todos} todo${deleted.todos === 1 ? "" : "s"}`
+                      : "";
+                  pushUndo({
+                    label: `Deleted ${NOUN[kind]} “${name}”${inside}`,
+                    undo: () => {
+                      restore.mutate({ kind, id });
+                    },
+                  });
                 },
-              });
-            },
+              },
+            );
           },
         );
       },

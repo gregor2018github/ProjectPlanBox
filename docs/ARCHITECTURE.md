@@ -899,6 +899,14 @@ push silently. Ctrl+Z pops the newest entry. Undo runs a normal mutation
 (restore, reopen, or a move back between the previous neighbours), so it is
 optimistic too.
 
+On touch screens (`pointer: coarse`: the phone app, a phone's browser) a
+toast is easy to miss and there is no Ctrl+Z, so deletes are confirmed
+first. Each module's `remove` goes through `confirmDelete` (`core/confirm`),
+which runs the delete at once with a mouse and otherwise after a "Delete
+…?" dialog that the shell mounts once. A recurring event's "which events?"
+question already serves as the confirmation. Undo still works after a
+confirmed delete.
+
 ### Drag and drop
 
 One `DndRoot` (in `ui/`) wraps the shell, so todos can be dropped onto

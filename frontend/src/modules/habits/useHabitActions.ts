@@ -6,6 +6,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { newId } from "../../core/ids";
 import type { IsoDate } from "../../core/time";
 import { useToday } from "../../core/useToday";
@@ -84,13 +85,21 @@ export function useHabitActions() {
       },
 
       remove(habit: Habit): void {
-        deleteHabit.mutate({ id: habit.id });
-        pushUndo({
-          label: `Deleted habit “${habit.name}”`,
-          undo: () => {
-            restoreHabit.mutate({ id: habit.id });
+        confirmDelete(
+          {
+            title: "Delete habit?",
+            description: `“${habit.name}” and its check-ins will be deleted.`,
           },
-        });
+          () => {
+            deleteHabit.mutate({ id: habit.id });
+            pushUndo({
+              label: `Deleted habit “${habit.name}”`,
+              undo: () => {
+                restoreHabit.mutate({ id: habit.id });
+              },
+            });
+          },
+        );
       },
 
       /** Opens a habit in the detail panel. */
