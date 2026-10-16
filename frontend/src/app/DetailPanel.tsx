@@ -1,9 +1,14 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
+import { DESKTOP_QUERY, useMediaQuery } from "../core/useMediaQuery";
+import { cx } from "../ui/cx";
 import { IconButton } from "../ui/IconButton";
 import { panelTransition } from "../ui/motion";
 import { useModules } from "./modulesContext";
+import { panelMotion, PHONE_PANEL_CLASS } from "./panelMotion";
+
+const WIDTH = 400;
 
 /** Props for {@link DetailPanel}. */
 export interface DetailPanelProps {
@@ -18,6 +23,7 @@ export interface DetailPanelProps {
  */
 export function DetailPanel({ item, onClose }: DetailPanelProps) {
   const modules = useModules();
+  const desktop = useMediaQuery(DESKTOP_QUERY);
   const [entityType, id] = splitItem(item);
   const Content =
     entityType === undefined
@@ -30,13 +36,14 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
         <motion.aside
           key="detail"
           aria-label="Details"
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: "min(400px, 100vw)", opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
+          {...panelMotion(desktop, WIDTH)}
           transition={panelTransition}
-          className="fixed inset-0 z-30 overflow-clip bg-surface shadow-lg md:static md:shrink-0 md:shadow-none"
+          className={cx(
+            PHONE_PANEL_CLASS,
+            "overflow-clip bg-surface shadow-lg md:static md:shrink-0 md:shadow-none",
+          )}
         >
-          <div className="flex h-full w-screen flex-col md:w-[400px]">
+          <div className="flex h-full w-full flex-col md:w-[400px]">
             <div className="flex h-12 shrink-0 items-center justify-end px-3">
               <IconButton label="Close details" icon={X} shortcut="]" onClick={onClose} />
             </div>

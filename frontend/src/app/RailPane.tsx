@@ -1,7 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 
 import type { ModuleManifest } from "../core/module";
+import { DESKTOP_QUERY, useMediaQuery } from "../core/useMediaQuery";
+import { cx } from "../ui/cx";
 import { panelTransition } from "../ui/motion";
+import { panelMotion, PHONE_PANEL_CLASS } from "./panelMotion";
 
 /** Props for {@link RailPane}. */
 export interface RailPaneProps {
@@ -18,19 +21,21 @@ const WIDTH = 360;
  */
 export function RailPane({ module, onClose }: RailPaneProps) {
   const rail = module?.rail;
+  const desktop = useMediaQuery(DESKTOP_QUERY);
   return (
     <AnimatePresence initial={false}>
       {module && rail && (
         <motion.aside
           key={module.id}
           aria-label={rail.label}
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: `min(${WIDTH}px, 100vw)`, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
+          {...panelMotion(desktop, WIDTH)}
           transition={panelTransition}
-          className="fixed inset-0 z-30 overflow-clip bg-surface md:absolute md:inset-y-0 md:right-12 md:left-auto md:shadow-lg xl:static xl:shrink-0 xl:shadow-none"
+          className={cx(
+            PHONE_PANEL_CLASS,
+            "overflow-clip bg-surface md:absolute md:inset-y-0 md:right-12 md:left-auto md:shadow-lg xl:static xl:shrink-0 xl:shadow-none",
+          )}
         >
-          <div className="flex h-full w-screen flex-col md:w-[360px]">
+          <div className="flex h-full w-full flex-col md:w-[360px]">
             <rail.Pane onClose={onClose} />
           </div>
         </motion.aside>
