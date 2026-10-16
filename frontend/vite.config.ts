@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
@@ -12,6 +14,14 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: { "/api": BACKEND },
+    // The device backend bundles the backend's own migration files.
+    fs: {
+      allow: [
+        import.meta.dirname,
+        path.resolve(import.meta.dirname, "../backend"),
+        path.resolve(import.meta.dirname, "../shared"),
+      ],
+    },
   },
   preview: { host: "127.0.0.1", port: 4173, strictPort: true },
   // Served from localhost, so one ~210 kB gzip bundle loads instantly; revisit with
