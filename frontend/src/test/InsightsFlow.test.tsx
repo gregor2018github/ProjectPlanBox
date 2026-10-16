@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Activity } from "../core/insights/activity";
 import type { ModuleManifest } from "../core/module";
+import { todayIn } from "../core/time";
 import { TodoInsights } from "../modules/todos/components/TodoInsights";
 import type { TodoStats } from "../modules/todos/types";
 import { defaultRoutes, fakeFetch, renderApp, useDesktopViewport } from "./renderApp";
 
-// The real clock decides "today", so the activity days are relative to it.
-const today = new Date().toISOString().slice(0, 10);
+// The real clock decides "today" (in the app's zone, not UTC), so the
+// activity days are relative to it.
+const today = todayIn("Europe/Amsterdam");
 
 const activity: Activity = {
   start: "2025-10-06",
