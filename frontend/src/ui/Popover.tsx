@@ -2,6 +2,7 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
 import { cx } from "./cx";
+import { safeCollisionPadding } from "./safeArea";
 
 /** Props for {@link Popover}. */
 export interface PopoverProps {
@@ -44,7 +45,7 @@ export function Popover({
           side={side}
           align={align}
           sideOffset={6}
-          collisionPadding={8}
+          collisionPadding={safeCollisionPadding()}
           className="z-50"
         >
           <BasePopover.Popup

@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 
 import { MENU_POPUP_CLASS } from "./Menu";
 import { MenuEntries } from "./MenuEntries";
+import { safeCollisionPadding } from "./safeArea";
 import type { MenuEntry } from "./menuTypes";
 
 /** Props for {@link ContextMenu}. */
@@ -18,7 +19,7 @@ export function ContextMenu({ children, entries }: ContextMenuProps) {
     <BaseContextMenu.Root>
       <BaseContextMenu.Trigger render={children} />
       <BaseContextMenu.Portal>
-        <BaseContextMenu.Positioner collisionPadding={8} className="z-50">
+        <BaseContextMenu.Positioner collisionPadding={safeCollisionPadding()} className="z-50">
           <BaseContextMenu.Popup className={MENU_POPUP_CLASS}>
             <MenuEntries entries={entries} />
           </BaseContextMenu.Popup>
