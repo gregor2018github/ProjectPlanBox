@@ -23,7 +23,7 @@ export function Sidebar({ collapsed, onCollapse, onOpenPalette, onRequestShutdow
       animate={{ width: collapsed ? 0 : WIDTH }}
       transition={panelTransition}
       inert={collapsed}
-      className="shrink-0 overflow-hidden bg-sidebar"
+      className="shrink-0 overflow-clip bg-sidebar"
     >
       <div className="flex h-full flex-col" style={{ width: WIDTH }}>
         <SidebarContent

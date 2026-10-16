@@ -22,3 +22,17 @@ test("the Data page shows the phone's backups and Google Drive sync", async ({ p
   await expect(page.getByRole("heading", { name: "Data" })).toBeVisible();
   await expect(page.getByText(/daily/).first()).toBeVisible();
 });
+
+test("the navigation stays reachable after an Insights jump link", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/insights");
+  await expect(page.getByText("Loading…")).toHaveCount(0);
+  const links = page.getByRole("navigation", { name: "Insights sections" }).getByRole("link");
+  await links.last().click();
+  // Scrolling a section into view must move only the content, never the shell.
+  // (click() would scroll the button back into view, so check it first.)
+  const menu = page.getByRole("button", { name: "Open navigation" });
+  await expect(menu).toBeInViewport({ ratio: 1 });
+  await menu.click();
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toBeVisible();
+});

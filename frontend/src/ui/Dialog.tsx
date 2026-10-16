@@ -57,7 +57,7 @@ export function Dialog({
           <BaseDialog.Popup
             {...(initialFocus && { initialFocus })}
             className={cx(
-              "flex max-h-full w-full flex-col overflow-hidden rounded-xl bg-surface-raised text-text shadow-lg outline-none transition-[opacity,transform] duration-(--duration-slow) ease-out data-[ending-style]:scale-98 data-[ending-style]:opacity-0 data-[ending-style]:duration-(--duration-exit) data-[ending-style]:ease-in data-[starting-style]:scale-97 data-[starting-style]:opacity-0 dark:inset-ring dark:inset-ring-border",
+              "flex max-h-full w-full flex-col overflow-clip rounded-xl bg-surface-raised text-text shadow-lg outline-none transition-[opacity,transform] duration-(--duration-slow) ease-out data-[ending-style]:scale-98 data-[ending-style]:opacity-0 data-[ending-style]:duration-(--duration-exit) data-[ending-style]:ease-in data-[starting-style]:scale-97 data-[starting-style]:opacity-0 dark:inset-ring dark:inset-ring-border",
               widths[size],
             )}
           >

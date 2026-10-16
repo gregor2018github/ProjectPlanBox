@@ -34,7 +34,7 @@ export function DetailPanel({ item, onClose }: DetailPanelProps) {
           animate={{ width: "min(400px, 100vw)", opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={panelTransition}
-          className="fixed inset-0 z-30 overflow-hidden bg-surface shadow-lg md:static md:shrink-0 md:shadow-none"
+          className="fixed inset-0 z-30 overflow-clip bg-surface shadow-lg md:static md:shrink-0 md:shadow-none"
         >
           <div className="flex h-full w-screen flex-col md:w-[400px]">
             <div className="flex h-12 shrink-0 items-center justify-end px-3">

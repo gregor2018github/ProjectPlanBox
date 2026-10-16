@@ -28,7 +28,7 @@ export function RailPane({ module, onClose }: RailPaneProps) {
           animate={{ width: `min(${WIDTH}px, 100vw)`, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={panelTransition}
-          className="fixed inset-0 z-30 overflow-hidden bg-surface md:absolute md:inset-y-0 md:right-12 md:left-auto md:shadow-lg xl:static xl:shrink-0 xl:shadow-none"
+          className="fixed inset-0 z-30 overflow-clip bg-surface md:absolute md:inset-y-0 md:right-12 md:left-auto md:shadow-lg xl:static xl:shrink-0 xl:shadow-none"
         >
           <div className="flex h-full w-screen flex-col md:w-[360px]">
             <rail.Pane onClose={onClose} />

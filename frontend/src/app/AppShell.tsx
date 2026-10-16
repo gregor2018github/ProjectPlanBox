@@ -113,7 +113,7 @@ export function AppShell() {
 
   return (
     <DndRoot>
-      <div className="relative flex h-full overflow-hidden bg-bg">
+      <div className="relative flex h-full overflow-clip bg-bg">
         {isDesktop ? (
           <Sidebar
             collapsed={collapsed}

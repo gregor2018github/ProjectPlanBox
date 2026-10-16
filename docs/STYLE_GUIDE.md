@@ -375,6 +375,10 @@ live in `tokens.css`. Do not inline magic numbers.
   icon buttons are at least 28 × 28 px visually with a 32 px hit area.
 - **Breakpoints (Tailwind defaults):** `md` 768, `lg` 1024, `xl` 1280. The
   layout must work at 360 px wide.
+- **Clip with `overflow-clip`, not `overflow-hidden`,** on any box that
+  wraps a scroller (the shell, panels, dialogs). `scrollIntoView`, focus
+  and the phone keyboard can scroll a `hidden` box, sliding the top bar out
+  of reach with no way to scroll it back. A `clip` box can't be scrolled at all.
 - **Focus:** always visible (`:focus-visible`, 2 px accent ring, 2 px
   offset). Dialogs trap focus and return it on close (Base UI does this).
 - **Feedback:** no spinners for local operations. Errors appear as a toast
