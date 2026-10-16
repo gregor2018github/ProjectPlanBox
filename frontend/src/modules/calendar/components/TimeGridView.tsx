@@ -41,12 +41,17 @@ export interface TimeGridViewProps {
   /** Opens a day (week view headers); absent in the day view. */
   onOpenDay?: (date: IsoDate) => void;
   onCreate: (draft: EventDraft) => void;
+  /** Phone layout: a narrower hour column, stacked day headers, wrapping titles. */
+  compact?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const EMPTY = emptyDay();
 const WEEKDAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SURFACE = "grid";
+/** Width of the hour labels' column. */
+const GUTTER = "3.5rem";
+const GUTTER_COMPACT = "2.75rem";
 
 /**
  * Week and day views: day headers, an all-day row, and a 24-hour grid where
@@ -60,11 +65,16 @@ export function TimeGridView({
   actions,
   onOpenDay,
   onCreate,
+  compact = false,
 }: TimeGridViewProps) {
   const timeZone = actions.timeZone;
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const columns = `3.5rem repeat(${String(days.length)}, minmax(0, 1fr))`;
+  const gutter = compact ? GUTTER_COMPACT : GUTTER;
+  const columns = `${gutter} repeat(${String(days.length)}, minmax(0, 1fr))`;
+  const narrow = compact && days.length > 1;
+  // On a phone the day view's title already names the day.
+  const showDayHeaders = !compact || days.length > 1;
 
   // Overnight events shorter than a day stay in the grid; longer ones are bars in the all-day row.
   const placed = useMemo(
@@ -166,43 +176,59 @@ export function TimeGridView({
         className="sticky top-0 z-20 grid border-b border-border bg-bg"
         style={{ gridTemplateColumns: columns }}
       >
-        <span />
-        {days.map((day) => {
-          const label = (
-            <>
-              <span className="text-xs text-text-muted">{WEEKDAY_NAMES[isoWeekday(day) - 1]}</span>
-              <span
+        {showDayHeaders && <span />}
+        {showDayHeaders &&
+          days.map((day) => {
+            const label = (
+              <>
+                <span className="text-xs text-text-muted">
+                  {WEEKDAY_NAMES[isoWeekday(day) - 1]}
+                </span>
+                <span
+                  className={cx(
+                    "flex size-7 items-center justify-center rounded-full text-base tabular-nums",
+                    day === today && "bg-accent font-semibold text-on-accent",
+                  )}
+                >
+                  {Number(day.slice(8))}
+                </span>
+              </>
+            );
+            return onOpenDay ? (
+              <button
+                key={day}
+                type="button"
+                aria-label={`Open ${formatDayLong(day)}`}
+                onClick={() => {
+                  onOpenDay(day);
+                }}
                 className={cx(
-                  "flex size-7 items-center justify-center rounded-full text-base tabular-nums",
-                  day === today && "bg-accent font-semibold text-on-accent",
+                  "flex items-center justify-center border-l border-border transition-colors duration-(--duration-fast) ease-out hover:bg-hover coarse:min-h-11",
+                  narrow ? "flex-col py-1" : "gap-1.5 py-1.5",
                 )}
               >
-                {Number(day.slice(8))}
+                {label}
+              </button>
+            ) : (
+              <span
+                key={day}
+                className={cx(
+                  "flex items-center justify-center border-l border-border",
+                  narrow ? "flex-col py-1" : "gap-1.5 py-1.5",
+                )}
+              >
+                {label}
               </span>
-            </>
-          );
-          return onOpenDay ? (
-            <button
-              key={day}
-              type="button"
-              aria-label={`Open ${formatDayLong(day)}`}
-              onClick={() => {
-                onOpenDay(day);
-              }}
-              className="flex items-center justify-center gap-1.5 border-l border-border py-1.5 transition-colors duration-(--duration-fast) ease-out hover:bg-hover coarse:min-h-11"
-            >
-              {label}
-            </button>
-          ) : (
-            <span
-              key={day}
-              className="flex items-center justify-center gap-1.5 border-l border-border py-1.5"
-            >
-              {label}
-            </span>
-          );
-        })}
-        <span className="self-center pr-2 text-right text-xs text-text-muted">All day</span>
+            );
+          })}
+        <span
+          className={cx(
+            "self-center text-right text-xs text-text-muted",
+            compact ? "pr-1 leading-tight" : "pr-2",
+          )}
+        >
+          All day
+        </span>
         <div
           className="relative grid"
           style={{
@@ -254,7 +280,11 @@ export function TimeGridView({
             </span>
           ))}
         </div>
-        <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 left-14">
+        <div
+          aria-hidden
+          style={{ left: gutter }}
+          className="pointer-events-none absolute inset-y-0 right-0"
+        >
           {HOURS.slice(1).map((h) => (
             <div
               key={h}
@@ -271,6 +301,8 @@ export function TimeGridView({
             lastDayKeys={lastDays.get(day) ?? new Set()}
             nowMinutes={day === now.date ? now.minutes : null}
             preview={previewFor(day)}
+            compact={compact}
+            narrow={narrow}
             draggingKey={
               gesture !== null && gesture.kind !== "select" && gesture.moved
                 ? gesture.segment.item.key

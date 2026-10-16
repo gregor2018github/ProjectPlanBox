@@ -48,19 +48,22 @@ export function isRecurring(item: EventItem): boolean {
   return item.event.rrule !== null;
 }
 
-/** A week's title: "5–11 October 2026", "28 Sep – 4 Oct 2026" or "28 Dec 2026 – 3 Jan 2027". */
-export function formatWeekRange(first: IsoDate): string {
+/**
+ * A week's title: "5–11 October 2026" (short: "5–11 Oct 2026"),
+ * "28 Sep – 4 Oct 2026" or "28 Dec 2026 – 3 Jan 2027".
+ */
+export function formatWeekRange(first: IsoDate, short = false): string {
   const last = addDays(first, 6);
   const a = parseISO(first);
   const b = parseISO(last);
   if (first.slice(0, 7) === last.slice(0, 7))
-    return `${format(a, "d")}–${format(b, "d MMMM yyyy")}`;
+    return `${format(a, "d")}–${format(b, short ? "d MMM yyyy" : "d MMMM yyyy")}`;
   if (first.slice(0, 4) === last.slice(0, 4))
     return `${format(a, "d MMM")} – ${format(b, "d MMM yyyy")}`;
   return `${format(a, "d MMM yyyy")} – ${format(b, "d MMM yyyy")}`;
 }
 
-/** A day's title with its year: "Monday, 12 October 2026". */
-export function formatDayTitle(date: IsoDate): string {
-  return format(parseISO(date), "EEEE, d MMMM yyyy");
+/** A day's title with its year: "Monday, 12 October 2026"; short: "Mon 12 Oct 2026". */
+export function formatDayTitle(date: IsoDate, short = false): string {
+  return format(parseISO(date), short ? "EEE d MMM yyyy" : "EEEE, d MMMM yyyy");
 }

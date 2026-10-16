@@ -22,6 +22,8 @@ export interface CalendarToolbarProps {
   onNext: () => void;
   onView: (view: CalendarView) => void;
   onNew: () => void;
+  /** Phone layout: two short rows and an icon-only "New event". */
+  compact?: boolean;
 }
 
 const VIEWS: readonly SegmentOption<CalendarView>[] = [
@@ -40,22 +42,47 @@ export function CalendarToolbar({
   onNext,
   onView,
   onNew,
+  compact = false,
 }: CalendarToolbarProps) {
+  const navigation = (
+    <div className="flex shrink-0 items-center gap-1">
+      {showToday && (
+        <Button variant="secondary" onClick={onToday}>
+          Today
+        </Button>
+      )}
+      <IconButton label="Previous" icon={ChevronLeft} shortcut="K" onClick={onPrevious} />
+      <IconButton label="Next" icon={ChevronRight} shortcut="J" onClick={onNext} />
+    </div>
+  );
+  const views = <SegmentedControl label="View" value={view} onChange={onView} options={VIEWS} />;
+
+  if (compact) {
+    return (
+      <div className="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
+        <div className="flex items-center gap-2">
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold" aria-live="polite">
+            {title}
+          </h1>
+          {navigation}
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          {views}
+          <Button variant="primary" aria-label="New event" onClick={onNew} className="w-11 px-0">
+            <Plus size={20} strokeWidth={1.75} aria-hidden />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-3 md:px-6">
       <h1 className="mr-auto min-w-0 truncate text-xl font-semibold" aria-live="polite">
         {title}
       </h1>
-      <div className="flex items-center gap-1">
-        {showToday && (
-          <Button variant="secondary" onClick={onToday}>
-            Today
-          </Button>
-        )}
-        <IconButton label="Previous" icon={ChevronLeft} shortcut="K" onClick={onPrevious} />
-        <IconButton label="Next" icon={ChevronRight} shortcut="J" onClick={onNext} />
-      </div>
-      <SegmentedControl label="View" value={view} onChange={onView} options={VIEWS} />
+      {navigation}
+      {views}
       <Button variant="primary" onClick={onNew}>
         <Plus size={16} strokeWidth={1.75} aria-hidden />
         New event

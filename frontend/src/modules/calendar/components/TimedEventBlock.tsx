@@ -17,6 +17,10 @@ export interface TimedEventBlockProps {
   resizable: boolean;
   /** Being dragged: shown faded while the preview follows the pointer. */
   dragging: boolean;
+  /** On a phone: the title wraps over as many lines as fit instead of being cut. */
+  compact: boolean;
+  /** In a narrow column (the week on a phone): the time and repeat mark are left out. */
+  narrow: boolean;
   actions: CalendarActions;
   onGesture: (segment: PlacedSegment, mode: "move" | "resize", event: PointerEvent) => void;
   onOpen: (segment: PlacedSegment) => void;
@@ -30,6 +34,8 @@ export function TimedEventBlock({
   segment,
   resizable,
   dragging,
+  compact,
+  narrow,
   actions,
   onGesture,
   onOpen,
@@ -38,6 +44,7 @@ export function TimedEventBlock({
   const done = useEventDone(segment.item);
   const height = Math.max((segment.end - segment.start) * PX_PER_MINUTE, 18);
   const short = height < 40;
+  const wrap = compact && !short;
   return (
     <ContextMenu entries={eventMenuEntries(segment.item, actions, done)}>
       <button
@@ -61,21 +68,25 @@ export function TimedEventBlock({
             ? "border-border-strong bg-hover text-text-muted"
             : "border-accent bg-accent-subtle text-text",
           short ? "flex-row items-center gap-1.5" : "py-0.5",
+          narrow && "px-1",
           dragging && "opacity-40",
         )}
       >
         <span className="flex min-w-0 items-center gap-1 font-medium">
-          <span className={cx("truncate", done && "line-through")}>{event.title}</span>
-          {event.rrule !== null && (
+          <span className={cx(wrap ? "min-w-0 break-words" : "truncate", done && "line-through")}>
+            {event.title}
+          </span>
+          {event.rrule !== null && !narrow && (
             <Repeat size={11} strokeWidth={1.75} aria-hidden className="shrink-0 text-text-muted" />
           )}
         </span>
-        {!short && (
+        {!short && !narrow && (
           <span className="truncate text-text-muted tabular-nums">{segmentTimeLabel(segment)}</span>
         )}
         {resizable && (
           <span
             aria-hidden
+            data-swipe-ignore
             onPointerDown={(e) => {
               e.stopPropagation();
               onGesture(segment, "resize", e);

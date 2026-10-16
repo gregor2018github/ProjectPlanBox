@@ -17,6 +17,10 @@ export interface TimeGridColumnProps {
   /** The span being dragged or selected in this column, with its label. */
   preview: (MinuteSpan & { label: string }) | null;
   draggingKey: string | null;
+  /** On a phone: event titles wrap. */
+  compact: boolean;
+  /** A narrow column (the week on a phone): event times are left out. */
+  narrow: boolean;
   actions: CalendarActions;
   onGesture: (segment: PlacedSegment, mode: "move" | "resize", event: PointerEvent) => void;
   onBackgroundPointerDown: (date: IsoDate, event: PointerEvent<HTMLDivElement>) => void;
@@ -32,6 +36,8 @@ export function TimeGridColumn({
   nowMinutes,
   preview,
   draggingKey,
+  compact,
+  narrow,
   actions,
   onGesture,
   onBackgroundPointerDown,
@@ -57,6 +63,8 @@ export function TimeGridColumn({
           segment={segment}
           resizable={lastDayKeys.has(segment.item.key)}
           dragging={draggingKey === segment.item.key}
+          compact={compact}
+          narrow={narrow}
           actions={actions}
           onGesture={onGesture}
           onOpen={onOpen}

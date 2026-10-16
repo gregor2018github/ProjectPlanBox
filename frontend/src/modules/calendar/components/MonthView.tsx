@@ -1,4 +1,5 @@
 import type { IsoDate } from "../../../core/time";
+import { cx } from "../../../ui/cx";
 import { MAX_BAR_LANES, MONTH_CELL_HEADER } from "../barLayout";
 import { emptyDay, layoutBars, type DayItems } from "../selectors";
 import type { CalendarActions } from "../useCalendarActions";
@@ -16,6 +17,10 @@ export interface MonthViewProps {
   actions: CalendarActions;
   onOpenDay: (date: IsoDate) => void;
   onCreate: (date: IsoDate) => void;
+  /** The day picked on a phone, whose agenda is shown below the grid. */
+  selected?: IsoDate | undefined;
+  /** Phone layout: rows as tall as their content instead of filling the page. */
+  compact?: boolean;
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -34,6 +39,8 @@ export function MonthView({
   actions,
   onOpenDay,
   onCreate,
+  selected,
+  compact = false,
 }: MonthViewProps) {
   const weeks = Array.from({ length: Math.ceil(days.length / 7) }, (_, i) =>
     days.slice(i * 7, i * 7 + 7),
@@ -42,7 +49,7 @@ export function MonthView({
     <div
       role="grid"
       aria-label="Month"
-      className="flex min-h-0 flex-1 flex-col border-t border-l border-border"
+      className={cx("flex flex-col border-t border-l border-border", !compact && "min-h-0 flex-1")}
     >
       <div role="row" className="grid shrink-0 grid-cols-7">
         {WEEKDAYS.map((d) => (
@@ -55,7 +62,7 @@ export function MonthView({
           </span>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-rows-6">
+      <div className={cx("grid grid-rows-6", !compact && "min-h-0 flex-1")}>
         {weeks.map((week) => {
           const { bars, lanes } = layoutBars(week, byDay);
           const shown = Math.min(lanes, MAX_BAR_LANES);
@@ -67,6 +74,7 @@ export function MonthView({
                   date={day}
                   inMonth={day.slice(0, 7) === month.slice(0, 7)}
                   isToday={day === today}
+                  isSelected={day === selected}
                   items={byDay.get(day) ?? EMPTY}
                   barLanes={shown}
                   hiddenBars={

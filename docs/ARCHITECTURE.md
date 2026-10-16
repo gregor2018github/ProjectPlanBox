@@ -951,6 +951,13 @@ collapses every group again.
 - The frontend caches per calendar month (`['calendar','month','YYYY-MM']`).
   Mutations patch every cached month optimistically, then refetch, since
   only the server expands recurrence exactly.
+- **On a phone** (below `md`), the calendar page has a compact toolbar with
+  short titles and an icon-only "New event". A sideways swipe changes the
+  period (`useSwipeNavigation`; screen edges are left to Android's back
+  gesture). In the week view the day headers stack and event titles wrap
+  without times. The month view sizes its rows to their content, and a
+  tapped day becomes the `date` (replacing the history entry) and is listed
+  below the grid.
 - The rule engine (`backend/planbox/core/recurrence.py`) and the repeat
   editor (`frontend/src/core/recurrence/`) moved to core when todos started
   repeating, so both modules use them without importing each other.

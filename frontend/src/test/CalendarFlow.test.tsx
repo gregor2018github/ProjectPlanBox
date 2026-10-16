@@ -1,8 +1,9 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFakeCalendarApi } from "./fakeCalendarApi";
+import { installMatchMedia } from "./matchMedia";
 import { createFakeTodoApi } from "./fakeTodoApi";
 import { renderApp, useDesktopViewport } from "./renderApp";
 import { todosModule } from "../modules/todos";
@@ -211,5 +212,62 @@ describe("calendar", () => {
     await waitFor(() => {
       expect([...api.state.marks.values()]).toEqual([false]);
     });
+  });
+});
+
+describe("calendar on a phone", () => {
+  beforeEach(() => {
+    // Narrow and touch: no min-width query matches, pointer is coarse.
+    installMatchMedia((query) => query.includes("coarse"));
+  });
+
+  const swipe = (element: Element, fromX: number, toX: number) => {
+    fireEvent.touchStart(element, { touches: [{ clientX: fromX, clientY: 300 }] });
+    fireEvent.touchEnd(element, { changedTouches: [{ clientX: toX, clientY: 310 }] });
+  };
+
+  it("uses short titles and an icon-only New event button", async () => {
+    open("/calendar?view=day&date=2026-10-08");
+
+    expect(await screen.findByRole("heading", { name: "Thu 8 Oct 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New event" })).not.toHaveTextContent("New event");
+  });
+
+  it("picks a day in the month and lists it below the grid", async () => {
+    const user = userEvent.setup();
+    const friday = makeEvent({
+      title: "Dentist",
+      start_at: "2026-10-09T07:00:00.000Z",
+      end_at: "2026-10-09T08:00:00.000Z",
+    });
+    open("/calendar?view=month&date=2026-10-08", [makeEvent({ title: "Standup" }), friday]);
+
+    const today = await screen.findByRole("region", { name: "Today, Thu 8 Oct" });
+    expect(await within(today).findByText("Standup")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Open Friday, 9 October/ }));
+
+    const day = await screen.findByRole("region", { name: "Tomorrow, Fri 9 Oct" });
+    expect(await within(day).findByText("Dentist")).toBeInTheDocument();
+    expect(screen.getByRole("gridcell", { name: "Friday, 9 October" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    // Still the month, and "Today" goes back to today.
+    expect(screen.getByRole("heading", { name: "October 2026" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Today" }));
+    expect(await screen.findByRole("region", { name: "Today, Thu 8 Oct" })).toBeInTheDocument();
+  });
+
+  it("swipes to the next and previous week", async () => {
+    open("/calendar?view=week&date=2026-10-08");
+    const grid = await screen.findByRole("group", { name: "Thursday, 8 October" });
+
+    swipe(grid, 300, 100);
+    expect(await screen.findByRole("heading", { name: "12–18 Oct 2026" })).toBeInTheDocument();
+
+    swipe(await screen.findByRole("group", { name: "Thursday, 15 October" }), 100, 300);
+    swipe(await screen.findByRole("group", { name: "Thursday, 8 October" }), 100, 300);
+    expect(await screen.findByRole("heading", { name: "28 Sep – 4 Oct 2026" })).toBeInTheDocument();
   });
 });

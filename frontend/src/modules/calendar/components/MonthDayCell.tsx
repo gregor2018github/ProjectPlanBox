@@ -12,6 +12,8 @@ export interface MonthDayCellProps {
   date: IsoDate;
   inMonth: boolean;
   isToday: boolean;
+  /** The day picked on a phone (its agenda is shown below the grid). */
+  isSelected?: boolean;
   items: DayItems;
   /** Lanes of multi-day bars the week lays over this cell, under its date. */
   barLanes: number;
@@ -35,6 +37,7 @@ export function MonthDayCell({
   date,
   inMonth,
   isToday,
+  isSelected = false,
   items,
   barLanes,
   hiddenBars,
@@ -67,6 +70,7 @@ export function MonthDayCell({
       ref={ref}
       role="gridcell"
       aria-label={formatDayLong(date)}
+      aria-selected={isSelected}
       onClick={(event) => {
         if (event.target === event.currentTarget) onCreate(date);
       }}
@@ -87,6 +91,7 @@ export function MonthDayCell({
           isToday
             ? "bg-accent font-semibold text-on-accent hover:bg-accent-hover"
             : !inMonth && "text-text-subtle",
+          isSelected && !isToday && "bg-selected font-semibold",
         )}
       >
         {Number(date.slice(8))}
