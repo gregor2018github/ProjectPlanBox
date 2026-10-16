@@ -11,8 +11,23 @@ not ticked; git history keeps them.
       the app stopped; see README).
 - [ ] When an import keeps one of two duplicate tags, move the losing
       tag's taggings to the survivor (they are hidden with it now).
-- [ ] Live sync between the PCs over the same merge (phase 7's listener
-      and pairing could carry it, or a shared folder).
+- [ ] Sync by itself: on opening the phone app and on closing PlanBox on
+      a PC (Drive sync is manual now, with **Sync now**).
+- [ ] Encrypt the Drive files with a passphrase only the owner's devices
+      know (Google now holds the exports in plain JSON, in the owner's own
+      Drive).
+
+## Phone app
+
+- [ ] A release-signed APK (and its SHA-1 as a second Android OAuth
+      client), so the app can be built on any PC and installed without USB
+      debugging.
+- [ ] Name the phone in sync (now "Android phone").
+- [ ] Save an export file from the phone (a WebView cannot download a blob;
+      needs a share or file plugin). Import works.
+- [ ] Reminders and notifications on the phone.
+- [ ] Keyboard hints like "Press Q" make no sense on a phone without a
+      keyboard; show a tap hint there.
 - [ ] Import exports from an older schema version (now refused; both PCs
       must run the same version).
 

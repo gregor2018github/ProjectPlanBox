@@ -227,7 +227,7 @@ own, so you do not need to activate it first.
 | Command | What it does |
 |---|---|
 | `py scripts\dev.py` | **Start the dev environment.** Runs the backend with reload on `127.0.0.1:8000` and Vite on `127.0.0.1:5173` (which proxies `/api`). Uses the dev database in `private_data\dev\`. Press Ctrl+C to stop both. Open <http://127.0.0.1:5173>. |
-| `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suite (Chromium against a throwaway server). After a fresh setup, run `npx playwright install chromium` in `frontend\` once. |
+| `py scripts\test.py` | **Run all tests:** pytest, then Vitest. Pass `--e2e` to add the Playwright smoke suites (Chromium against a throwaway server, and the phone app's build in a phone-sized Chromium). After a fresh setup, run `npx playwright install chromium` in `frontend\` once. |
 | `py scripts\check.py` | The full quality gate: Ruff format and lint, pyright, an API types drift check, Prettier, ESLint, `tsc`, then all tests. Run it before every commit. `--full` adds the Playwright smoke suite. |
 | `py scripts\gen_api.py` | Regenerates `frontend/src/core/api/schema.d.ts` from the FastAPI OpenAPI schema. `dev.py` does this on start. |
 | `py scripts\reindex.py` | Empties the search index so the next search rebuilds it (only needed if search ever looks wrong). `--dev` targets the dev database. |
@@ -235,6 +235,7 @@ own, so you do not need to activate it first.
 | `py scripts\check.py --fix` | Applies Ruff/Prettier formatting and safe lint fixes, then runs the gate. |
 | `py scripts\lock.py` | Regenerates `requirements.lock.txt` (every runtime package, exact versions, resolved with Python 3.12) after you change `[project].dependencies`. `check.py` fails while it is out of date. |
 | `py scripts\package.py` | Builds `release\PlanBox-<version>.zip` for runtime-only PCs. `--exe` also builds `release\PlanBox-<version>-windows.zip` (PlanBox.exe with its own Python, smoke-tested before it is zipped). Pushing a tag such as `v0.2.0` builds both in CI and attaches them to a GitHub release (the tag must match the version in `pyproject.toml` and `backend/planbox/__init__.py`). |
+| `py scripts\android.py` | Builds the Android app (`frontend\android\app\build\outputs\apk\debug\app-debug.apk`); `--install` puts it on the connected phone or emulator, `--open` opens the project in Android Studio. Needs Node.js and Android Studio. See "Phone app (Android)". |
 | `py scripts\serve.py` | What `main.py` runs, without opening the app window (`--open` adds that). It serves the app and API from one process on <http://127.0.0.1:8765> with your real data. |
 
 ## Data
@@ -247,6 +248,7 @@ private_data/
 ├── planbox.db          # your real data (serve.py), plus -wal/-shm files
 ├── settings.toml       # optional user settings (see below)
 ├── backups/            # daily (14 kept), weekly (8), manual, pre-import and pre-migration (10 each)
+├── cloud.json          # Google Drive sync: this PC's sync id and sign-in (once connected)
 ├── browser/            # the PlanBox window's own browser profile (theme etc.)
 └── dev/planbox.db      # throwaway dev database (dev.py)
 ```
@@ -310,6 +312,84 @@ trusts: with Tailscale, `tailscale cert <name>.ts.net` and set
 `network_hostname` to that name; or use mkcert and install its root
 certificate on the phone. Then set `network_tls_cert` and `network_tls_key`.
 
+### Phone app (Android)
+
+Besides phone access (above, which needs the PC running), there is an
+Android app with **its own database on the phone**. It does everything the
+PC app does (todos, knowledge, calendar, habits, search, insights, backups)
+without the PC, and stays in step with your PCs through **Google Drive
+sync** (next section). It starts empty; the first sync brings everything
+over.
+
+**Build and install** (on the PC with Node.js and Android Studio):
+
+1. On the phone, turn on *Developer options → USB debugging* and connect
+   it by USB (or start an emulator in Android Studio).
+2. Run `py scripts\android.py --install`. It builds the web app for the
+   phone, copies it into the Android project (`frontend\android`), builds
+   `app-debug.apk` and installs it. Without `--install` it only builds;
+   with `--open` it opens the project in Android Studio, where **Run ▶**
+   does the same.
+
+Installing a newer build keeps the phone's data. Uninstalling the app
+deletes it, so sync first. The app takes daily and weekly backups on the
+phone while it is open (Data page). The phone and every PC must run the
+**same PlanBox version** to sync. A sync refuses files from another
+version and says so.
+
+### Google Drive sync
+
+Every device (each PC, the phone app) keeps **one file** in a hidden
+PlanBox folder in your Google Drive (Drive's *app data* folder, which only
+PlanBox can see). On the Data page:
+
+- **Sync now** merges the other devices' files into this one (per item the
+  newer version wins, deletions included, as with import), then uploads
+  this device's file. Do it on the PC before you leave, and on the phone
+  when you open it, and the other way round.
+- **Upload only** / **Download only** do just one half.
+
+A backup is taken before every merge. No device ever overwrites another
+device's file, so syncing two devices at the same moment is safe.
+
+**One-time setup in Google Cloud** (free; about ten minutes):
+
+1. Open <https://console.cloud.google.com/>, create a project (e.g.
+   "PlanBox"), and enable the **Google Drive API** (*APIs & Services →
+   Library*).
+2. *Google Auth Platform → Branding*: app name "PlanBox", your email.
+   *Audience*: **External**. Then press **Publish app** (*In production*).
+   Without that, Google signs PlanBox out every 7 days. The only scope
+   PlanBox asks for, `drive.appdata`, is non-sensitive, so publishing needs
+   no review. The sign-in page may still say Google has not verified the
+   app; that is expected for a personal client.
+3. *Clients → Create client*, type **Desktop app**. Copy its client ID and
+   secret into `private_data\settings.toml` on **every PC**:
+   ```toml
+   google_client_id = "1234-abc.apps.googleusercontent.com"
+   google_client_secret = "GOCSPX-..."
+   device_name = "Home PC"     # optional: how this PC is listed in sync
+   ```
+   Restart PlanBox, then **Data → Connect Google Drive**. A browser tab
+   opens Google's sign-in, and comes back to PlanBox.
+4. *Clients → Create client*, type **Android**: package name
+   `app.planbox`, and the SHA-1 of the key that signs the app. For the
+   builds of `android.py` that is the debug key of the PC that built it:
+   ```powershell
+   & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android
+   ```
+   (the `SHA1:` line). Build the app on that PC (or add a client per
+   building PC). Then, in the app, **Data → Connect Google Drive**.
+
+The client secret stays in `settings.toml`, and the sign-in token in
+`private_data\cloud.json`. Neither ever goes into an export, a backup or
+Drive. **Disconnect** signs this device out. To withdraw PlanBox's access
+completely, remove it at <https://myaccount.google.com/permissions>.
+
+The dev and scratch databases never sync (they would mix test data into
+your real files) unless `PLANBOX_GOOGLE_CLIENT_ID` and
+`PLANBOX_GOOGLE_CLIENT_SECRET` are set in the environment.
+
 ## Configuration
 
 `private_data/settings.toml`. Every key is optional. Environment variables
@@ -324,6 +404,9 @@ network_address = "192.168.2.12"           # optional: the PC's private address 
 network_hostname = "desk.tail1234.ts.net"  # optional: another name the phone may use
 network_tls_cert = "D:/certs/desk.crt"     # optional: https for the phone, with the key
 network_tls_key = "D:/certs/desk.key"
+google_client_id = "1234-abc.apps.googleusercontent.com"  # Google Drive sync (see above)
+google_client_secret = "GOCSPX-..."
+device_name = "Home PC"         # how this PC is named in Google Drive sync (default: the PC's name)
 ```
 
 `offsite_backup_dir` applies only to the real database: a dev or

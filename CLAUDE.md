@@ -37,6 +37,11 @@ treat their database as precious.
   routes) without an explicit instruction. Mutating endpoints take JSON
   bodies (cross-site protection; see ARCHITECTURE §9, Local-server
   protections).
+- The phone app: `py scripts\android.py` (`--install` puts it on the
+  connected phone or emulator). It needs Android Studio's JDK 21 and SDK.
+  Its database lives on the phone; test it with the emulator or
+  `npm run build:device` plus `playwright.device.config.ts`, never on the
+  owner's phone without asking.
 
 ## Hard rules
 1. **Layers:** router (HTTP only) → service (logic, transactions) →
@@ -44,9 +49,9 @@ treat their database as precious.
    runner.
 2. **Module boundaries:** a module imports only from `core` (and `ui` on the
    frontend), never from another module. `core` never imports modules.
-   Registration happens only in `backend/planbox/modules/__init__.py` and
-   `frontend/src/modules/index.ts`. `tests/test_boundaries.py` and ESLint
-   enforce this. Do not weaken them.
+   Registration happens only in `backend/planbox/modules/__init__.py`,
+   `frontend/src/modules/index.ts` and `frontend/src/modules/device.ts`.
+   `tests/test_boundaries.py` and ESLint enforce this. Do not weaken them.
 3. **No generic block/item model.** Every module gets specific tables named
    with its prefix.
 4. **Migrations:** schema changes only through a new numbered file in the
@@ -75,6 +80,14 @@ treat their database as precious.
    before installing.
 10. **Do not start future modules,** and do not add placeholder screens,
     routes or tables for them.
+11. **The backend has a twin.** The phone app runs a TypeScript copy of the
+    backend (`frontend/src/core/device/`, `modules/*/device/`; ARCHITECTURE
+    §14). Every backend behaviour change (a rule, a route, a field, a
+    message code) is made in both, in the same commit. Then regenerate
+    `shared/api-scenarios.json` (`backend\tests\api_scenarios.py`, adding a
+    scenario step for the new behaviour) and, for recurrence changes,
+    `shared/recurrence-vectors.json` (`backend\tests\recurrence_vectors.py`).
+    pytest and Vitest fail when either side drifts.
 
 ## Code quality bar
 - Python: type hints everywhere, Google docstrings, Ruff clean, pyright
@@ -100,3 +113,8 @@ treat their database as precious.
   external services. Never delete or rewrite anything in it except
   `private_data/dev/`. **Never run `git clean -x`/`-X`**, because it would
   wipe the database.
+- The one way data leaves the PC is the owner's Google Drive sync
+  (ARCHITECTURE §14): export files to their own Drive, only when they press
+  Sync. Never send anything else anywhere, never sync a dev or scratch
+  database, and keep tokens and client secrets out of exports, logs and
+  commits.

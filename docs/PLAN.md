@@ -28,6 +28,7 @@ this file records what was planned, decided and pinned.
 | My order (All todos) | Built 2026-10-14 (owner request) |
 | PlanBox.exe (windows zip) | Built 2026-10-14 (owner request) |
 | My order (Today) | Built 2026-10-16 (owner request) |
+| Phone app (Android) and Google Drive sync | Built 2026-10-16 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -349,6 +350,65 @@ Details in ARCHITECTURE §9 (PlanBox.exe).
 - The exe is unsigned. The owner checked that the work PC runs it; it
   should travel zipped, because chat tools' virus scanners flag a bare exe.
 
+### Phone app and Google Drive sync (owner request, 2026-10-16)
+
+An Android app with its own database, as capable as the PC app, kept in
+step with the PCs through the owner's Google Drive. Details in
+ARCHITECTURE §14.
+- **The device backend:** a TypeScript twin of the Python backend
+  (`frontend/src/core/device/`, and `device/` in every module) on SQLite
+  compiled to WebAssembly, in a Web Worker, stored in the origin private
+  file system. It serves the same API, so the React app is unchanged: in
+  the device build (`npm run build:device`) its API client's `fetch` goes
+  to the worker instead of the network. It runs the backend's own `.sql`
+  migrations (same checksums), so exports move between a PC and the phone.
+- **The Android app:** a Capacitor project (`frontend/android`), built with
+  `py scripts\android.py` or from Android Studio. A small native plugin
+  (`PlanBoxGooglePlugin.java`) gets Drive tokens from Google Play services.
+  The app takes daily and weekly backups on the phone.
+- **Google Drive sync** on PCs and the phone (Data page): every device
+  keeps one export in Drive's app data folder; **Sync** merges the others'
+  files with the import rule (§13), then uploads its own. On a PC, OAuth
+  with PKCE and a loopback redirect, over `urllib`; the owner creates the
+  OAuth clients (README).
+- **Parity is tested, not assumed:** `shared/recurrence-vectors.json`
+  (dateutil's answers for many rules) and `shared/api-scenarios.json`
+  (about 170 requests and the Python backend's answers) are replayed
+  against the device backend in Vitest; pytest keeps both files current.
+  A Vitest also fails when an API operation has no device handler.
+
+Decisions:
+- **A TypeScript twin rather than Python on the phone.** Embedding CPython
+  (Chaquopy, BeeWare) would reuse the backend as is, but the owner chose
+  not to run Python on the phone, and it would need Android builds of
+  Pydantic's Rust core. The cost of the twin is that behaviour changes must
+  be made twice; the shared vectors and scenarios make a forgotten twin
+  fail the gate.
+- **Routes and validation come from `openapi.json`**, so the device
+  backend restates no request shape; handlers are typed by `schema.d.ts`.
+- **SQLite WebAssembly (opfs-sahpool VFS) instead of a native SQLite
+  plugin:** the same engine in the app, in Vitest (in memory) and in
+  Playwright, a current SQLite with FTS5 and STRICT tables, and synchronous
+  calls, so services read like their Python twins.
+- **One file per device in Drive, merged, instead of one shared file:** no
+  device ever overwrites another's, so two devices syncing at once cannot
+  lose anything, and the merge is the export/import rule already in use.
+- **Drive's app data folder and the `drive.appdata` scope:** PlanBox sees
+  only its own hidden folder, and the scope needs no Google review.
+- **Data now leaves the PC, by the owner's request:** only the export
+  files, only to the owner's own Drive, only when they press Sync. Tokens
+  and client secrets stay in `private_data/` (`cloud.json`,
+  `settings.toml`). Dev and scratch databases never sync unless the
+  environment asks.
+- **A third registration list,** `frontend/src/modules/device.ts`: the
+  worker cannot import `modules/index.ts`, which pulls in React.
+- The phone uses the PC's default zone (Europe/Amsterdam) for "today", as
+  ARCHITECTURE §4 asks.
+
+Deferred to TODO.md: automatic sync, end-to-end encryption of the Drive
+files, a release-signed APK, renaming the phone in sync, exporting a file
+from the phone, phone notifications.
+
 ### Phase 8: Data safety and sync (brought forward, 2026-10-13)
 
 Built before phase 7 on the owner's request. Design and rules in
@@ -422,6 +482,9 @@ dataclass does it), uuid6 (our own UUIDv7 in `core/ids.py`), pytest-cov.
 | @dnd-kit/react, @dnd-kit/dom | 0.5.0 | Drag and drop with touch and cross-container moves. The new 0.x API; the stable `@dnd-kit/core` has had no release since Dec 2024. Confined to `src/ui/`. |
 | date-fns, @date-fns/tz | 4.4.0 / 1.5.0 | Date maths, Monday weeks, formatting in a named zone. `Temporal` is not on every target browser yet. |
 | lucide-react | 1.53.0 | Icons. |
+| @sqlite.org/sqlite-wasm | 3.53.4-build2 | (2026-10-16) SQLite compiled to WebAssembly, with the OPFS storage the phone app's database lives in. Writing a database engine is not ours; this is SQLite's own official build, released with every SQLite version. Loaded only by the device build. |
+| @capacitor/core, @capacitor/android | 8.5.3 | (2026-10-16) Wraps the device build as an Android app (WebView, plugin bridge, the built-in HTTP and lifecycle). The standard, actively released (monthly) way to ship a web app on Android; writing our own Android shell would mean maintaining a WebView host. |
+| @capacitor/cli | 8.5.3 | dev (2026-10-16). `cap sync`/`cap open` for the Android project. |
 | openapi-typescript | 7.13.0 | dev. Generates `schema.d.ts`. |
 | vitest, jsdom | 5.0.3 / 30.1.2 | dev |
 | @testing-library/react / dom / user-event / jest-dom | 16.3.3 / 10.4.2 / 14.6.7 / 7.0.1 | dev |
@@ -431,6 +494,11 @@ dataclass does it), uuid6 (our own UUIDv7 in `core/ids.py`), pytest-cov.
 | eslint-plugin-jsdoc | 65.2.0 | dev. Enforces JSDoc on exports. |
 | prettier | 3.9.9 | dev. Formats TS/CSS/JSON. |
 | @types/react, @types/react-dom | 19.3.0 | dev |
+
+Android (`frontend/android`, Gradle): `com.google.android.gms:play-services-auth`
+**22.0.0** (2026-10-16), Google's own library for the Drive sign-in
+(AuthorizationClient); the only supported way to get a Google token in an
+Android app. The other Gradle versions are Capacitor 8.5.3's template.
 
 Not used: `cmdk` (the palette is Base UI plus a small scorer),
 `clsx`/`cva`/`tailwind-merge` (a 5-line `cx()`), a hotkeys library (our

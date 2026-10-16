@@ -34,6 +34,7 @@ ProjectPlanBox/
 │   │   │   ├── search/       # full-text index and GET /api/search (phase 3)
 │   │   │   ├── insights/     # app opens and cross-module activity (Insights page)
 │   │   │   ├── data/         # scheduled/off-site backups, export, merge-import (§13)
+│   │   │   ├── cloud/        # Google Drive sync: OAuth, Drive's app data folder (§14)
 │   │   │   ├── auth/         # phone access: pairing, sessions, the API guard (§9)
 │   │   │   └── preferences/  # preferences shared by every device (the theme)
 │   │   └── modules/
@@ -55,6 +56,8 @@ ProjectPlanBox/
 │   ├── eslint-rules.js       # local rules: module boundaries, Base UI only in ui/, one component per file
 │   ├── index.html            # inline theme bootstrap (avoids a flash of the wrong theme)
 │   ├── e2e/                  # Playwright smoke suite (from phase 1)
+│   ├── e2e-device/           # Playwright smoke suite of the phone app's build (§14)
+│   ├── android/              # the Capacitor Android project (§14)
 │   └── src/
 │       ├── main.tsx
 │       ├── app/              # App (providers), router, AppShell, Sidebar, DetailPanel, pages
@@ -68,13 +71,16 @@ ProjectPlanBox/
 │       │                     # small shared composites (NameDialog, PageHeader, InlineTitle, …)
 │       ├── styles/           # tokens.css (+ contrast test), index.css
 │       ├── test/             # Vitest setup, renderApp() with a fake API
+│       ├── core/device/      # the device backend: the backend's TypeScript twin (§14)
+│       ├── app/device/       # the phone app's worker, bridge and Google sign-in host (§14)
 │       └── modules/
-│           ├── index.ts      # MODULES: the only list of modules
+│           ├── index.ts      # MODULES: the UI side of every module
+│           ├── device.ts     # DEVICE_MODULES: the device-backend side of every module (§14)
 │           ├── knowledge/    # same layout as todos
 │           ├── calendar/
 │           ├── habits/       # page, detail panel, rail pane (today's habits)
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
-├── shared/                   # language-neutral fixtures (e.g. ordering test vectors)
+├── shared/                   # language-neutral fixtures: ordering and recurrence vectors, API scenarios (§14)
 ├── main.py                   # the launcher: py main.py starts PlanBox and opens the browser
 ├── scripts/                  # setup.py, dev.py, test.py, check.py, gen_api.py, serve.py
 ├── private_data/             # everything that must not leave this PC: DB, settings, backups (gitignored)
@@ -94,9 +100,11 @@ VS Code, Ruff and pyright find `.venv` and the config without extra setup.
    It may **never** import from another module.
 3. `core` never imports from any module.
 4. Modules are registered in exactly one place per side:
-   `backend/planbox/modules/__init__.py` and `frontend/src/modules/index.ts`.
-   These two files are the composition root, not part of any module. Adding a
-   module means adding one line to each and touching no other module.
+   `backend/planbox/modules/__init__.py`, `frontend/src/modules/index.ts`
+   and, for the phone app's device backend (§14),
+   `frontend/src/modules/device.ts`. These files are the composition root,
+   not part of any module. Adding a module means adding one line to each
+   and touching no other module.
 5. Cross-module features (a todo linking to a note, "everything tagged X",
    global search) go through core concepts that address entities by
    **`EntityRef`** (`entity_type` + `entity_id`, where `entity_type` is
@@ -1236,8 +1244,8 @@ The report lists per table: inserted, updated, unchanged, conflicts.
 
 ### The sync rule
 
-The import *is* the sync design; a live sync later reuses the same merge
-and only changes the transport.
+The import *is* the sync design; Google Drive sync (§14) reuses the same
+merge and only changes the transport.
 
 - **Unit:** a row. **Version:** its `updated_at`. **Winner:** the newer
   version; on an exact tie, the row whose canonical JSON sorts higher, so
@@ -1283,3 +1291,121 @@ list) and `core/data/TransferSection` (**Download export**, **Import an
 export…** with a confirm dialog). Neither is optimistic: the server names
 the backup, and an import can change anything, so it refetches every query
 when it settles.
+
+## 14. The phone app and Google Drive sync (2026-10-16)
+
+The Android app keeps **its own database on the phone** and does
+everything the PC app does without a PC. Devices stay in step through the
+owner's Google Drive, with the merge of §13.
+
+### Shape
+
+```
+React app (unchanged)  ──fetch──▶  bridge.ts ──postMessage──▶  worker.ts
+  core/api/client.ts                (page)                      (Web Worker)
+                                                                  │
+                                    DeviceServer (core/device/server.ts)
+                                    routes + validation from openapi.json
+                                                                  │
+                                core/device/* + modules/*/device/*
+                                (the backend's TypeScript twin)
+                                                                  │
+                                SQLite (WebAssembly), opfs-sahpool VFS
+                                in the origin private file system
+```
+
+- **The frontend does not know.** `main.tsx` builds the API client with a
+  `fetch` that the worker answers (only in the device build, `npm run
+  build:device`, `VITE_PLANBOX_DEVICE=1`; the PC bundle does not even
+  contain the worker). Queries, optimistic updates and undo work as on a
+  PC. `core/platform.ts` (`IS_DEVICE`) only changes a few words and hides
+  what is PC-only (phone pairing, off-site folder, the power button,
+  **Download export**, which a WebView cannot save).
+- **The device backend** mirrors the server layer by layer: repositories
+  (SQL only), services (rules, transactions via `db.transaction()`, which
+  joins an open one), and handlers keyed by operation id. Handler inputs
+  and outputs are typed by `schema.d.ts`; `openapi.ts` turns
+  `openapi.json` into the route table and validates paths, queries and
+  bodies like Pydantic (defaults filled in, unknown fields dropped, 422
+  `invalid_request`). Errors are the same problem documents with the same
+  codes. PC-only operations answer as a phone app would: always signed
+  in, no shutdown (409), no pairing.
+- **Migrations are the backend's own files**, bundled with
+  `import.meta.glob` and checksummed the same way (SHA-256, CRLF → LF), so
+  a phone's `schema_migrations` equals a PC's of the same version and
+  exports move both ways. A pre-migration backup is taken on the phone as
+  on a PC.
+- **Python semantics where they show:** `core/device/time.ts` turns local
+  wall times into instants like `zoneinfo` with fold 0 (an ambiguous time
+  takes the earlier offset, a time in a DST gap the offset before it);
+  `rrule.ts` expands rules with dateutil's algorithm; string lengths count
+  code points; the merge's tie-break writes JSON exactly as
+  `json.dumps(..., separators=(",", ":"))`. The search index is local and
+  derived, so its row ids are a 53-bit hash instead of blake2b.
+- **Storage:** the database is `/planbox.db` in the opfs-sahpool VFS
+  (directory `.planbox-db`), which needs no cross-origin isolation.
+  Backups (`planbox/backups/`, same names and retention as a PC, checked
+  at start and hourly while the app is open) and the sync state
+  (`planbox/state/cloud.json`) are files beside it (`opfsFiles.ts`). In
+  the Android app all of it is the app's private storage: it survives
+  updates, and uninstalling deletes it.
+- **The Android project** (`frontend/android`, Capacitor 8) serves the
+  device build from `https://localhost` in a WebView. Its version is
+  PlanBox's (`package.json`). `PlanBoxGooglePlugin.java` is the only
+  native code: Google Play services' `AuthorizationClient` asks for the
+  `drive.appdata` scope and hands out access tokens; Play services keeps
+  the grant.
+
+### Parity between the twins
+
+Behaviour lives twice, so it is tested on both sides from shared files:
+
+| File | Written by | Checks |
+|---|---|---|
+| `shared/ordering-vectors.json` | hand / Python | fractional keys (`ordering.ts`) |
+| `shared/recurrence-vectors.json` | `backend/tests/recurrence_vectors.py` (dateutil) | `recurrence.ts`/`rrule.ts`: normalisation, expansion, ranges, DST, cuts, steps |
+| `shared/api-scenarios.json` | `backend/tests/api_scenarios.py` (the real app, fixed clock) | about 170 requests across every module; `scenarios.test.ts` replays them on the device backend and expects the same answers |
+
+pytest fails when a recorded file no longer matches the Python backend
+(regenerate it with the script), and Vitest fails when the device backend
+answers differently. Server-made ids are normalised to `#1`, `#2`, ... in
+order of appearance; errors compare by status and code. `device.test.ts`
+fails when an operation in `openapi.json` has no device handler.
+
+### Google Drive sync
+
+Every device keeps **one file** in Drive's app data folder:
+`planbox-<device id>.json.gz`, its whole export (§13) gzip-compressed,
+with the device's name, export time and version as app properties. The
+device id is made once (`private_data/cloud.json` on a PC, the OPFS state
+file on the phone).
+
+| Action | What it does |
+|---|---|
+| Upload | Replaces this device's file with a fresh export |
+| Download | Merges every other device's file that changed since it was last merged (by Drive's modification time), each with the import of §13; a file from another schema version is reported and skipped |
+| Sync | Download, then upload |
+
+- **No device writes another's file**, so two devices syncing at once
+  cannot overwrite each other, and every merge is the tested import.
+- **PC sign-in:** OAuth for installed apps with PKCE and a loopback
+  redirect to the running server (`/api/cloud/callback`, a GET because
+  Google redirects there; the one-time `state` of a sign-in this PC
+  started is what protects it). The refresh token lives in
+  `private_data/cloud.json`; access tokens only in memory. Google is
+  reached with `urllib` (`core/cloud/google.py`), behind a transport that
+  tests replace with a fake Google. Uploads are resumable.
+- **Phone sign-in:** the plugin, on the page; the worker asks for a token
+  through the bridge and calls Drive with `fetch` (multipart uploads up to
+  5 MB, so no response header has to be read across origins). A token
+  Google rejects is cleared and fetched once more; a second rejection
+  marks the device as disconnected.
+- **Scope of what leaves the device:** only the export files, only to the
+  owner's Drive, only on Sync. Tokens, client secrets and backups never
+  do. Dev and scratch databases never sync unless the environment sets the
+  client (`PLANBOX_GOOGLE_CLIENT_ID`/`_SECRET`).
+- **API:** `GET /api/cloud` (status, no call to Google),
+  `GET /api/cloud/devices`, and `POST` `connect`, `disconnect`, `upload`,
+  `download`, `sync` (JSON bodies `{"confirm": true}`, §9). A sync already
+  running answers 409; Google unreachable or refusing is 502
+  `upstream_failed`.
