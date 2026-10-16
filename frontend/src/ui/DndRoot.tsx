@@ -3,7 +3,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
 import type { ReactNode } from "react";
 
-import type { DragEndHandler } from "./dnd";
+import { DRAG_MOVE_THRESHOLD, setDragMoving, type DragEndHandler } from "./dnd";
 
 /** The link inside the dragged element that the pointer went down on, if any. */
 function linkInSource(target: EventTarget | null, element: Element | undefined): Element | null {
@@ -44,6 +44,8 @@ export interface DndRootProps {
  * into role="button" with a tab stop, which nests our row buttons inside a
  * button. Keyboard users reorder with Alt+↑/↓ and "Move to…" instead.
  * The pointer sensor is configured so rows that are links can be dragged.
+ * On touch the same long-press starts a drag and opens the row's context
+ * menu; once the drag moves, {@link useDragMoving} closes that menu.
  */
 export function DndRoot({ children }: DndRootProps) {
   return (
@@ -52,7 +54,12 @@ export function DndRoot({ children }: DndRootProps) {
       sensors={(defaults) =>
         defaults.map((sensor) => (sensor === PointerSensor ? pointerSensor : sensor))
       }
+      onDragMove={(event) => {
+        const { x, y } = event.operation.transform;
+        if (Math.hypot(x, y) > DRAG_MOVE_THRESHOLD) setDragMoving(true);
+      }}
       onDragEnd={(event) => {
+        setDragMoving(false);
         const { source, target } = event.operation;
         if (!source) return;
         const handler = (source.data as { onDragEnd?: DragEndHandler } | undefined)?.onDragEnd;

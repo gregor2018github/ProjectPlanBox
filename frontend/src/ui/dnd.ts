@@ -7,6 +7,7 @@
  */
 import { useDraggable, useDroppable } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
+import { useSyncExternalStore } from "react";
 
 /** What happened when a drag ended. */
 export interface DropInfo {
@@ -78,4 +79,36 @@ export interface DragItemOptions {
 export function useDragItem({ id, type, disabled = false, data, onDragEnd }: DragItemOptions) {
   const { ref, isDragging } = useDraggable({ id, type, disabled, data: { ...data, onDragEnd } });
   return { ref, isDragging };
+}
+
+/** How far (px) a drag must travel before it counts as moving. */
+export const DRAG_MOVE_THRESHOLD = 8;
+
+let dragMoving = false;
+const dragMovingListeners = new Set<() => void>();
+
+/** Sets whether the current drag has moved (called by {@link DndRoot} only). */
+export function setDragMoving(next: boolean): void {
+  if (next === dragMoving) return;
+  dragMoving = next;
+  for (const listener of dragMovingListeners) listener();
+}
+
+/** Whether a drag is under way and has moved, so menus opened by the long-press must close. */
+export function isDragMoving(): boolean {
+  return dragMoving;
+}
+
+/** {@link isDragMoving} as a hook, re-rendering when it changes. */
+export function useDragMoving(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      dragMovingListeners.add(listener);
+      return () => {
+        dragMovingListeners.delete(listener);
+      };
+    },
+    isDragMoving,
+    isDragMoving,
+  );
 }
