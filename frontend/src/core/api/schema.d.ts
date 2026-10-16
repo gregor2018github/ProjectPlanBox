@@ -236,6 +236,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cloud
+         * @description Whether Google Drive sync is set up and connected here, and when it last ran.
+         */
+        get: operations["core_get_cloud"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect Cloud
+         * @description Starts signing in to Google Drive: open ``auth_url`` in a browser (this PC only).
+         */
+        post: operations["core_connect_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cloud Devices
+         * @description The devices that keep a file in Google Drive (asks Google).
+         */
+        get: operations["core_list_cloud_devices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect Cloud
+         * @description Signs this device out of Google Drive (the files there stay).
+         */
+        post: operations["core_disconnect_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download Cloud
+         * @description Merges the other devices' files into this database (newer versions win).
+         */
+        post: operations["core_download_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Cloud
+         * @description Merges the other devices' files, then uploads this device's.
+         */
+        post: operations["core_sync_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cloud/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Cloud
+         * @description Replaces this device's file in Google Drive with a fresh export.
+         */
+        post: operations["core_upload_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/data/backups": {
         parameters: {
             query?: never;
@@ -1524,6 +1664,117 @@ export interface components {
             day: string;
             /** Habit Id */
             habit_id: string;
+        };
+        /**
+         * CloudConnectOut
+         * @description A started sign-in: open ``auth_url`` (PC), or nothing to open (phone).
+         */
+        CloudConnectOut: {
+            /** Auth Url */
+            auth_url: string | null;
+            status: components["schemas"]["CloudStatusOut"];
+        };
+        /**
+         * CloudDeviceOut
+         * @description A device's file in Google Drive.
+         */
+        CloudDeviceOut: {
+            /** App Version */
+            app_version: string | null;
+            /** Device Id */
+            device_id: string;
+            /** Exported At */
+            exported_at: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Size
+             * @description Bytes (compressed).
+             */
+            size: number;
+            /** This Device */
+            this_device: boolean;
+            /** Uploaded At */
+            uploaded_at: string;
+        };
+        /**
+         * CloudDownloadOut
+         * @description What a download did, per other device.
+         */
+        CloudDownloadOut: {
+            /** Devices */
+            devices: components["schemas"]["CloudMergeOut"][];
+        };
+        /**
+         * CloudMergeOut
+         * @description What merging one other device's file did.
+         */
+        CloudMergeOut: {
+            device: components["schemas"]["CloudDeviceOut"];
+            /** Error */
+            error: string | null;
+            result: components["schemas"]["ImportOut"] | null;
+            /**
+             * Status
+             * @description unchanged: merged before and not changed since.
+             * @enum {string}
+             */
+            status: "merged" | "unchanged" | "failed";
+        };
+        /**
+         * CloudStatusOut
+         * @description Google Drive sync as this device sees it (answered without asking Google).
+         */
+        CloudStatusOut: {
+            /**
+             * Available
+             * @description Whether sync is set up here (an OAuth client on a PC, Google sign-in on the phone).
+             */
+            available: boolean;
+            /**
+             * Connected
+             * @description Whether this device is signed in to Google Drive.
+             */
+            connected: boolean;
+            /**
+             * Connecting
+             * @description A sign-in was started and has not finished yet.
+             */
+            connecting: boolean;
+            /** Device Id */
+            device_id: string;
+            /** Device Name */
+            device_name: string;
+            /**
+             * Error
+             * @description Why the last sign-in failed, if it did.
+             */
+            error: string | null;
+            /** Last Download At */
+            last_download_at: string | null;
+            /** Last Upload At */
+            last_upload_at: string | null;
+        };
+        /**
+         * CloudSyncOut
+         * @description What a sync (download, then upload) did.
+         */
+        CloudSyncOut: {
+            download: components["schemas"]["CloudDownloadOut"];
+            upload: components["schemas"]["CloudUploadOut"];
+        };
+        /**
+         * CloudUploadOut
+         * @description What an upload did.
+         */
+        CloudUploadOut: {
+            /**
+             * Size
+             * @description Bytes uploaded (compressed).
+             */
+            size: number;
+            /** Uploaded At */
+            uploaded_at: string;
         };
         /**
          * CollectionCreate
@@ -3538,6 +3789,229 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_get_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudStatusOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_connect_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudConnectOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_list_cloud_devices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudDeviceOut"][];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_disconnect_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudStatusOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_download_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudDownloadOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_sync_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudSyncOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    core_upload_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudUploadOut"];
                 };
             };
             /** @description Problem details */

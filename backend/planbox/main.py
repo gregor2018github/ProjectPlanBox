@@ -17,6 +17,9 @@ from planbox.core.auth.middleware import SessionGuard
 from planbox.core.auth.router import router as auth_router
 from planbox.core.auth.service import AuthState
 from planbox.core.clock import Clock, SystemClock
+from planbox.core.cloud.google import Transport, urllib_transport
+from planbox.core.cloud.models import CloudState
+from planbox.core.cloud.router import router as cloud_router
 from planbox.core.data.backups import BackupState
 from planbox.core.data.router import router as data_router
 from planbox.core.data.scheduler import backup_loop
@@ -96,6 +99,7 @@ def create_app(
     modules: Sequence[Module] | None = None,
     clock: Clock | None = None,
     request_shutdown: ShutdownHook | None = None,
+    cloud_transport: Transport | None = None,
 ) -> FastAPI:
     """Builds the application.
 
@@ -108,6 +112,7 @@ def create_app(
         clock: Time source; defaults to the system clock.
         request_shutdown: Stops the server gracefully. Only the daily-use launcher
             passes one; without it the app's shutdown button is unavailable.
+        cloud_transport: How Google is reached; tests pass a fake Google.
 
     Returns:
         The configured FastAPI app.
@@ -152,6 +157,8 @@ def create_app(
     app.state.request_shutdown = request_shutdown
     app.state.backup_state = backup_state
     app.state.auth = AuthState()
+    app.state.cloud = CloudState()
+    app.state.cloud_transport = urllib_transport if cloud_transport is None else cloud_transport
     app.state.entity_registry = EntityRegistry(t for m in modules for t in m.entity_types)
     install_error_handlers(app)
     # Starlette runs the last added middleware first: Host check, then sessions.
@@ -167,6 +174,7 @@ def create_app(
     app.include_router(search_router, prefix="/api")
     app.include_router(insights_router, prefix="/api")
     app.include_router(data_router, prefix="/api")
+    app.include_router(cloud_router, prefix="/api")
     for module in modules:
         app.include_router(module.router, prefix=f"/api/{module.id}", tags=[module.id])
 

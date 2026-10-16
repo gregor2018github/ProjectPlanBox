@@ -345,6 +345,265 @@
         "title": "CheckinOut",
         "type": "object"
       },
+      "CloudConnectOut": {
+        "description": "A started sign-in: open ``auth_url`` (PC), or nothing to open (phone).",
+        "properties": {
+          "auth_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Url"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CloudStatusOut"
+          }
+        },
+        "required": [
+          "auth_url",
+          "status"
+        ],
+        "title": "CloudConnectOut",
+        "type": "object"
+      },
+      "CloudDeviceOut": {
+        "description": "A device's file in Google Drive.",
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "exported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "description": "Bytes (compressed).",
+            "title": "Size",
+            "type": "integer"
+          },
+          "this_device": {
+            "title": "This Device",
+            "type": "boolean"
+          },
+          "uploaded_at": {
+            "title": "Uploaded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "name",
+          "uploaded_at",
+          "exported_at",
+          "app_version",
+          "size",
+          "this_device"
+        ],
+        "title": "CloudDeviceOut",
+        "type": "object"
+      },
+      "CloudDownloadOut": {
+        "description": "What a download did, per other device.",
+        "properties": {
+          "devices": {
+            "items": {
+              "$ref": "#/components/schemas/CloudMergeOut"
+            },
+            "title": "Devices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "devices"
+        ],
+        "title": "CloudDownloadOut",
+        "type": "object"
+      },
+      "CloudMergeOut": {
+        "description": "What merging one other device's file did.",
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/CloudDeviceOut"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "description": "unchanged: merged before and not changed since.",
+            "enum": [
+              "merged",
+              "unchanged",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device",
+          "status",
+          "error",
+          "result"
+        ],
+        "title": "CloudMergeOut",
+        "type": "object"
+      },
+      "CloudStatusOut": {
+        "description": "Google Drive sync as this device sees it (answered without asking Google).",
+        "properties": {
+          "available": {
+            "description": "Whether sync is set up here (an OAuth client on a PC, Google sign-in on the phone).",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "connected": {
+            "description": "Whether this device is signed in to Google Drive.",
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "connecting": {
+            "description": "A sign-in was started and has not finished yet.",
+            "title": "Connecting",
+            "type": "boolean"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "device_name": {
+            "title": "Device Name",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the last sign-in failed, if it did.",
+            "title": "Error"
+          },
+          "last_download_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Download At"
+          },
+          "last_upload_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Upload At"
+          }
+        },
+        "required": [
+          "available",
+          "connected",
+          "connecting",
+          "device_id",
+          "device_name",
+          "last_upload_at",
+          "last_download_at",
+          "error"
+        ],
+        "title": "CloudStatusOut",
+        "type": "object"
+      },
+      "CloudSyncOut": {
+        "description": "What a sync (download, then upload) did.",
+        "properties": {
+          "download": {
+            "$ref": "#/components/schemas/CloudDownloadOut"
+          },
+          "upload": {
+            "$ref": "#/components/schemas/CloudUploadOut"
+          }
+        },
+        "required": [
+          "download",
+          "upload"
+        ],
+        "title": "CloudSyncOut",
+        "type": "object"
+      },
+      "CloudUploadOut": {
+        "description": "What an upload did.",
+        "properties": {
+          "size": {
+            "description": "Bytes uploaded (compressed).",
+            "title": "Size",
+            "type": "integer"
+          },
+          "uploaded_at": {
+            "title": "Uploaded At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploaded_at",
+          "size"
+        ],
+        "title": "CloudUploadOut",
+        "type": "object"
+      },
       "CollectionCreate": {
         "description": "Create a collection at the end; send a client ``id`` for idempotent, optimistic creates.",
         "properties": {
@@ -4662,6 +4921,284 @@
         "summary": "Restore Event",
         "tags": [
           "calendar"
+        ]
+      }
+    },
+    "/api/cloud": {
+      "get": {
+        "description": "Whether Google Drive sync is set up and connected here, and when it last ran.",
+        "operationId": "core_get_cloud",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Get Cloud",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/connect": {
+      "post": {
+        "description": "Starts signing in to Google Drive: open ``auth_url`` in a browser (this PC only).",
+        "operationId": "core_connect_cloud",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudConnectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Connect Cloud",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/devices": {
+      "get": {
+        "description": "The devices that keep a file in Google Drive (asks Google).",
+        "operationId": "core_list_cloud_devices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CloudDeviceOut"
+                  },
+                  "title": "Response Core List Cloud Devices",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Cloud Devices",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/disconnect": {
+      "post": {
+        "description": "Signs this device out of Google Drive (the files there stay).",
+        "operationId": "core_disconnect_cloud",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudStatusOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Disconnect Cloud",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/download": {
+      "post": {
+        "description": "Merges the other devices' files into this database (newer versions win).",
+        "operationId": "core_download_cloud",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudDownloadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Download Cloud",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/sync": {
+      "post": {
+        "description": "Merges the other devices' files, then uploads this device's.",
+        "operationId": "core_sync_cloud",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSyncOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Sync Cloud",
+        "tags": [
+          "core"
+        ]
+      }
+    },
+    "/api/cloud/upload": {
+      "post": {
+        "description": "Replaces this device's file in Google Drive with a fresh export.",
+        "operationId": "core_upload_cloud",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudUploadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Upload Cloud",
+        "tags": [
+          "core"
         ]
       }
     },

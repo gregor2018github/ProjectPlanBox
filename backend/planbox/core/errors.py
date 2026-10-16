@@ -90,6 +90,14 @@ class ValidationFailed(DomainError):
     title = "Validation failed"
 
 
+class UpstreamFailed(DomainError):
+    """An outside service (Google Drive) failed or could not be reached."""
+
+    status = 502
+    code = "upstream_failed"
+    title = "Outside service failed"
+
+
 def problem_response(problem: Problem) -> JSONResponse:
     """Serialises a problem with the problem+json media type."""
     return JSONResponse(

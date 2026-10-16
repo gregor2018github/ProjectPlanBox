@@ -4,19 +4,14 @@ from fastapi import APIRouter, Response, status
 
 from planbox.core.clock import to_iso
 from planbox.core.data.deps import BackupServiceDep, TransferServiceDep
-from planbox.core.data.models import Export, MigrationStamp, TableDump
+from planbox.core.data.document import from_file, import_out, to_file
 from planbox.core.data.schemas import (
-    EXPORT_FORMAT,
-    EXPORT_FORMAT_VERSION,
     BackupCreate,
     BackupOut,
     BackupsOut,
     ExportFile,
     ImportOut,
-    MigrationStampIO,
     OffsiteOut,
-    TableDumpIO,
-    TableMergeOut,
 )
 from planbox.core.db.backup import BackupFile
 from planbox.core.db.deps import SettingsDep
@@ -65,20 +60,7 @@ def export_data(service: TransferServiceDep, response: Response) -> ExportFile:
     response.headers["Content-Disposition"] = (
         f'attachment; filename="planbox-export-{compact}.json"'
     )
-    return ExportFile(
-        format=EXPORT_FORMAT,
-        format_version=EXPORT_FORMAT_VERSION,
-        app_version=export.app_version,
-        exported_at=export.exported_at,
-        migrations=[
-            MigrationStampIO(owner=m.owner, version=m.version, checksum=m.checksum)
-            for m in export.migrations
-        ],
-        tables={
-            name: TableDumpIO(columns=list(t.columns), rows=[list(r) for r in t.rows])
-            for name, t in export.tables.items()
-        },
-    )
+    return to_file(export)
 
 
 @router.post("/import")
@@ -87,27 +69,4 @@ def import_data(body: ExportFile, service: TransferServiceDep) -> ImportOut:
 
     A backup is taken first; the merge applies completely or not at all.
     """
-    report = service.import_export(
-        Export(
-            app_version=body.app_version,
-            exported_at=body.exported_at,
-            migrations=[MigrationStamp(m.owner, m.version, m.checksum) for m in body.migrations],
-            tables={
-                name: TableDump(tuple(t.columns), [tuple(r) for r in t.rows])
-                for name, t in body.tables.items()
-            },
-        )
-    )
-    return ImportOut(
-        backup=report.backup,
-        tables=[
-            TableMergeOut(
-                table=m.table,
-                inserted=m.inserted,
-                updated=m.updated,
-                unchanged=m.unchanged,
-                conflicts=m.conflicts,
-            )
-            for m in report.tables
-        ],
-    )
+    return import_out(service.import_export(from_file(body)))

@@ -104,6 +104,10 @@ class Settings:
         scheduled_backups: Whether the running server takes daily and weekly
             backups by itself (daily use only).
         network: Phone access, or ``None`` (the default) for this PC only.
+        google_client_id: OAuth client (type "Desktop app") for Google Drive
+            sync, or ``None`` when sync is not set up.
+        google_client_secret: That client's secret.
+        device_name: How this PC is named in Google Drive sync.
     """
 
     mode: Mode
@@ -114,6 +118,14 @@ class Settings:
     offsite_backup_dir: Path | None = None
     scheduled_backups: bool = False
     network: NetworkSettings | None = None
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    device_name: str = "PC"
+
+    @property
+    def cloud_ready(self) -> bool:
+        """Whether Google Drive sync is set up (an OAuth client is configured)."""
+        return bool(self.google_client_id and self.google_client_secret)
 
     @property
     def db_path(self) -> Path:
@@ -176,6 +188,16 @@ def load_settings(
     offsite = _get_str(file_values, "offsite_backup_dir", "") if real else ""
     offsite = env.get("PLANBOX_OFFSITE_BACKUP_DIR", offsite)
 
+    # Google Drive sync, like the off-site folder, belongs to the real
+    # database: a dev or scratch database must never upload into (or merge
+    # from) the files the real devices share, unless the environment says so.
+    cloud_values = file_values if real else {}
+    client_id = env.get("PLANBOX_GOOGLE_CLIENT_ID", _get_str(cloud_values, "google_client_id", ""))
+    client_secret = env.get(
+        "PLANBOX_GOOGLE_CLIENT_SECRET", _get_str(cloud_values, "google_client_secret", "")
+    )
+    device_name = env.get("PLANBOX_DEVICE_NAME", _get_str(file_values, "device_name", ""))
+
     return Settings(
         mode=mode,
         data_dir=data_dir,
@@ -185,6 +207,9 @@ def load_settings(
         offsite_backup_dir=Path(offsite) if offsite else None,
         scheduled_backups=mode == "serve",
         network=_network_settings(file_values if real else {}, env),
+        google_client_id=client_id or None,
+        google_client_secret=client_secret or None,
+        device_name=device_name.strip() or socket.gethostname() or "PC",
     )
 
 
