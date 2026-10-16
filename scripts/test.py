@@ -31,6 +31,12 @@ def run_tests(*, e2e: bool) -> int:
         elif run([npm(), "exec", "--", "playwright", "test"], cwd=FRONTEND, check=False) != 0:
             failures.append("playwright")
 
+        heading("Phone app smoke tests (Playwright, device build)")
+        built = run([npm(), "run", "build:device", "--silent"], cwd=FRONTEND, check=False) == 0
+        device = ["exec", "--", "playwright", "test", "-c", "playwright.device.config.ts"]
+        if not built or run([npm(), *device], cwd=FRONTEND, check=False) != 0:
+            failures.append("playwright (phone app)")
+
     heading("Result")
     if failures:
         print(f"FAILED: {', '.join(failures)}")

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import type { ExportFile } from "../api/types";
+import { IS_DEVICE } from "../platform";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { useToast } from "../../ui/useToast";
@@ -83,15 +84,17 @@ export function TransferSection() {
           Export and import
         </h2>
         <p className="text-sm text-text-muted">
-          Move your data between PCs: download an export on one, import it on the other, then the
-          other way round. Importing merges: for each item the newer version wins, deletions
-          included, and a backup is taken first. Both PCs need the same PlanBox version.
+          {IS_DEVICE
+            ? "Import an export file from a PC. Importing merges: for each item the newer version wins, deletions included, and a backup is taken first. Both need the same PlanBox version."
+            : "Move your data between PCs: download an export on one, import it on the other, then the other way round. Importing merges: for each item the newer version wins, deletions included, and a backup is taken first. Both PCs need the same PlanBox version."}
         </p>
       </header>
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" onClick={exportNow} disabled={exporter.isPending}>
-          {exporter.isPending ? "Exporting…" : "Download export"}
-        </Button>
+        {!IS_DEVICE && (
+          <Button variant="secondary" onClick={exportNow} disabled={exporter.isPending}>
+            {exporter.isPending ? "Exporting…" : "Download export"}
+          </Button>
+        )}
         <Button
           variant="secondary"
           onClick={() => inputRef.current?.click()}

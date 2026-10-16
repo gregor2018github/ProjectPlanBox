@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PlanBox</string>
+    <string name="title_activity_main">PlanBox</string>
+    <string name="package_name">app.planbox</string>
+    <string name="custom_url_scheme">app.planbox</string>
+</resources>

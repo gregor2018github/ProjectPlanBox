@@ -1,4 +1,4 @@
-import type { ImportReport } from "../api/types";
+import type { CloudDownload, ImportReport } from "../api/types";
 import { formatDayShort, formatMinutes, zonedParts } from "../time";
 
 /** Labels of backups as the page names them. */
@@ -47,4 +47,19 @@ export function importSummary(report: ImportReport): string {
       ? ` ${String(conflicts)} duplicate${conflicts === 1 ? " was" : "s were"} stored as deleted.`
       : "";
   return `${parts.join(", ")}.${duplicates}`;
+}
+
+/** One sentence on what a Google Drive download merged. */
+export function downloadSummary(download: CloudDownload): string {
+  const merged = download.devices.filter((d) => d.status === "merged");
+  const failed = download.devices.filter((d) => d.status === "failed");
+  if (download.devices.length === 0) return "No other device has uploaded yet.";
+  const parts: string[] = [];
+  if (merged.length === 0) parts.push("Nothing new from your other devices.");
+  for (const device of merged) {
+    if (device.result !== null)
+      parts.push(`${device.device.name}: ${importSummary(device.result)}`);
+  }
+  for (const device of failed) parts.push(`${device.device.name}: ${device.error ?? "failed"}`);
+  return parts.join(" ");
 }

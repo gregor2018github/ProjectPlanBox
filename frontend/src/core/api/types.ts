@@ -33,3 +33,12 @@ export type PhoneAccess = components["schemas"]["PhoneAccessOut"];
 
 /** GET /api/preferences */
 export type Preferences = components["schemas"]["PreferencesOut"];
+
+/** GET /api/cloud */
+export type CloudStatus = components["schemas"]["CloudStatusOut"];
+
+/** A device's file in Google Drive. */
+export type CloudDevice = components["schemas"]["CloudDeviceOut"];
+
+/** What a download did, per other device. */
+export type CloudDownload = components["schemas"]["CloudDownloadOut"];

@@ -5,3 +5,5 @@ src/core/api/openapi.json
 package-lock.json
 test-results
 playwright-report
+dist-device
+android

@@ -13,6 +13,7 @@ __pycache__/
 # Frontend
 /frontend/node_modules/
 /frontend/dist/
+/frontend/dist-device/
 /frontend/test-results/
 /frontend/playwright-report/
 *.tsbuildinfo

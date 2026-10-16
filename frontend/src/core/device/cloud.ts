@@ -25,6 +25,8 @@ const UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 const FILE_PREFIX = "planbox-";
 const FILE_SUFFIX = ".json.gz";
 const MAX_NAME = 60;
+/** Drive takes metadata and content in one request up to 5 MB. */
+const MULTIPART_LIMIT = 5 * 1024 * 1024;
 const STATE = { folder: "state", name: "cloud.json" };
 
 /** What the device remembers about sync (beside the database, never in it). */
@@ -107,20 +109,29 @@ async function status(ctx: DeviceContext): Promise<CloudStatus> {
   };
 }
 
+/** Runs bytes through a (de)compression stream. */
+function gzip(
+  bytes: Uint8Array,
+  transform: CompressionStream | DecompressionStream,
+): ReadableStream<Uint8Array> {
+  const source = new Response(bytes as BlobPart).body;
+  if (source === null) throw new Error("no stream");
+  return source.pipeThrough(transform);
+}
+
 /** gzip-compressed JSON of an export document. */
 export async function pack(document: ExportFile): Promise<Uint8Array> {
-  const stream = new Blob([JSON.stringify(document)])
-    .stream()
-    .pipeThrough(new CompressionStream("gzip"));
+  const stream = gzip(
+    new TextEncoder().encode(JSON.stringify(document)),
+    new CompressionStream("gzip"),
+  );
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 /** The export document in a downloaded file. */
 export async function unpack(content: Uint8Array): Promise<ExportFile> {
   try {
-    const stream = new Blob([content as BlobPart])
-      .stream()
-      .pipeThrough(new DecompressionStream("gzip"));
+    const stream = gzip(content, new DecompressionStream("gzip"));
     const parsed: unknown = JSON.parse(await new Response(stream).text());
     const { value, issues } = validateNamed("ExportFile", parsed);
     if (issues.length > 0) throw new Error("not an export");
@@ -243,6 +254,22 @@ class Drive {
     } else {
       method = "PATCH";
       url = `${UPLOAD_URL}/${encodeURIComponent(existing)}`;
+    }
+    if (content.length <= MULTIPART_LIMIT) {
+      // One request (metadata and content), which a WebView may send to
+      // Google without reading any response header.
+      const boundary = `planbox${newId().replaceAll("-", "")}`;
+      const body = new Blob([
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,
+        JSON.stringify(metadata),
+        `\r\n--${boundary}\r\nContent-Type: application/gzip\r\n\r\n`,
+        content as BlobPart,
+        `\r\n--${boundary}--`,
+      ]);
+      await this.send(method, `${url}?uploadType=multipart&fields=id`, body, {
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      });
+      return;
     }
     const start = await this.send(
       method,

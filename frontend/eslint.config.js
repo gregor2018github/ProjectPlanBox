@@ -8,9 +8,17 @@ import tseslint from "typescript-eslint";
 import planbox from "./eslint-rules.js";
 
 export default defineConfig([
-  globalIgnores(["dist", "node_modules", "src/core/api/schema.d.ts"]),
+  globalIgnores(["dist", "dist-device", "android", "node_modules", "src/core/api/schema.d.ts"]),
   {
-    files: ["src/**/*.{ts,tsx}", "vite.config.ts", "playwright.config.ts", "e2e/**/*.ts"],
+    files: [
+      "src/**/*.{ts,tsx}",
+      "vite.config.ts",
+      "playwright.config.ts",
+      "playwright.device.config.ts",
+      "capacitor.config.ts",
+      "e2e/**/*.ts",
+      "e2e-device/**/*.ts",
+    ],
     extends: [
       js.configs.recommended,
       tseslint.configs.strictTypeChecked,
@@ -52,7 +60,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["src/**/*.test.{ts,tsx}", "src/test/**", "e2e/**"],
+    files: ["src/**/*.test.{ts,tsx}", "src/test/**", "e2e/**", "e2e-device/**"],
     rules: {
       "jsdoc/require-jsdoc": "off",
       "@typescript-eslint/no-non-null-assertion": "off",
