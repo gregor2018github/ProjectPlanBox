@@ -117,4 +117,5 @@ treat their database as precious.
   (ARCHITECTURE §14): export files to their own Drive, only when they press
   Sync. Never send anything else anywhere, never sync a dev or scratch
   database, and keep tokens and client secrets out of exports, logs and
-  commits.
+  commits. `PRIVACY.md` is the public promise Google links to; a change to
+  what leaves a device must update it.

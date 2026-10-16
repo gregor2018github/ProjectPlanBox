@@ -1,17 +1,19 @@
 # PlanBox
 
-A personal, local-first planner for one person on one Windows 11 desktop. It
-combines todos, knowledge collections (notes, links and snippets grouped into
-collections), a calendar and habit tracking. The app grows one module at a
-time. The desktop is the hub; a phone can join over the home network or
-Tailscale as a home-screen app.
+A personal, local-first planner for one person. It combines todos,
+knowledge collections (notes, links and snippets grouped into collections),
+a calendar and habit tracking. The app grows one module at a time. It runs
+on Windows PCs (from Python or as `PlanBox.exe`) and as an Android app,
+each with its own database; your own Google Drive keeps them in step. A
+phone can also use a running PC over the home network or Tailscale.
 
-> **Status:** every planned phase is built: todos (with repeats), knowledge
-> collections and links between items, search (Ctrl+K), calendar (`C` or the
-> right-edge icon; `G C` for the full page) and habits (`H`; `G B` for the
-> page), a Home overview (`G H`), an Insights page with statistics across
-> all of them (`G S`), backups and export/import (`G D`), and phone access.
-> See [docs/PLAN.md](docs/PLAN.md).
+> **Status:** every planned phase is built: todos (with repeats and a
+> hand-sorted "My order"), knowledge collections and links between items,
+> search (Ctrl+K), calendar (`C` or the right-edge icon; `G C` for the full
+> page) and habits (`H`; `G B` for the page), a Home overview (`G H`), an
+> Insights page with statistics across all of them (`G S`), backups and
+> export/import (`G D`), phone access, the Android app and Google Drive
+> sync. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
 
@@ -90,6 +92,12 @@ Tailscale as a home-screen app.
   from the backend's OpenAPI schema.
 - **Data:** a single SQLite file, backed up daily, weekly and before every
   schema migration, optionally to a second disk as well.
+- **Phone app:** the same React app in a Capacitor Android shell, with a
+  TypeScript twin of the backend on SQLite (WebAssembly) in place of the
+  server, so it works without a PC.
+- **Sync:** each device keeps one export file in your Google Drive's hidden
+  app data folder and merges the others' on **Sync**. Nothing else leaves
+  your devices ([privacy policy](PRIVACY.md)).
 
 Further reading:
 
@@ -100,6 +108,7 @@ Further reading:
 | [docs/PLAN.md](docs/PLAN.md) | Phased plan, dependencies, assumptions |
 | [docs/TODO.md](docs/TODO.md) | Agreed but unscheduled items |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for agent sessions |
+| [PRIVACY.md](PRIVACY.md) | Privacy policy (linked from Google's OAuth consent screen) |
 
 ## Two ways to install
 
@@ -357,14 +366,19 @@ device's file, so syncing two devices at the same moment is safe.
 1. Open <https://console.cloud.google.com/>, create a project (e.g.
    "PlanBox"), and enable the **Google Drive API** (*APIs & Services →
    Library*).
-2. *Google Auth Platform → Branding*: app name "PlanBox", your email.
+2. *Google Auth Platform → Branding*: app name "PlanBox", your email, and
+   the two URLs Google requires before publishing: homepage
+   `https://github.com/gregor2018github/ProjectPlanBox` and privacy policy
+   `https://github.com/gregor2018github/ProjectPlanBox/blob/main/PRIVACY.md`.
    *Audience*: **External**. Then press **Publish app** (*In production*).
    Without that, Google signs PlanBox out every 7 days. The only scope
    PlanBox asks for, `drive.appdata`, is non-sensitive, so publishing needs
    no review. The sign-in page may still say Google has not verified the
    app; that is expected for a personal client.
-3. *Clients → Create client*, type **Desktop app**. Copy its client ID and
-   secret into `private_data\settings.toml` on **every PC**:
+3. *Clients → Create client*, type **Desktop app** (e.g. "PlanBox PC"; one
+   client serves every PC). Copy its client ID and secret (also in the JSON
+   Google offers to download) into `private_data\settings.toml` on **every
+   PC**:
    ```toml
    google_client_id = "1234-abc.apps.googleusercontent.com"
    google_client_secret = "GOCSPX-..."
@@ -379,7 +393,10 @@ device's file, so syncing two devices at the same moment is safe.
    & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android
    ```
    (the `SHA1:` line). Build the app on that PC (or add a client per
-   building PC). Then, in the app, **Data → Connect Google Drive**.
+   building PC). Nothing from this client goes into the app or a settings
+   file: Google recognises the app by its package name and signature (the
+   downloadable JSON has no secret). A new client can take a few minutes
+   to work. Then, in the app, **Data → Connect Google Drive**.
 
 The client secret stays in `settings.toml`, and the sign-in token in
 `private_data\cloud.json`. Neither ever goes into an export, a backup or

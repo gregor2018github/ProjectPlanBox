@@ -4,7 +4,9 @@ PlanBox is a **modular monolith**: one backend process, one SQLite database
 and one frontend bundle. Inside them, each feature area is a module with hard
 boundaries. A small **core** provides the shared pieces: the database,
 migrations, IDs, time, errors, and the cross-cutting concepts of tags, links
-and search.
+and search. The Android app runs the same frontend against a TypeScript twin
+of the backend with its own database, and devices meet through Google Drive
+(§14).
 
 ## 1. Repository layout
 
@@ -44,7 +46,7 @@ ProjectPlanBox/
 │   │       ├── habits/       # habits, check-ins, streaks (streaks.py is pure)
 │   │       └── todos/
 │   │           ├── __init__.py      # `module = Module(...)`
-│   │           ├── migrations/      # 0001_create_todos.sql … 0004_add_repeat_from.sql
+│   │           ├── migrations/      # 0001_create_todos.sql … 0007_add_today_rank_position.sql
 │   │           ├── models.py        # frozen dataclasses (domain rows)
 │   │           ├── schemas.py       # Pydantic request/response models
 │   │           ├── repository.py    # SQL only
@@ -82,7 +84,10 @@ ProjectPlanBox/
 │           └── todos/        # api.ts, routes.tsx, components/, quickAddParser.ts, index.ts
 ├── shared/                   # language-neutral fixtures: ordering and recurrence vectors, API scenarios (§14)
 ├── main.py                   # the launcher: py main.py starts PlanBox and opens the browser
-├── scripts/                  # setup.py, dev.py, test.py, check.py, gen_api.py, serve.py
+├── scripts/                  # setup, dev, test, check, gen_api, serve, migrate, reindex, lock,
+│                             # package (release zips, PlanBox.exe), android (the phone app)
+├── .github/workflows/        # ci.yml (every push), release.yml (v* tags)
+├── PRIVACY.md                # the privacy policy Google's consent screen links to
 ├── private_data/             # everything that must not leave this PC: DB, settings, backups (gitignored)
 └── docs/
 ```
@@ -1400,6 +1405,14 @@ file on the phone).
   5 MB, so no response header has to be read across origins). A token
   Google rejects is cleared and fetched once more; a second rejection
   marks the device as disconnected.
+- **Google project:** the owner's own, with two OAuth clients. A
+  **Desktop** client serves every PC (its id and secret in
+  `settings.toml`); an **Android** client for package `app.planbox` and
+  the SHA-1 of the signing key, with nothing to configure in the app, since
+  Play services matches the app by its signature. Publishing the consent
+  screen (so refresh tokens do not expire after 7 days) needs a homepage
+  and a privacy policy URL; the policy is `PRIVACY.md`, and any change to
+  what leaves a device must update it.
 - **Scope of what leaves the device:** only the export files, only to the
   owner's Drive, only on Sync. Tokens, client secrets and backups never
   do. Dev and scratch databases never sync unless the environment sets the

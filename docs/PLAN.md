@@ -253,6 +253,31 @@ Small iterations after a first day of use at work, one commit each:
     `zone`) instead of a bare `since`, since the calendar must expand
     series and stop at the present.
 
+### Phase 8: Data safety and sync (brought forward, 2026-10-13)
+
+Built before phase 7 on the owner's request. Design and rules in
+ARCHITECTURE §13; no new dependencies, no migrations.
+- **Scheduled backups** while the daily server runs: one per local day
+  (14 kept) and one per Monday week (8 kept), checked at start and hourly.
+- **Off-site copies** to `offsite_backup_dir` (settings.toml), with a
+  status on the Data page. It applies only to the real database, so tests
+  and scratch servers never write there.
+- **Data page** (`/data`, `G D`): backups, **Back up now**, export and
+  import.
+- **Export/import** as one JSON file per database. The import merges by
+  row, newest `updated_at` winning, after a backup and in one transaction.
+  This is the sync design, run by hand between the work and home PCs.
+  Decisions:
+  - **Merge, not replace.** A replacing import would be a restore, which a
+    backup file already does; merging is what two PCs need, and the same
+    rule serves a live sync later.
+  - **Same schema only.** The import refuses an export with different
+    migrations instead of mapping columns between versions.
+  - **Duplicates** on unique rules keep the local row and store the other
+    deleted, stamped so the decision travels back.
+- Deferred to TODO.md: the trash view and purging (designed in §13), an
+  in-app restore, merging the taggings of duplicate tags, live sync.
+
 ### Phase 7: Mobile PWA (2026-10-13)
 
 Built on the owner's request to implement the phase, which was the go-ahead
@@ -310,26 +335,6 @@ Decisions:
 - The unsorted box follows the places' order (as By place), each parent
   followed by its subtasks, so a long first box is easy to work through.
 
-### My order in Today (owner request, 2026-10-16)
-
-Today gets the same switch as All todos: **By date** (as before, Overdue
-and Due today as separate groups) or **My order**, one hand-sorted list of
-everything in Today, overdue and due today mixed, with the Unsorted box on
-top. Remembered per browser. Details in ARCHITECTURE §7 (My order in
-Today); migration `todos/0007`, no new dependencies.
-
-Decisions:
-- **Its own order**, not All todos' ranking and not By date's: planning a
-  day is a different question from ranking priorities, and switching modes
-  never disturbs the other order.
-- **Todos new to Today wait in Unsorted** (as in All todos), so each
-  morning's arrivals are visible instead of silently at the bottom.
-- **The place is kept while the todo stays in Today.** Moving an overdue
-  todo to today keeps it; moving it to a later day, or removing the date,
-  drops it. A repeating todo's next occurrence keeps the place, so a daily
-  routine returns to the same spot.
-- Home's Today card keeps the By date order.
-
 ### PlanBox.exe (owner request, 2026-10-14)
 
 A second release download for the work PC, so it runs as an application
@@ -349,6 +354,26 @@ Details in ARCHITECTURE §9 (PlanBox.exe).
   shutdown) before it is zipped.
 - The exe is unsigned. The owner checked that the work PC runs it; it
   should travel zipped, because chat tools' virus scanners flag a bare exe.
+
+### My order in Today (owner request, 2026-10-16)
+
+Today gets the same switch as All todos: **By date** (as before, Overdue
+and Due today as separate groups) or **My order**, one hand-sorted list of
+everything in Today, overdue and due today mixed, with the Unsorted box on
+top. Remembered per browser. Details in ARCHITECTURE §7 (My order in
+Today); migration `todos/0007`, no new dependencies.
+
+Decisions:
+- **Its own order**, not All todos' ranking and not By date's: planning a
+  day is a different question from ranking priorities, and switching modes
+  never disturbs the other order.
+- **Todos new to Today wait in Unsorted** (as in All todos), so each
+  morning's arrivals are visible instead of silently at the bottom.
+- **The place is kept while the todo stays in Today.** Moving an overdue
+  todo to today keeps it; moving it to a later day, or removing the date,
+  drops it. A repeating todo's next occurrence keeps the place, so a daily
+  routine returns to the same spot.
+- Home's Today card keeps the By date order.
 
 ### Phone app and Google Drive sync (owner request, 2026-10-16)
 
@@ -404,36 +429,19 @@ Decisions:
   worker cannot import `modules/index.ts`, which pulls in React.
 - The phone uses the PC's default zone (Europe/Amsterdam) for "today", as
   ARCHITECTURE §4 asks.
+- **A public privacy policy** (`PRIVACY.md`, linked from Google's Branding
+  page): Google asks for a homepage and a privacy policy URL before the
+  OAuth app can be published to production.
+
+The owner set up the Google project (a Desktop client for the PCs, an
+Android client for the phone) and confirmed sync between the Tower PC and
+a Pixel 6 on 2026-10-16.
 
 Deferred to TODO.md: automatic sync, end-to-end encryption of the Drive
 files, a release-signed APK, renaming the phone in sync, exporting a file
 from the phone, phone notifications.
 
-### Phase 8: Data safety and sync (brought forward, 2026-10-13)
-
-Built before phase 7 on the owner's request. Design and rules in
-ARCHITECTURE §13; no new dependencies, no migrations.
-- **Scheduled backups** while the daily server runs: one per local day
-  (14 kept) and one per Monday week (8 kept), checked at start and hourly.
-- **Off-site copies** to `offsite_backup_dir` (settings.toml), with a
-  status on the Data page. It applies only to the real database, so tests
-  and scratch servers never write there.
-- **Data page** (`/data`, `G D`): backups, **Back up now**, export and
-  import.
-- **Export/import** as one JSON file per database. The import merges by
-  row, newest `updated_at` winning, after a backup and in one transaction.
-  This is the sync design, run by hand between the work and home PCs.
-  Decisions:
-  - **Merge, not replace.** A replacing import would be a restore, which a
-    backup file already does; merging is what two PCs need, and the same
-    rule serves a live sync later.
-  - **Same schema only.** The import refuses an export with different
-    migrations instead of mapping columns between versions.
-  - **Duplicates** on unique rules keep the local row and store the other
-    deleted, stamped so the decision travels back.
-- Deferred to TODO.md: the trash view and purging (designed in §13), an
-  in-app restore, merging the taggings of duplicate tags, live sync.
-
+## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
 on their own dates) and are pinned exactly. A new package needs a row here
@@ -512,8 +520,10 @@ parity), `concurrently` (`dev.py` does it), React Compiler.
    never directly in an area. Subtasks are one level deep. Sections exist
    only in lists.
 2. Upcoming is auto-sorted (overdue first, then priority, then list
-   position). Today is sortable by hand within its Overdue and Due today
-   groups (`todos.today_position`, cleared when the due date changes).
+   position). Today's **By date** mode is sortable by hand within its
+   Overdue and Due today groups (`todos.today_position`, cleared when the
+   due date changes); its **My order** mode is one hand-sorted list of its
+   own (My order in Today above).
 3. Todo due dates are date-only. Times exist on calendar events.
 4. Deleting any container soft-deletes everything below it with one shared
    `deleted_at`, and one undo restores it all. No confirmation dialogs for
@@ -526,7 +536,9 @@ parity), `concurrently` (`dev.py` does it), React Compiler.
    (`oklch(0.55 0.19 264)`), contrast-tested in both themes. Areas re-tint
    it with their own hue inside their pages (Area colours above).
 8. `private_data/` holds everything that must not leave the PC: the real DB,
-   `settings.toml`, backups and the dev DB (`private_data/dev/`).
+   `settings.toml`, backups, the Drive sign-in (`cloud.json`) and the dev
+   DB (`private_data/dev/`). The one exception is Drive sync, which sends
+   export files to the owner's own Drive when they press Sync.
 9. The daily server runs on port 8765, separate from dev (8000/5173).
    Autostart at login is not in scope.
 10. The theme preference lives on the server (`core_preferences`) and
