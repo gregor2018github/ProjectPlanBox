@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { StartupSplash } from "./app/StartupSplash";
 import { createApiClient } from "./core/api/client";
+import { installBackHandler } from "./core/back";
 
 const root = document.getElementById("root");
 if (root === null) throw new Error("index.html is missing #root");
@@ -28,6 +29,9 @@ if (!DEVICE && import.meta.env.PROD && "serviceWorker" in navigator && window.is
 const apiClient = DEVICE
   ? createApiClient((await import("./app/device/start")).deviceFetch())
   : undefined;
+
+// The Android app asks the page first on a back gesture (see core/back.ts).
+if (DEVICE) installBackHandler();
 
 createRoot(root).render(
   <StrictMode>

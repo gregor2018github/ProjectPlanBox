@@ -1356,10 +1356,14 @@ React app (unchanged)  ──fetch──▶  bridge.ts ──postMessage──�
   updates, and uninstalling deletes it.
 - **The Android project** (`frontend/android`, Capacitor 8) serves the
   device build from `https://localhost` in a WebView. Its version is
-  PlanBox's (`package.json`). `PlanBoxGooglePlugin.java` is the only
-  native code: Google Play services' `AuthorizationClient` asks for the
-  `drive.appdata` scope and hands out access tokens; Play services keeps
-  the grant.
+  PlanBox's (`package.json`). The native code is small.
+  `PlanBoxGooglePlugin.java`: Google Play services' `AuthorizationClient`
+  asks for the `drive.appdata` scope and hands out access tokens; Play
+  services keeps the grant. `MainActivity.java`: the back gesture (edge
+  swipe or button) first asks the page (`window.planboxBack`,
+  `core/back.ts`), which closes an open menu, dialog, the navigation sheet
+  or the rail pane. If nothing was open, the WebView goes back a page, and
+  on the first page Android's default leaves the app.
 
 ### Parity between the twins
 

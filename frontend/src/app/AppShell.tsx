@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useRouterState, useSearch } from "@tanstack/react-
 import { useCallback, useState } from "react";
 
 import { useMeta } from "../core/api/coreQueries";
+import { useBackHandler } from "../core/back";
 import { CommandPalette } from "../core/commands/CommandPalette";
 import { useRecordAppOpen } from "../core/insights/insightsQueries";
 import { useThemeSync } from "../core/theme/useThemeSync";
@@ -97,6 +98,9 @@ export function AppShell() {
   const stop = useCallback(() => {
     setStopped(true);
   }, []);
+
+  // On the phone the rail pane covers the screen, so the back gesture closes it.
+  useBackHandler(railOpen === null ? null : closeRail);
 
   useShellCommands({
     togglePalette,
