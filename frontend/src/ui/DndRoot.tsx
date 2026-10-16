@@ -1,9 +1,10 @@
 import { Accessibility, PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/react/sortable";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { DRAG_MOVE_THRESHOLD, setDragMoving, type DragEndHandler } from "./dnd";
+import { installTouchHoldGuard, TOUCH_HOLD } from "./touchHold";
 
 /** The link inside the dragged element that the pointer went down on, if any. */
 function linkInSource(target: EventTarget | null, element: Element | undefined): Element | null {
@@ -17,6 +18,8 @@ function linkInSource(target: EventTarget | null, element: Element | undefined):
  * as one, so sidebar rows (lists, collections) could not be dragged. Links
  * inside the dragged element may start a drag, but a mouse only by moving:
  * the default 200 ms hold would swallow a slow click on the link.
+ * On touch a drag starts after a 250 ms hold; dnd-kit's 5 px tolerance is
+ * widened to what a resting finger drifts (see `touchHold.ts`).
  */
 const pointerSensor = PointerSensor.configure({
   preventActivation: (event, source) =>
@@ -25,6 +28,9 @@ const pointerSensor = PointerSensor.configure({
   activationConstraints: (event, source) => {
     if (event.pointerType === "mouse" && linkInSource(event.target, source.element)) {
       return [new PointerActivationConstraints.Distance({ value: 5 })];
+    }
+    if (event.pointerType === "touch") {
+      return [new PointerActivationConstraints.Delay(TOUCH_HOLD)];
     }
     const defaults = PointerSensor.defaults.activationConstraints;
     return typeof defaults === "function" ? defaults(event, source) : defaults;
@@ -43,11 +49,13 @@ export interface DndRootProps {
  * dnd-kit's Accessibility plugin is removed: it turns every sortable row
  * into role="button" with a tab stop, which nests our row buttons inside a
  * button. Keyboard users reorder with Alt+↑/↓ and "Move to…" instead.
- * The pointer sensor is configured so rows that are links can be dragged.
+ * The pointer sensor is configured so rows that are links can be dragged,
+ * and a touch guard keeps the browser from scrolling during the hold.
  * On touch the same long-press starts a drag and opens the row's context
  * menu; once the drag moves, {@link useDragMoving} closes that menu.
  */
 export function DndRoot({ children }: DndRootProps) {
+  useEffect(() => installTouchHoldGuard(), []);
   return (
     <DragDropProvider
       plugins={(defaults) => defaults.filter((plugin) => plugin !== Accessibility)}

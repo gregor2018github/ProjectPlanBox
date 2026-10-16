@@ -931,6 +931,14 @@ starts a drag on a link, and sidebar rows (lists, collections) are links.
 A link inside the dragged element may start a drag, but with a mouse only
 after 5 px of movement, so a slow click still navigates.
 
+On touch a drag starts after a 250 ms hold, within 12 px (dnd-kit's 5 px
+is less than a resting finger drifts). Android's WebView would claim the
+touch for scrolling after about 8 dp and cancel the pointer, so
+`ui/touchHold.ts` holds back the browser's default while a finger rests on
+a drag source (marked by the `ui/dnd` hooks); a swipe strays further at
+once and scrolls as usual. The same long-press opens the row's context
+menu, so `ContextMenu` closes, and stays shut, once a drag has moved 8 px.
+
 ### Todo UI state
 
 Selection, expanded parents, todos "lingering" for 600 ms after completion

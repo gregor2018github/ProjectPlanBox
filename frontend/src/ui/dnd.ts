@@ -7,7 +7,9 @@
  */
 import { useDraggable, useDroppable } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+
+import { DRAG_SOURCE_ATTR } from "./touchHold";
 
 /** What happened when a drag ended. */
 export interface DropInfo {
@@ -39,12 +41,15 @@ export interface SortableItemOptions {
 
 /** Makes an element a sortable item; spread `ref` on it (and `handleRef` on a grip, if any). */
 export function useSortableItem({ onDragEnd, data, ...options }: SortableItemOptions) {
-  const { ref, handleRef, isDragging, isDropTarget } = useSortable({
+  const disabled = options.disabled ?? false;
+  const sortable = useSortable({
     ...options,
-    disabled: options.disabled ?? false,
+    disabled,
     data: { ...data, onDragEnd },
     transition: { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
   });
+  const ref = useDragSourceRef(sortable.ref, disabled);
+  const { handleRef, isDragging, isDropTarget } = sortable;
   return { ref, handleRef, isDragging, isDropTarget };
 }
 
@@ -77,8 +82,20 @@ export interface DragItemOptions {
  * another calendar day); spread `ref` on it.
  */
 export function useDragItem({ id, type, disabled = false, data, onDragEnd }: DragItemOptions) {
-  const { ref, isDragging } = useDraggable({ id, type, disabled, data: { ...data, onDragEnd } });
-  return { ref, isDragging };
+  const draggable = useDraggable({ id, type, disabled, data: { ...data, onDragEnd } });
+  const ref = useDragSourceRef(draggable.ref, disabled);
+  return { ref, isDragging: draggable.isDragging };
+}
+
+/** Wraps dnd-kit's ref so the element is marked a drag source for the touch guard. */
+function useDragSourceRef(ref: (element: Element | null) => void, disabled: boolean) {
+  return useCallback(
+    (element: Element | null) => {
+      element?.toggleAttribute(DRAG_SOURCE_ATTR, !disabled);
+      ref(element);
+    },
+    [ref, disabled],
+  );
 }
 
 /** How far (px) a drag must travel before it counts as moving. */

@@ -151,3 +151,26 @@ test("a touch drag closes the long-press menu and drops where the finger lifts",
     ]);
   await expect(page.getByRole("menu")).toHaveCount(0);
 });
+
+test("a finger that wobbles while holding still picks the todo up", async ({ page }) => {
+  const { unsorted, ranked } = await myOrderWithOneUnsorted(page);
+  // A real finger drifts a few pixels during the hold.
+  const wobble = [
+    { x: 3, y: 4 },
+    { x: 6, y: 7 },
+    { x: 4, y: 9 },
+    { x: 7, y: 6 },
+  ];
+  const menus = await touchDrag(page, unsorted.getByText("Charlie"), ranked.getByText("Bravo"), {
+    hold: 400,
+    wobble,
+  });
+  expect(menus).toBe(0);
+  await expect
+    .poll(() => rankedTitles(ranked))
+    .toEqual([
+      expect.stringContaining("Alpha"),
+      expect.stringContaining("Charlie"),
+      expect.stringContaining("Bravo"),
+    ]);
+});
