@@ -1,5 +1,12 @@
 import { Check, Plus } from "lucide-react";
-import { useId, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 
 import { rank } from "../core/commands/fuzzy";
 import { cx } from "./cx";
@@ -71,13 +78,25 @@ export function PickerList({
   const activeIndex = Math.min(active, Math.max(total - 1, 0));
   const optionId = (index: number) => `${listId}-${index}`;
 
+  const resetQuery = () => {
+    setQuery("");
+    setActive(0);
+    if (query !== "") onQueryChange?.("");
+  };
+
+  // Clearing after each pick lets multi-select pickers (tags) take the next
+  // name straight away.
   const choose = (index: number) => {
     const option = filtered[index];
     if (option) onPick(option);
-    else if (canCreate) {
-      onCreate(trimmed);
-      setQuery("");
-    }
+    else if (canCreate) onCreate(trimmed);
+    else return;
+    resetQuery();
+  };
+
+  // Keeps focus in the input when an option is clicked, so typing continues.
+  const keepFocus = (event: MouseEvent) => {
+    event.preventDefault();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -119,6 +138,7 @@ export function PickerList({
             id={optionId(index)}
             role="option"
             aria-selected={index === activeIndex}
+            onMouseDown={keepFocus}
             onPointerMove={() => {
               if (index !== activeIndex) setActive(index);
             }}
@@ -145,6 +165,7 @@ export function PickerList({
             id={optionId(filtered.length)}
             role="option"
             aria-selected={activeIndex === filtered.length}
+            onMouseDown={keepFocus}
             onClick={() => {
               choose(filtered.length);
             }}
