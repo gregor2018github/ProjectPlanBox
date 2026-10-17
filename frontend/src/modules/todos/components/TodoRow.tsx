@@ -33,6 +33,8 @@ export interface TodoRowProps {
   tagColumn?: boolean | undefined;
   /** Subtask progress of a parent row (null when it has none). */
   progress?: { done: number; total: number } | null;
+  /** Shades the row (every other row of a list), so rows are easy to tell apart. */
+  striped?: boolean | undefined;
 }
 
 /**
@@ -53,6 +55,7 @@ export function TodoRow({
   showParent,
   tagColumn,
   progress,
+  striped,
 }: TodoRowProps) {
   const selected = useTodoUi((s) => s.selectedId === todo.id);
   const expanded = useTodoUi((s) => s.expanded.has(todo.id));
@@ -79,7 +82,7 @@ export function TodoRow({
           }}
           className={cx(
             "group flex items-start gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) ease-out",
-            selected ? "bg-selected" : "hover:bg-hover",
+            selected ? "bg-selected" : cx(striped === true && "bg-stripe", "hover:bg-hover"),
           )}
         >
           <span className="flex h-5.5 items-center">

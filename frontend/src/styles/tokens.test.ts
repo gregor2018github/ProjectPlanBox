@@ -51,14 +51,14 @@ function contrast(x: Oklch, y: Oklch): number {
 
 const light = colours(block(tokensCss, "@theme {"));
 const dark = new Map([...light, ...colours(block(tokensCss, '[data-theme="dark"] {'))]);
-const backgrounds = ["bg", "surface", "surface-raised", "sidebar", "hover", "selected"];
+const backgrounds = ["bg", "surface", "surface-raised", "sidebar", "stripe", "hover", "selected"];
 
 const requirements: [fg: string, min: number, on: string[]][] = [
   ["text", 4.5, backgrounds],
   ["text-muted", 4.5, backgrounds],
   ["accent", 4.5, backgrounds], // links and accent text
   ["danger", 4.5, backgrounds], // "overdue" text
-  ["warning", 3, ["bg", "surface", "surface-raised", "hover"]], // non-text marks only
+  ["warning", 3, ["bg", "surface", "surface-raised", "stripe", "hover"]], // non-text marks only
   ["on-accent", 4.5, ["accent"]],
   ["on-danger", 4.5, ["danger"]],
 ];

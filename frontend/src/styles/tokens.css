@@ -21,6 +21,8 @@
   --color-surface: oklch(1 0 0);
   --color-surface-raised: oklch(1 0 0);
   --color-sidebar: oklch(0.97 0.003 260);
+  /* Every other row of a list, so rows stay easy to tell apart. */
+  --color-stripe: oklch(0.973 0.003 260);
   --color-hover: oklch(0.95 0.004 260);
   --color-selected: oklch(0.94 0.025 262);
   --color-border: oklch(0.92 0.004 260);
@@ -103,6 +105,7 @@
   --color-surface: oklch(0.205 0.006 260);
   --color-surface-raised: oklch(0.245 0.007 260);
   --color-sidebar: oklch(0.185 0.006 260);
+  --color-stripe: oklch(0.19 0.006 260);
   --color-hover: oklch(0.26 0.007 260);
   --color-selected: oklch(0.29 0.04 262);
   --color-border: oklch(1 0 0 / 0.08);

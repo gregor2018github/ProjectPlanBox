@@ -132,6 +132,7 @@ export function TodoGroup({
                 todo={todo}
                 {...rowProps}
                 showParent={showParent}
+                striped={index % 2 === 1}
                 progress={{
                   done: children.filter((c) => c.completed_at !== null).length,
                   total: children.length,
@@ -153,7 +154,12 @@ export function TodoGroup({
                       }}
                       actions={actions}
                     >
-                      <TodoRow todo={child} {...rowProps} hideDue={false} />
+                      <TodoRow
+                        todo={child}
+                        {...rowProps}
+                        hideDue={false}
+                        striped={childIndex % 2 === 1}
+                      />
                     </SortableTodoItem>
                   ))}
                 </ul>

@@ -162,6 +162,7 @@ in `index.html` applies it before first paint. `system` follows
 | `--color-surface` | `oklch(1 0 0)` | `oklch(0.205 0.006 260)` | Cards, detail panel, inputs |
 | `--color-surface-raised` | `oklch(1 0 0)` | `oklch(0.245 0.007 260)` | Popovers, menus, dialogs, palette |
 | `--color-sidebar` | `oklch(0.97 0.003 260)` | `oklch(0.185 0.006 260)` | Sidebar |
+| `--color-stripe` | `oklch(0.973 0.003 260)` | `oklch(0.19 0.006 260)` | Every other row of a todo list |
 | `--color-hover` | `oklch(0.95 0.004 260)` | `oklch(0.26 0.007 260)` | Row and item hover |
 | `--color-selected` | `oklch(0.94 0.025 262)` | `oklch(0.29 0.04 262)` | Selected row, active nav |
 | `--color-border` | `oklch(0.92 0.004 260)` | `oklch(1 0 0 / 0.08)` | Dividers (use sparingly) |
@@ -334,7 +335,9 @@ live in `tokens.css`. Do not inline magic numbers.
 - **Buttons:** `primary` (accent fill, at most one per view), `secondary`
   (surface + border-strong), `ghost` (transparent, hover tone; the default
   for toolbars) and `danger` (used in confirmations only).
-- **Rows** (todo, later notes, …) have no borders between them. Hover shows
+- **Rows** (todo, later notes, …) have no borders between them; every other
+  todo row (counted per list, and again per subtask list) is shaded
+  `--color-stripe` so rows are easy to tell apart. Hover shows
   `--color-hover` with `radius-md`. Selected shows `--color-selected`.
   Metadata is `text-sm text-muted`. Facts about the item (due date, flags,
   progress, link host) follow the title. Tags, and the list in views that
