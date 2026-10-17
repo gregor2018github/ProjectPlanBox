@@ -218,7 +218,7 @@ class TodosOut(BaseModel):
 
 
 class LogbookOut(BaseModel):
-    """A page of completed todos, newest first; pass ``next_cursor`` for the next page."""
+    """A page of the logbook or its activity feed, newest first; pass ``next_cursor`` on."""
 
     todos: list[TodoOut]
     next_cursor: str | None

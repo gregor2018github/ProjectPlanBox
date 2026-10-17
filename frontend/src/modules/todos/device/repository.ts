@@ -370,6 +370,9 @@ export class SectionRepository {
   }
 }
 
+/** Which todos the logbook's activity feed shows. */
+export type ActivityStatus = "all" | "open" | "completed";
+
 /** Which column a todo scope uses. */
 export type TodoScope = "list_id" | "section_id" | "parent_id";
 
@@ -425,6 +428,24 @@ export class TodoRepository {
           "ORDER BY completed_at DESC, id DESC LIMIT ?",
         [before[0], before[0], before[1], limit],
       )
+      .map(todoOf);
+  }
+
+  /** Live todos, most recently added or changed first, before the (updated_at, id) cursor. */
+  listActivity(status: ActivityStatus, before: [string, string] | null, limit: number): Todo[] {
+    let where = "deleted_at IS NULL";
+    if (status === "open") where += " AND completed_at IS NULL";
+    else if (status === "completed") where += " AND completed_at IS NOT NULL";
+    const params: (string | number)[] = [];
+    if (before !== null) {
+      where += " AND (updated_at < ? OR (updated_at = ? AND id < ?))";
+      params.push(before[0], before[0], before[1]);
+    }
+    return this.db
+      .all(`SELECT ${TODO} FROM todos WHERE ${where} ORDER BY updated_at DESC, id DESC LIMIT ?`, [
+        ...params,
+        limit,
+      ])
       .map(todoOf);
   }
 

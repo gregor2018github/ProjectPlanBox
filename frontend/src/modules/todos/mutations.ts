@@ -69,6 +69,8 @@ function useOptimisticMutation<TCache, TVars, TData>(
     onSuccess: (data, vars) => {
       config.onSuccess?.(data, vars);
       void queryClient.invalidateQueries({ queryKey: todoKeys.forecasts });
+      // Every todo change is activity (the Logbook's feed refetches when shown).
+      void queryClient.invalidateQueries({ queryKey: todoKeys.activity });
     },
   });
 }

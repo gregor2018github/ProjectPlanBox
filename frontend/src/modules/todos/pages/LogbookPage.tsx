@@ -1,76 +1,43 @@
-import { useMemo } from "react";
+import { CheckCheck, History } from "lucide-react";
 
-import { useMeta } from "../../../core/api/coreQueries";
-import { matchesTagFilter, useTagFilter } from "../../../core/tags/tagFilter";
-import { formatRelativeDay, todayIn } from "../../../core/time";
-import { Button } from "../../../ui/Button";
 import { PageHeader } from "../../../ui/PageHeader";
-import { TodoGroup } from "../components/TodoGroup";
+import { SegmentedControl, type SegmentOption } from "../../../ui/SegmentedControl";
 import { ViewLayout } from "../../../ui/ViewLayout";
-import { useLogbook } from "../queries";
-import type { Todo } from "../types";
-import { useTodoActions } from "../useTodoActions";
-import { useTodoData } from "../useTodoData";
-import { useTodoKeyboard } from "../useTodoKeyboard";
+import { ActivityLog } from "../components/ActivityLog";
+import { CompletedLog } from "../components/CompletedLog";
+import { useLogbookMode, type LogbookMode } from "../viewModes";
 
-/** Everything completed, newest first, grouped by the day it was done. */
+const MODES: readonly SegmentOption<LogbookMode>[] = [
+  { value: "completed", label: "Completed", icon: CheckCheck },
+  { value: "activity", label: "Activity", icon: History },
+];
+
+/**
+ * The Logbook: what was completed, by the day it was done, or the activity
+ * feed of what was added or changed. The switch is remembered per browser.
+ */
 export function LogbookPage() {
-  const data = useTodoData();
-  const actions = useTodoActions();
-  const { data: meta } = useMeta();
-  const logbook = useLogbook();
-  const { tagIds } = useTagFilter();
-
-  const days = useMemo(() => {
-    const todos = (logbook.data?.pages.flatMap((p) => p.todos) ?? []).filter((t) =>
-      matchesTagFilter(t.tag_ids, tagIds),
-    );
-    const zone = meta?.timezone ?? "UTC";
-    const byDay = new Map<string, Todo[]>();
-    for (const todo of todos) {
-      const day = todayIn(zone, new Date(todo.completed_at ?? todo.updated_at));
-      byDay.set(day, [...(byDay.get(day) ?? []), todo]);
-    }
-    return [...byDay.entries()];
-  }, [logbook.data, meta, tagIds]);
-  const visible = useMemo(() => days.flatMap(([, todos]) => todos), [days]);
-  useTodoKeyboard(visible, actions, { reorder: false });
-
+  const [mode, setMode] = useLogbookMode();
   return (
     <ViewLayout>
-      <PageHeader title="Logbook" subtitle="Everything you have completed." />
-      {logbook.isSuccess && visible.length === 0 && (
-        <p className="px-3 py-6 text-base text-text-muted">Nothing completed yet.</p>
-      )}
-      {data.today !== null &&
-        days.map(([day, todos]) => (
-          <section key={day} className="mb-5">
-            <h2 className="px-3 pb-1 text-base font-semibold">
-              {formatRelativeDay(day, data.today ?? day)}
-            </h2>
-            <TodoGroup
-              todos={todos}
-              data={data}
-              actions={actions}
-              label={day}
-              showPlace
-              showParent
-              expandable={false}
-            />
-          </section>
-        ))}
-      {logbook.hasNextPage && (
-        <Button
-          variant="secondary"
-          className="ml-3"
-          disabled={logbook.isFetchingNextPage}
-          onClick={() => {
-            void logbook.fetchNextPage();
-          }}
-        >
-          Show older
-        </Button>
-      )}
+      <PageHeader
+        title="Logbook"
+        subtitle={
+          mode === "completed"
+            ? "Everything you have completed."
+            : "When todos were added or changed."
+        }
+        actions={
+          <SegmentedControl
+            label="Logbook view"
+            value={mode}
+            onChange={setMode}
+            options={MODES}
+            showLabels
+          />
+        }
+      />
+      {mode === "completed" ? <CompletedLog /> : <ActivityLog />}
     </ViewLayout>
   );
 }

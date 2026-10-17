@@ -2,6 +2,10 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
+
+ActivityStatus = Literal["all", "open", "completed"]
+"""Which todos the logbook's activity feed shows."""
 
 
 @dataclass(frozen=True, slots=True)

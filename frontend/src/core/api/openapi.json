@@ -2186,7 +2186,7 @@
         "type": "object"
       },
       "LogbookOut": {
-        "description": "A page of completed todos, newest first; pass ``next_cursor`` for the next page.",
+        "description": "A page of the logbook or its activity feed, newest first; pass ``next_cursor`` on.",
         "properties": {
           "next_cursor": {
             "anyOf": [
@@ -7354,6 +7354,85 @@
           }
         },
         "summary": "Create Item",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/items/activity": {
+      "get": {
+        "description": "The logbook's activity feed: todos by when they were last added or changed.",
+        "operationId": "todos_list_activity_items",
+        "parameters": [
+          {
+            "description": "Every todo, or only the open or completed ones.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "description": "Every todo, or only the open or completed ones.",
+              "enum": [
+                "all",
+                "open",
+                "completed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogbookOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "List Activity Items",
         "tags": [
           "todos"
         ]

@@ -665,6 +665,7 @@ that can be enforced in SQL are also CHECK constraints.
 |---|---|---|
 | GET | `/api/todos/items?completed_since=<utc>` | All open todos (including subtasks) plus those completed since the given instant (the frontend passes the start of today) |
 | GET | `/api/todos/items/completed?before=<utc>&limit=50` | The logbook, cursor-paginated |
+| GET | `/api/todos/items/activity?status=all\|open\|completed&cursor=&limit=50` | The logbook's activity feed: live todos by `updated_at` (newest first), cursor-paginated. The client groups them by local day into added, changed and completed (`activity.ts`). |
 | POST | `/api/todos/items` | Optional client `id`, plus `list_id`, `section_id`, `parent_id`. Repeating a POST with the same id and body returns the existing row (idempotent). |
 | PATCH | `/api/todos/items/{id}` | Partial: title, notes, priority, due_date, rrule, repeat_from, tag_ids. An absent field is left unchanged; `null` clears it. Placement changes go through `move`. |
 | POST | `/api/todos/items/{id}/complete` · `/reopen` | The server sets `completed_at` and cascades to subtasks. For a repeating todo, `complete` also returns the inserted next occurrence; `reopen` deletes it again (the client refetches). |
@@ -830,8 +831,8 @@ This is what makes the app feel instant. A single-user todo set is small:
 update patches **one** array, and every view re-derives correctly. Setting a
 due date of today makes the todo appear in Today with no per-view cache
 juggling. If the set ever grows too large, the server already supports
-filtered endpoints. The logbook (older completed todos) is paginated
-separately.
+filtered endpoints. The logbook (older completed todos) and its activity
+feed are paginated separately; every todo mutation invalidates the feed.
 
 ### Optimistic mutation rules
 

@@ -20,6 +20,7 @@ import {
   ListRepository,
   SectionRepository,
   TodoRepository,
+  type ActivityStatus,
   type Area,
   type Fields,
   type Section,
@@ -479,7 +480,7 @@ export interface NewTodo {
   repeatFrom: string;
 }
 
-/** One page of the logbook. */
+/** One page of the logbook (completed todos) or of its activity feed. */
 export interface LogbookPage {
   records: TodoRecord[];
   nextCursor: string | null;
@@ -513,6 +514,17 @@ export class TodoService {
     const last = page.at(-1);
     const nextCursor =
       more && last !== undefined ? `${String(last.completed_at)}|${last.id}` : null;
+    return { records: this.records(page), nextCursor };
+  }
+
+  /** Todos by when they were last added or changed, newest first. */
+  activity(status: ActivityStatus, cursor: string | null, limit: number): LogbookPage {
+    const before = parseCursor(cursor);
+    const rows = this.repos.todos.listActivity(status, before, limit + 1);
+    const page = rows.slice(0, limit);
+    const more = rows.length > limit;
+    const last = page.at(-1);
+    const nextCursor = more && last !== undefined ? `${last.updated_at}|${last.id}` : null;
     return { records: this.records(page), nextCursor };
   }
 
@@ -1043,8 +1055,8 @@ export class TodoService {
 function parseCursor(cursor: string | null): [string, string] | null {
   if (cursor === null) return null;
   const bar = cursor.indexOf("|");
-  const completedAt = bar < 0 ? "" : cursor.slice(0, bar);
+  const at = bar < 0 ? "" : cursor.slice(0, bar);
   const todoId = bar < 0 ? "" : cursor.slice(bar + 1);
-  if (!completedAt || !todoId) throw new ValidationFailed("Invalid logbook cursor.");
-  return [completedAt, todoId];
+  if (!at || !todoId) throw new ValidationFailed("Invalid logbook cursor.");
+  return [at, todoId];
 }

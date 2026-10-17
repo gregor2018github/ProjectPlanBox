@@ -1,5 +1,5 @@
 /** Aliases of the generated backend types for the todos module. */
-import type { components } from "../../core/api/schema";
+import type { components, operations } from "../../core/api/schema";
 
 /** A todo or (with `parent_id`) a subtask; `list_id` null means Inbox. */
 export type Todo = components["schemas"]["TodoOut"];
@@ -47,3 +47,8 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 
 /** The Inbox: no list, no section, no parent. */
 export const INBOX: Placement = { list_id: null, section_id: null, parent_id: null };
+
+/** Which todos the Logbook's activity feed shows. */
+export type ActivityStatus = NonNullable<
+  NonNullable<operations["todos_list_activity_items"]["parameters"]["query"]>["status"]
+>;

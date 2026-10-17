@@ -11,7 +11,15 @@ from planbox.core.clock import to_iso
 from planbox.core.db.deps import ClockDep, ConnectionDep, SettingsDep
 from planbox.core.errors import ValidationFailed
 from planbox.core.tags.deps import TagServiceDep
-from planbox.modules.todos.models import Area, Deletion, Placement, Section, TodoList, TodoRecord
+from planbox.modules.todos.models import (
+    ActivityStatus,
+    Area,
+    Deletion,
+    Placement,
+    Section,
+    TodoList,
+    TodoRecord,
+)
 from planbox.modules.todos.schemas import (
     AreaCreate,
     AreaMove,
@@ -281,6 +289,20 @@ def list_completed_items(
 ) -> LogbookOut:
     """The logbook: completed todos, newest first."""
     page = service.logbook(cursor, limit)
+    return LogbookOut(todos=[_todo(r) for r in page.records], next_cursor=page.next_cursor)
+
+
+@router.get("/items/activity")
+def list_activity_items(
+    service: Todos,
+    status: Annotated[
+        ActivityStatus, Query(description="Every todo, or only the open or completed ones.")
+    ] = "all",
+    cursor: str | None = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> LogbookOut:
+    """The logbook's activity feed: todos by when they were last added or changed."""
+    page = service.activity(status, cursor, limit)
     return LogbookOut(todos=[_todo(r) for r in page.records], next_cursor=page.next_cursor)
 
 

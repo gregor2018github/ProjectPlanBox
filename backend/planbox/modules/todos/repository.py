@@ -5,7 +5,7 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 
 from planbox.core.placement import Positions
-from planbox.modules.todos.models import Area, Section, Todo, TodoList
+from planbox.modules.todos.models import ActivityStatus, Area, Section, Todo, TodoList
 
 _AREA = "id, name, hue, position, created_at, updated_at, deleted_at"
 _LIST = "id, area_id, name, position, created_at, updated_at, deleted_at"
@@ -272,6 +272,32 @@ class TodoRepository:
                 "ORDER BY completed_at DESC, id DESC LIMIT ?",
                 (before[0], before[0], before[1], limit),
             ).fetchall()
+        return [Todo(**dict(r)) for r in rows]
+
+    def list_activity(
+        self, status: ActivityStatus, before: tuple[str, str] | None, limit: int
+    ) -> list[Todo]:
+        """Live todos, most recently added or changed first, before the (updated_at, id) cursor.
+
+        Args:
+            status: ``"open"`` or ``"completed"`` keeps only those; ``"all"`` keeps every one.
+            before: The cursor of the last row already seen, if any.
+            limit: The most rows to return.
+        """
+        where = "deleted_at IS NULL"
+        if status == "open":
+            where += " AND completed_at IS NULL"
+        elif status == "completed":
+            where += " AND completed_at IS NOT NULL"
+        params: list[str | int] = []
+        if before is not None:
+            where += " AND (updated_at < ? OR (updated_at = ? AND id < ?))"
+            params += [before[0], before[0], before[1]]
+        rows = self._conn.execute(
+            f"SELECT {_TODO} FROM todos WHERE {where} "  # noqa: S608
+            "ORDER BY updated_at DESC, id DESC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
         return [Todo(**dict(r)) for r in rows]
 
     def positions(

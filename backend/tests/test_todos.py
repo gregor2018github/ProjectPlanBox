@@ -3,7 +3,17 @@
 from datetime import timedelta
 
 from fastapi.testclient import TestClient
-from todos_helpers import by_id, current, move, ok, section, titles_in_order, todo, todo_list
+from todos_helpers import (
+    Json,
+    by_id,
+    current,
+    move,
+    ok,
+    section,
+    titles_in_order,
+    todo,
+    todo_list,
+)
 
 from planbox.core.clock import FixedClock
 from planbox.core.ids import new_id
@@ -141,6 +151,32 @@ def test_logbook_pages_newest_first(client: TestClient, clock: FixedClock) -> No
     seen = [t["title"] for page in (first, second, third) for t in page["todos"]]
     assert seen == ["T4", "T3", "T2", "T1", "T0"]
     assert third["next_cursor"] is None
+
+
+def test_activity_orders_by_last_change_and_filters(client: TestClient, clock: FixedClock) -> None:
+    """The activity feed lists todos by their latest add or change, open or done."""
+    added: list[Json] = []
+    for name in "ABC":
+        added.append(todo(client, name))
+        clock.advance(timedelta(minutes=1))
+    a, b, c = added
+    ok(client.patch(f"/api/todos/items/{a['id']}", json={"title": "A2"}))
+    clock.advance(timedelta(minutes=1))
+    ok(client.post(f"/api/todos/items/{b['id']}/complete"))
+    gone = todo(client, "Gone")
+    ok(client.delete(f"/api/todos/items/{gone['id']}"))
+
+    def titles(query: str) -> list[str]:
+        return [t["title"] for t in ok(client.get(f"/api/todos/items/activity{query}"))["todos"]]
+
+    assert titles("") == ["B", "A2", "C"]
+    assert titles("?status=open") == ["A2", "C"]
+    assert titles("?status=completed") == ["B"]
+    first = ok(client.get("/api/todos/items/activity?limit=2"))
+    rest = ok(client.get(f"/api/todos/items/activity?limit=2&cursor={first['next_cursor']}"))
+    assert [t["id"] for t in rest["todos"]] == [c["id"]]
+    assert rest["next_cursor"] is None
+    assert client.get("/api/todos/items/activity?status=nope").status_code == 422
 
 
 def test_reorder_within_the_inbox(client: TestClient) -> None:

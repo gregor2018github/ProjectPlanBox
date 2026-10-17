@@ -28,6 +28,7 @@ this file records what was planned, decided and pinned.
 | My order (All todos) | Built 2026-10-14 (owner request) |
 | PlanBox.exe (windows zip) | Built 2026-10-14 (owner request) |
 | My order (Today) | Built 2026-10-16 (owner request) |
+| Logbook activity | Built 2026-10-17 (owner request) |
 | Phone app (Android) and Google Drive sync | Built 2026-10-16 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
@@ -440,6 +441,25 @@ a Pixel 6 on 2026-10-16.
 Deferred to TODO.md: automatic sync, end-to-end encryption of the Drive
 files, a release-signed APK, renaming the phone in sync, exporting a file
 from the phone, phone notifications.
+
+### Logbook activity (owner request, 2026-10-17)
+
+The Logbook gets a switch at the top: **Completed** (as before) or
+**Activity**, every todo on the local day it was last added or changed,
+newest first, with a second switch for **All / Open / Done**. Within a day
+the rows are split into Added, Changed and Completed. Both switches are
+remembered per browser. New endpoint `GET /api/todos/items/activity`
+(twin in the phone app); no migration, no new dependencies.
+
+Decisions:
+- **Built on `created_at`/`updated_at`, not an event log.** Each todo shows
+  once, on the day of its latest change; if it was completed that day it
+  counts as completed, else if it was added that day as added, else as
+  changed. Earlier changes are not kept anywhere, so a todo added Monday
+  and edited Wednesday shows only under Wednesday. A full history needs an
+  event table (TODO.md).
+- **Any write counts as a change,** moves and reorders too, because they
+  bump `updated_at`. Deleted todos are left out (the Trash is elsewhere).
 
 ## Dependencies
 

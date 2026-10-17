@@ -142,6 +142,14 @@ export const todoHandlers: Handlers = {
     const page = todos(ctx).logbook(query.cursor ?? null, query.limit ?? 50);
     return { todos: page.records.map(todoOut), next_cursor: page.nextCursor };
   },
+  todos_list_activity_items: ({ query }, ctx) => {
+    const page = todos(ctx).activity(
+      query.status ?? "all",
+      query.cursor ?? null,
+      query.limit ?? 50,
+    );
+    return { todos: page.records.map(todoOut), next_cursor: page.nextCursor };
+  },
   todos_forecast: ({ query }, ctx) =>
     todos(ctx)
       .forecast(dateDay(query.start), dateDay(query.end))

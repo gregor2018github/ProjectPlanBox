@@ -12,7 +12,7 @@ import { unwrap, type ApiClient } from "../../core/api/client";
 import { useMeta } from "../../core/api/coreQueries";
 import type { CalendarRange } from "../../core/calendar/feed";
 import { startOfDayUtc, todayIn } from "../../core/time";
-import type { Forecast } from "./types";
+import type { ActivityStatus, Forecast } from "./types";
 
 /** Query keys of the todos module. */
 export const todoKeys = {
@@ -22,6 +22,7 @@ export const todoKeys = {
   lists: ["todos", "lists"] as const,
   sections: ["todos", "sections"] as const,
   logbook: ["todos", "logbook"] as const,
+  activity: ["todos", "activity"] as const,
   item: (id: string) => ["todos", "item", id] as const,
   forecasts: ["todos", "forecast"] as const,
   stats: ["todos", "stats"] as const,
@@ -96,6 +97,28 @@ export function logbookQueryOptions(client: ApiClient) {
 /** Subscribes to the logbook. */
 export function useLogbook() {
   return useInfiniteQuery(logbookQueryOptions(useApiClient()));
+}
+
+/** Todos by when they were last added or changed, newest first, loaded page by page. */
+export function activityQueryOptions(client: ApiClient, status: ActivityStatus) {
+  return infiniteQueryOptions({
+    queryKey: [...todoKeys.activity, status] as const,
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) =>
+      unwrap(
+        client.GET("/api/todos/items/activity", {
+          params: {
+            query: { status, limit: 50, ...(pageParam !== null && { cursor: pageParam }) },
+          },
+        }),
+      ),
+    getNextPageParam: (page) => page.next_cursor,
+  });
+}
+
+/** Subscribes to the Logbook's activity feed. */
+export function useActivity(status: ActivityStatus) {
+  return useInfiniteQuery(activityQueryOptions(useApiClient(), status));
 }
 
 /** The later dates of open repeating todos in one range (server-expanded). */

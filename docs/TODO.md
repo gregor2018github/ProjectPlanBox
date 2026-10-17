@@ -81,6 +81,10 @@ rule.
 - [ ] Open Logbook rows in the detail panel. The single-todo GET and the
       read-only panel exist (search uses them); the Logbook rows only need
       to open it.
+- [ ] The Logbook's Activity view shows each todo once, at its latest
+      change. A full history (added Monday, edited Wednesday, what changed)
+      needs a todo event table; the same log would answer "postponed how
+      often" above.
 - [ ] Quick-add for nth weekdays ("every 2nd tue"); the editor has them.
 - [ ] Skip changes the date only when the server answers (only the server
       expands rules). Fine on localhost; make it optimistic if it lags.

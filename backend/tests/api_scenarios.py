@@ -140,6 +140,10 @@ def todos_basics() -> list[Step]:
         req("GET", f"/api/todos/items/{sub2}"),
         req("GET", "/api/todos/items/completed?limit=1"),
         req("GET", "/api/todos/items/completed?cursor=bad"),
+        req("GET", "/api/todos/items/activity?limit=3"),
+        req("GET", "/api/todos/items/activity?status=open"),
+        req("GET", "/api/todos/items/activity?status=completed&limit=1"),
+        req("GET", "/api/todos/items/activity?cursor=bad"),
         req("GET", "/api/todos/stats", advance=86_400 * 3),
     ]
 

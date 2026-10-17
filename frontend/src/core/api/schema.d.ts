@@ -1118,6 +1118,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/items/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Activity Items
+         * @description The logbook's activity feed: todos by when they were last added or changed.
+         */
+        get: operations["todos_list_activity_items"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/todos/items/completed": {
         parameters: {
             query?: never;
@@ -2448,7 +2468,7 @@ export interface components {
         };
         /**
          * LogbookOut
-         * @description A page of completed todos, newest first; pass ``next_cursor`` for the next page.
+         * @description A page of the logbook or its activity feed, newest first; pass ``next_cursor`` on.
          */
         LogbookOut: {
             /** Next Cursor */
@@ -5582,6 +5602,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodoOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_list_activity_items: {
+        parameters: {
+            query?: {
+                /** @description Every todo, or only the open or completed ones. */
+                status?: "all" | "open" | "completed";
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogbookOut"];
                 };
             };
             /** @description Problem details */

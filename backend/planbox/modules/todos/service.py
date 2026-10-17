@@ -30,6 +30,7 @@ from planbox.core.placement import free_position, place
 from planbox.core.recurrence import RecurrenceError
 from planbox.core.tags.service import TagService
 from planbox.modules.todos.models import (
+    ActivityStatus,
     Area,
     Deletion,
     ForecastDate,
@@ -474,7 +475,7 @@ class NewTodo:
 
 @dataclass(frozen=True, slots=True)
 class LogbookPage:
-    """One page of completed todos, newest first."""
+    """One page of the logbook (completed todos) or of the activity feed."""
 
     records: list[TodoRecord]
     next_cursor: str | None
@@ -512,6 +513,23 @@ class TodoService:
         if more and page:
             last = page[-1]
             next_cursor = f"{last.completed_at}|{last.id}"
+        return LogbookPage(self._records(page), next_cursor)
+
+    def activity(self, status: ActivityStatus, cursor: str | None, limit: int) -> LogbookPage:
+        """Todos by when they were last added or changed, newest first.
+
+        Args:
+            status: Keep every todo, or only the open or the completed ones.
+            cursor: The ``next_cursor`` of the previous page, if any.
+            limit: The page size.
+        """
+        before = _parse_cursor(cursor)
+        rows = self._repos.todos.list_activity(status, before, limit + 1)
+        page, more = rows[:limit], len(rows) > limit
+        next_cursor = None
+        if more and page:
+            last = page[-1]
+            next_cursor = f"{last.updated_at}|{last.id}"
         return LogbookPage(self._records(page), next_cursor)
 
     def stats(self, tag_filter: Sequence[str] = ()) -> TodoStats:
@@ -1084,7 +1102,7 @@ def _shifted(day: str | None, shift: timedelta) -> str | None:
 def _parse_cursor(cursor: str | None) -> tuple[str, str] | None:
     if cursor is None:
         return None
-    completed_at, sep, todo_id = cursor.partition("|")
-    if not sep or not completed_at or not todo_id:
+    at, sep, todo_id = cursor.partition("|")
+    if not sep or not at or not todo_id:
         raise ValidationFailed("Invalid logbook cursor.")
-    return completed_at, todo_id
+    return at, todo_id
