@@ -16,6 +16,7 @@ import { useUndo } from "../../core/undo/undoContext";
 import { newId } from "../../core/ids";
 import { useToast } from "../../ui/useToast";
 import { siblingsOf, type CreateTodoVars, type TodoPatch } from "./apply";
+import { inToday } from "./selectors";
 import {
   useCreateTodo,
   useDeleteTodo,
@@ -91,7 +92,7 @@ export function useTodoActions() {
       });
     };
 
-    return {
+    const actions = {
       /**
        * Creates a todo; returns its id immediately (optimistic). It also gets
        * the active filter tags, so it does not vanish from the filtered view.
@@ -218,6 +219,37 @@ export function useTodoActions() {
         });
       },
 
+      /**
+       * Puts a todo in Today (due today) or takes it out: the date is
+       * removed, except that a repeating todo skips to its next date, since
+       * removing the date would stop the repeat. Toasts with Undo, as this
+       * is what a swipe does and a phone has no Ctrl+Z.
+       */
+      toggleToday(t: Todo): void {
+        if (today === null || t.completed_at !== null) return;
+        if (!inToday(t, today)) {
+          const before = t.due_date;
+          updateTodo.mutate({ id: t.id, patch: { due_date: today } });
+          pushUndo({
+            label: `Added “${t.title}” to Today`,
+            undo: () => {
+              updateTodo.mutate({ id: t.id, patch: { due_date: before } });
+            },
+          });
+        } else if (t.rrule !== null) {
+          actions.skip(t);
+        } else {
+          const before = t.due_date;
+          updateTodo.mutate({ id: t.id, patch: { due_date: null } });
+          pushUndo({
+            label: `Removed “${t.title}” from Today`,
+            undo: () => {
+              updateTodo.mutate({ id: t.id, patch: { due_date: before } });
+            },
+          });
+        }
+      },
+
       setPriority(t: Todo, priority: number): void {
         updateTodo.mutate({ id: t.id, patch: { priority } });
       },
@@ -339,6 +371,7 @@ export function useTodoActions() {
         });
       },
     };
+    return actions;
   }, [
     queryClient,
     navigate,

@@ -174,6 +174,7 @@ in `index.html` applies it before first paint. `system` follows
 | `--color-accent-subtle` | `oklch(0.96 0.025 264)` | `oklch(0.30 0.06 264)` | Accent backgrounds (badges, drop indicator halo) |
 | `--color-on-accent` | `oklch(1 0 0)` | `oklch(0.17 0.02 264)` | Text on accent |
 | `--color-danger` | `oklch(0.54 0.20 27)` | `oklch(0.70 0.17 27)` | Overdue, high priority, destructive |
+| `--color-on-danger` | `oklch(1 0 0)` | `oklch(0.17 0.02 27)` | Text on danger (the swipe-to-delete panel) |
 | `--color-warning` | `oklch(0.62 0.14 62)` | `oklch(0.80 0.14 75)` | Medium priority (marks only, ≥ 3:1) |
 | `--color-success` | `oklch(0.60 0.14 155)` | `oklch(0.72 0.14 155)` | Rare: confirmations only |
 | `--color-focus` | `= accent` | `= accent` | 2 px focus ring, 2 px offset |
@@ -200,7 +201,7 @@ only as a `TintDot` (8 px; 12 px by a page title). The hue wheel
 `src/styles/tokens.test.ts` parses `tokens.css`, converts OKLCH to sRGB
 and checks WCAG contrast in both themes, including the tints at every
 whole-degree hue. Text, muted text, accent, danger
-and on-accent must reach ≥ 4.5:1 on every background they are used on,
+on-accent and on-danger must reach ≥ 4.5:1 on every background they are used on,
 including hover and selected rows. Warning, which is only used for marks,
 must reach ≥ 3:1. Changing a colour without passing this test fails the
 build. The first draft's light accent, danger and warning were darkened
@@ -371,7 +372,9 @@ live in `tokens.css`. Do not inline magic numbers.
   `:focus-within` and is always visible on `(pointer: coarse)`. Every row
   action is also in the row's context menu (right-click, or the `⋯` button /
   `.` key). Rows with a `⋯` button do not open the menu on a long-press,
-  which only starts a drag there; rows without one still do.
+  which only starts a drag there; rows without one still do. A swipe
+  (todo rows on touch, `ui/SwipeRow`) is a shortcut only: its actions are
+  in the menu too.
 - **Touch targets:** at least 44 × 44 px on coarse pointers. On fine pointers,
   icon buttons are at least 28 × 28 px visually with a 32 px hit area.
 - **Breakpoints (Tailwind defaults):** `md` 768, `lg` 1024, `xl` 1280. The

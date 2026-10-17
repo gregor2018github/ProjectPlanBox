@@ -33,6 +33,7 @@
   --color-accent-subtle: oklch(0.96 0.025 264);
   --color-on-accent: oklch(1 0 0);
   --color-danger: oklch(0.54 0.2 27);
+  --color-on-danger: oklch(1 0 0);
   --color-warning: oklch(0.62 0.14 62);
   --color-success: oklch(0.6 0.14 155);
   --color-focus: var(--color-accent);
@@ -114,6 +115,7 @@
   --color-accent-subtle: oklch(0.3 0.06 264);
   --color-on-accent: oklch(0.17 0.02 264);
   --color-danger: oklch(0.7 0.17 27);
+  --color-on-danger: oklch(0.17 0.02 27);
   --color-warning: oklch(0.8 0.14 75);
   --color-success: oklch(0.72 0.14 155);
   --color-overlay: oklch(0 0 0 / 0.5);

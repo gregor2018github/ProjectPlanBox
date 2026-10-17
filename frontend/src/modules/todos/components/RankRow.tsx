@@ -6,10 +6,12 @@ import { Checkbox } from "../../../ui/Checkbox";
 import { ContextMenu } from "../../../ui/ContextMenu";
 import { cx } from "../../../ui/cx";
 import { Menu } from "../../../ui/Menu";
+import { SwipeRow } from "../../../ui/SwipeRow";
 import type { MenuEntry } from "../../../ui/menuTypes";
 import { TintDot } from "../../../ui/TintDot";
 import { isOwnControl } from "../rowClick";
 import { todoMenuEntries } from "../todoMenu";
+import { todoSwipeActions } from "../todoSwipe";
 import type { Todo } from "../types";
 import { useTodoUi } from "../uiStore";
 import type { TodoActions } from "../useTodoActions";
@@ -62,92 +64,94 @@ export function RankRow({
   }, [selected]);
 
   return (
-    <ContextMenu entries={entries} longPress={false}>
-      <div
-        ref={ref}
-        data-todo-id={todo.id}
-        aria-current={selected ? "true" : undefined}
-        onClick={(event) => {
-          if (isOwnControl(event.target, event.currentTarget)) return;
-          actions.open(todo);
-        }}
-        className={cx(
-          "group flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors duration-(--duration-fast) ease-out",
-          selected ? "bg-selected" : "hover:bg-hover",
-        )}
-      >
-        {rank !== null && (
-          <span className="w-6 shrink-0 text-right text-sm text-text-muted tabular-nums">
-            {rank}
-          </span>
-        )}
-        <Checkbox
-          checked={done}
-          onCheckedChange={() => {
-            actions.toggleComplete(todo);
+    <SwipeRow {...todoSwipeActions(todo, actions, today)}>
+      <ContextMenu entries={entries} longPress={false}>
+        <div
+          ref={ref}
+          data-todo-id={todo.id}
+          aria-current={selected ? "true" : undefined}
+          onClick={(event) => {
+            if (isOwnControl(event.target, event.currentTarget)) return;
+            actions.open(todo);
           }}
-          label={`${done ? "Reopen" : "Complete"} “${todo.title}”`}
-          tone={todo.priority === 3 ? "danger" : todo.priority === 2 ? "warning" : "default"}
-        />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className={cx("min-w-0 truncate", done && "text-text-muted line-through")}>
-              {todo.title}
+          className={cx(
+            "group flex items-center gap-3 rounded-md px-3 py-1.5 transition-colors duration-(--duration-fast) ease-out",
+            selected ? "bg-selected" : "hover:bg-hover",
+          )}
+        >
+          {rank !== null && (
+            <span className="w-6 shrink-0 text-right text-sm text-text-muted tabular-nums">
+              {rank}
             </span>
-            {parentTitle !== null && (
-              <span className="inline-flex max-w-1/2 shrink-0 items-center gap-1 text-text-muted">
-                <CornerDownRight size={14} strokeWidth={1.75} aria-label="Subtask of" />
-                <span className="truncate">{parentTitle}</span>
+          )}
+          <Checkbox
+            checked={done}
+            onCheckedChange={() => {
+              actions.toggleComplete(todo);
+            }}
+            label={`${done ? "Reopen" : "Complete"} “${todo.title}”`}
+            tone={todo.priority === 3 ? "danger" : todo.priority === 2 ? "warning" : "default"}
+          />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className={cx("min-w-0 truncate", done && "text-text-muted line-through")}>
+                {todo.title}
               </span>
-            )}
-          </span>
-          <span className="flex min-w-0 items-center gap-3 text-sm text-text-muted tabular-nums">
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              {hue !== null && <TintDot hue={hue} />}
-              <span className="truncate">
-                {lookup.listName(todo.list_id)}
-                {section !== null && ` / ${section}`}
-              </span>
-            </span>
-            {todo.due_date !== null && today !== null && (
-              <span className={cx("shrink-0", overdue && "text-danger")}>
-                {formatRelativeDay(todo.due_date, today)}
-              </span>
-            )}
-            {todo.rrule !== null && (
-              <Repeat size={14} strokeWidth={1.75} aria-label="Repeats" className="shrink-0" />
-            )}
-            {todo.priority > 0 && (
-              <span
-                className={cx(
-                  "inline-flex shrink-0 items-center",
-                  todo.priority === 3 && "text-danger",
-                  todo.priority === 2 && "text-warning",
-                )}
-                aria-label={`Priority ${["", "low", "medium", "high"][todo.priority] ?? ""}`}
-              >
-                <Flag size={14} strokeWidth={1.75} aria-hidden fill="currentColor" />
-              </span>
-            )}
-          </span>
-        </span>
-        {trailing}
-        <Menu
-          entries={entries}
-          trigger={
-            <button
-              type="button"
-              aria-label={`Actions for “${todo.title}”`}
-              className={cx(
-                "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-hover hover:text-text group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 coarse:size-11 coarse:opacity-100",
-                selected ? "opacity-100" : "opacity-0",
+              {parentTitle !== null && (
+                <span className="inline-flex max-w-1/2 shrink-0 items-center gap-1 text-text-muted">
+                  <CornerDownRight size={14} strokeWidth={1.75} aria-label="Subtask of" />
+                  <span className="truncate">{parentTitle}</span>
+                </span>
               )}
-            >
-              <MoreHorizontal size={16} strokeWidth={1.75} aria-hidden />
-            </button>
-          }
-        />
-      </div>
-    </ContextMenu>
+            </span>
+            <span className="flex min-w-0 items-center gap-3 text-sm text-text-muted tabular-nums">
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                {hue !== null && <TintDot hue={hue} />}
+                <span className="truncate">
+                  {lookup.listName(todo.list_id)}
+                  {section !== null && ` / ${section}`}
+                </span>
+              </span>
+              {todo.due_date !== null && today !== null && (
+                <span className={cx("shrink-0", overdue && "text-danger")}>
+                  {formatRelativeDay(todo.due_date, today)}
+                </span>
+              )}
+              {todo.rrule !== null && (
+                <Repeat size={14} strokeWidth={1.75} aria-label="Repeats" className="shrink-0" />
+              )}
+              {todo.priority > 0 && (
+                <span
+                  className={cx(
+                    "inline-flex shrink-0 items-center",
+                    todo.priority === 3 && "text-danger",
+                    todo.priority === 2 && "text-warning",
+                  )}
+                  aria-label={`Priority ${["", "low", "medium", "high"][todo.priority] ?? ""}`}
+                >
+                  <Flag size={14} strokeWidth={1.75} aria-hidden fill="currentColor" />
+                </span>
+              )}
+            </span>
+          </span>
+          {trailing}
+          <Menu
+            entries={entries}
+            trigger={
+              <button
+                type="button"
+                aria-label={`Actions for “${todo.title}”`}
+                className={cx(
+                  "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-hover hover:text-text group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 coarse:size-11 coarse:opacity-100",
+                  selected ? "opacity-100" : "opacity-0",
+                )}
+              >
+                <MoreHorizontal size={16} strokeWidth={1.75} aria-hidden />
+              </button>
+            }
+          />
+        </div>
+      </ContextMenu>
+    </SwipeRow>
   );
 }

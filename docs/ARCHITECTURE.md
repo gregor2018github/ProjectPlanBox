@@ -942,6 +942,22 @@ todos, knowledge entries) pass `longPress={false}` to `ContextMenu`, so on
 them a long-press only drags. Elsewhere the same long-press also opens the
 context menu, which closes, and stays shut, once a drag has moved 8 px.
 
+Todo rows (`TodoRow`, `RankRow`) can also be swiped sideways
+(`ui/SwipeRow.tsx`, rules in `ui/swipe.ts`; actions in
+`todos/todoSwipe.ts`). The row follows the finger over a panel naming the
+action, which takes its colour past 30 % of the row's width (64–120 px).
+Letting go there acts, and the row springs back either way. Swiping right
+puts the todo in Today (due today) or takes it out (the date is removed,
+or a repeating todo skips to its next date, since removing its date would
+stop the repeat), with an Undo toast. Swiping left deletes it after the
+touch confirmation. A swipe must go 14 px sideways before the 250 ms hold
+is up. That is past the hold's tolerance, so dnd-kit has already let the
+touch go and a swipe and a drag never both run. Rows are `touch-pan-y`, so
+vertical moves still scroll. The wrapper listens to `touchstart` in the
+capture phase because Base UI's context-menu trigger stops it bubbling.
+Touches near a screen edge belong to Android's back gesture, and a mouse
+never swipes.
+
 ### Todo UI state
 
 Selection, expanded parents, todos "lingering" for 600 ms after completion

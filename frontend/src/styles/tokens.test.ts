@@ -60,6 +60,7 @@ const requirements: [fg: string, min: number, on: string[]][] = [
   ["danger", 4.5, backgrounds], // "overdue" text
   ["warning", 3, ["bg", "surface", "surface-raised", "hover"]], // non-text marks only
   ["on-accent", 4.5, ["accent"]],
+  ["on-danger", 4.5, ["danger"]],
 ];
 
 describe.each([

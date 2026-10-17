@@ -330,7 +330,7 @@ export function rankView(
 }
 
 /** Whether a todo shows in Today (due today or earlier). */
-function inToday(t: Todo, today: IsoDate | null): boolean {
+export function inToday(t: Todo, today: IsoDate | null): boolean {
   return today !== null && t.due_date !== null && t.due_date <= today;
 }
 

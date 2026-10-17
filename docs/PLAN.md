@@ -461,6 +461,25 @@ Decisions:
 - **Any write counts as a change,** moves and reorders too, because they
   bump `updated_at`. Deleted todos are left out (the Trash is elsewhere).
 
+### Swipe todos (owner request, 2026-10-17)
+
+On touch, a todo row can be swiped as in Microsoft To Do: to the right it
+goes into Today, or out of it if it is already there; to the left it is
+deleted. Built on `motion` and touch events, frontend only (no API change,
+so the phone's twin is unaffected); new token `--color-on-danger`. Details
+in ARCHITECTURE §8 (Drag and drop). No new dependencies.
+
+Decisions:
+- **"Out of Today" removes the date,** overdue todos included, except for
+  a repeating todo, which skips to its next date: removing its date would
+  stop the repeat.
+- **The Today swipe toasts with Undo,** unlike the menu's silent date
+  changes: a swipe is easy to trigger by accident and a phone has no
+  Ctrl+Z. The delete swipe goes through the usual touch confirmation.
+- **Touch only, todo rows only** (lists, Today, Upcoming, My order, and
+  subtasks). A done todo can only be swiped to delete. The long-press
+  menu was dropped from these rows on the same day, so a hold only drags.
+
 ## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
