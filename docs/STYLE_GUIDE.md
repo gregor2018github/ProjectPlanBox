@@ -190,12 +190,20 @@ lists have no colours. Areas have one, but only as a **tint** of the accent
 
 **Tints (area colours).** `[data-tint]` with an inline `--tint-hue` (set
 only through `ui/tint.ts`: `tintProps(hue)`, `ViewLayout tint`, `TintDot`)
-redefines `accent`, `accent-hover`, `accent-subtle`, `selected` and `focus`
-(plus `on-accent` in dark) for that subtree. Only the hue varies. Lightness
+redefines `accent`, `accent-hover`, `accent-subtle`, `selected`, `wash` and
+`focus` (plus `on-accent` in dark) for that subtree. Only the hue varies. Lightness
 and chroma are fixed per theme: `oklch(0.50 0.12 h)` light and
 `oklch(0.70 0.12 h)` dark, a little calmer than the default accent.
 Surfaces, text and semantic colours never change. An area's page, its
-lists' pages and its sidebar group are tinted. Elsewhere an area appears
+lists' pages and its sidebar group are tinted.
+
+**Washes.** The one place an area colour is a fill: `bg-wash`, a quiet
+background in the area's hue (`oklch(0.955 0.03 h)` light,
+`oklch(0.235 0.03 h)` dark), on an area's sidebar group (`washProps(hue)`)
+and on the header of its page and its lists' pages (`PageHeader wash`).
+`[data-wash]` steps `hover` and `selected` down from the wash in the same hue
+and darkens the light accent a little, so rows on it keep their states and
+contrast. Elsewhere an area appears
 only as a `TintDot` (8 px; 12 px by a page title). The hue wheel
 (`ui/HueWheel`) draws its ring from `--tint-wheel`.
 

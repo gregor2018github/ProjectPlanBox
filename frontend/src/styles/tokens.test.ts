@@ -51,14 +51,23 @@ function contrast(x: Oklch, y: Oklch): number {
 
 const light = colours(block(tokensCss, "@theme {"));
 const dark = new Map([...light, ...colours(block(tokensCss, '[data-theme="dark"] {'))]);
-const backgrounds = ["bg", "surface", "surface-raised", "sidebar", "stripe", "hover", "selected"];
+const backgrounds = [
+  "bg",
+  "surface",
+  "surface-raised",
+  "sidebar",
+  "stripe",
+  "hover",
+  "selected",
+  "wash",
+];
 
 const requirements: [fg: string, min: number, on: string[]][] = [
   ["text", 4.5, backgrounds],
   ["text-muted", 4.5, backgrounds],
   ["accent", 4.5, backgrounds], // links and accent text
   ["danger", 4.5, backgrounds], // "overdue" text
-  ["warning", 3, ["bg", "surface", "surface-raised", "stripe", "hover"]], // non-text marks only
+  ["warning", 3, ["bg", "surface", "surface-raised", "stripe", "hover", "wash"]], // non-text marks only
   ["on-accent", 4.5, ["accent"]],
   ["on-danger", 4.5, ["danger"]],
 ];
@@ -116,11 +125,18 @@ const darkTints = new Map([
   ...lightTints,
   ...tints(block(tokensCss, '[data-theme="dark"] [data-tint] {')),
 ]);
+const lightWash = new Map([...lightTints, ...tints(block(tokensCss, "[data-wash] {"))]);
+const darkWash = new Map([
+  ...darkTints,
+  ...tints(block(tokensCss, '[data-theme="dark"] [data-wash] {')),
+]);
 
 describe.each([
-  ["light", light, lightTints],
-  ["dark", dark, darkTints],
-])("%s tints", (_, theme, tinted) => {
+  ["light", light, lightTints, false],
+  ["dark", dark, darkTints, false],
+  ["light washed", light, lightWash, true],
+  ["dark washed", dark, darkWash, true],
+])("%s tints", (_, theme, tinted, washed) => {
   // Every whole degree: gamut clipping makes some hues darker or lighter than others.
   const hues = Array.from({ length: 360 }, (__, hue) => hue);
   const at = (name: string, hue: number): Oklch => {
@@ -131,8 +147,8 @@ describe.each([
     return fixed;
   };
   const tintRequirements: [fg: string, min: number, on: string[]][] = [
-    ["text", 4.5, ["selected"]],
-    ["text-muted", 4.5, ["selected"]],
+    ["text", 4.5, ["selected", "hover", "wash"]],
+    ["text-muted", 4.5, ["selected", "hover", "wash"]],
     ["accent", 4.5, backgrounds],
     ["on-accent", 4.5, ["accent"]],
   ];
@@ -148,7 +164,15 @@ describe.each([
 
   it("re-tints the whole accent family", () => {
     expect([...tinted.keys()]).toEqual(
-      expect.arrayContaining(["accent", "accent-hover", "accent-subtle", "selected"]),
+      expect.arrayContaining(["accent", "accent-hover", "accent-subtle", "selected", "wash"]),
     );
+  });
+
+  it.runIf(washed)("keeps hover and selected apart from the wash at every hue", () => {
+    for (const hue of hues) {
+      const wash = at("wash", hue);
+      expect(contrast(at("hover", hue), wash)).toBeGreaterThan(1.04);
+      expect(contrast(at("selected", hue), wash)).toBeGreaterThan(1.08);
+    }
   });
 });

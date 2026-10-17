@@ -6,7 +6,7 @@ import { ContextMenu } from "../../../ui/ContextMenu";
 import { IconButton } from "../../../ui/IconButton";
 import { cx } from "../../../ui/cx";
 import { useDropTarget } from "../../../ui/dnd";
-import { tintProps } from "../../../ui/tint";
+import { washProps } from "../../../ui/tint";
 import { TintDot } from "../../../ui/TintDot";
 import { todoCreate } from "../createStore";
 import { todoPaths } from "../paths";
@@ -27,7 +27,7 @@ export interface AreaNavGroupProps {
 
 /**
  * An area in the sidebar: a collapsible heading (drop lists on it; "+" adds a
- * list to it; right-click for settings) with its lists, tinted in the area's colour.
+ * list to it; right-click for settings) with its lists, on a wash of the area's colour.
  */
 export function AreaNavGroup({
   area,
@@ -46,7 +46,10 @@ export function AreaNavGroup({
   const [settings, setSettings] = useState(false);
 
   return (
-    <div {...tintProps(area.hue)} className="flex flex-col gap-0.5">
+    <div
+      {...washProps(area.hue)}
+      className="flex flex-col gap-0.5 rounded-lg bg-wash p-0.5 transition-colors duration-(--duration-base) ease-out"
+    >
       <ContextMenu
         entries={[
           {

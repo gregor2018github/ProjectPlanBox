@@ -65,6 +65,7 @@ export function ListPage() {
       <PageHeader
         title={list.name}
         subtitle={area?.name}
+        wash={area !== undefined}
         actions={
           <div className="flex items-center gap-1">
             <IconButton

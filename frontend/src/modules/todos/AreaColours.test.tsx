@@ -81,4 +81,34 @@ describe("area colours", () => {
     );
     expect(patch?.body).toEqual({ hue: 155 });
   });
+
+  it("washes the area's sidebar group and its list's header in its colour", async () => {
+    const api = createFakeTodoApi();
+    api.state.areas.push({
+      id: "A",
+      name: "Work",
+      hue: 30,
+      position: "a0",
+      created_at: "",
+      updated_at: "",
+    });
+    api.state.lists.push({
+      id: "L",
+      name: "Reports",
+      area_id: "A",
+      position: "a0",
+      created_at: "",
+      updated_at: "",
+    });
+    open("/todos/lists/L", api);
+
+    const heading = await screen.findByRole("heading", { name: "Reports" });
+    const header = heading.closest("[data-wash]");
+    expect(header?.tagName).toBe("HEADER");
+    expect(tintOf(heading)).toContain("--tint-hue: 30");
+
+    const group = screen.getByRole("link", { name: "Work" }).closest("[data-wash]");
+    expect(group).toHaveAttribute("data-tint");
+    expect(group?.getAttribute("style")).toContain("--tint-hue: 30");
+  });
 });

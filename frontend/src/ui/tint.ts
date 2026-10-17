@@ -15,6 +15,15 @@ export function tintProps(hue: number): TintProps {
   return { "data-tint": "", style: { "--tint-hue": String(normalizeHue(hue)) } as CSSProperties };
 }
 
+/**
+ * Like {@link tintProps}, and also fills the element with the hue's wash
+ * (`bg-wash`): a quiet area-coloured background whose hover and selected
+ * rows step down in the same hue (`[data-wash]` in tokens.css).
+ */
+export function washProps(hue: number): TintProps & { "data-wash": "" } {
+  return { ...tintProps(hue), "data-wash": "" };
+}
+
 /** Wraps any angle into 0–359 whole degrees. */
 export function normalizeHue(degrees: number): number {
   return ((Math.round(degrees) % 360) + 360) % 360;

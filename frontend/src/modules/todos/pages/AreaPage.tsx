@@ -64,6 +64,7 @@ export function AreaPage() {
       <PageHeader
         title={area.name}
         leading={<TintDot hue={area.hue} size="md" />}
+        wash
         actions={
           <div className="flex items-center gap-1">
             <Button variant="secondary" size="sm" onClick={newList}>
