@@ -367,7 +367,9 @@ live in `tokens.css`. Do not inline magic numbers.
   have a single-key shortcut that fires only when focus is not in a text
   field. Shortcuts are shown in tooltips, menus and the `?` overlay.
   Modifier shortcuts use Ctrl (Windows). The registry shows "⌘" on macOS
-  later.
+  later. The phone app has no shortcuts: it does not listen for keys, `Kbd`
+  renders nothing, and key hints, the palette footer and the `?` overview
+  are left out (`IS_DEVICE`).
 - **Never hover-only.** Anything revealed on hover is also revealed on
   `:focus-within` and is always visible on `(pointer: coarse)`. Every row
   action is also in the row's context menu (right-click, or the `⋯` button /

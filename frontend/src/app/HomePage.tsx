@@ -1,5 +1,6 @@
 import { useMeta } from "../core/api/coreQueries";
 import { formatDayLong, todayIn } from "../core/time";
+import { IS_DEVICE } from "../core/platform";
 import { Kbd } from "../ui/Kbd";
 import { greeting, homeSections, hourIn } from "./home";
 import { useModules } from "./modulesContext";
@@ -22,9 +23,11 @@ export function HomePage() {
             {meta ? formatDayLong(todayIn(meta.timezone)) : " "}
           </h1>
         </div>
-        <p className="hidden flex-wrap items-center gap-1.5 text-sm text-text-muted md:flex">
-          <Kbd keys="Ctrl+K" /> commands · <Kbd keys="?" /> shortcuts
-        </p>
+        {!IS_DEVICE && (
+          <p className="hidden flex-wrap items-center gap-1.5 text-sm text-text-muted md:flex">
+            <Kbd keys="Ctrl+K" /> commands · <Kbd keys="?" /> shortcuts
+          </p>
+        )}
       </header>
       <div className="grid items-start gap-4 lg:grid-cols-2">
         {sections.map((module) => module.HomeSection && <module.HomeSection key={module.id} />)}

@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "r
 
 import { Button } from "../../../ui/Button";
 import { Input } from "../../../ui/Input";
+import { IS_DEVICE } from "../../../core/platform";
 import { Kbd } from "../../../ui/Kbd";
 import { PageHeader } from "../../../ui/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../../ui/SegmentedControl";
@@ -121,7 +122,12 @@ export function EntriesView({ scope, title, headerActions }: EntriesViewProps) {
 
       {!data.loading && inScope.length === 0 ? (
         <p className="flex flex-wrap items-center gap-1.5 px-3 py-6 text-base text-text-muted">
-          No notes, links or snippets here yet. Press <Kbd keys="E" /> to add one.
+          No notes, links or snippets here yet.
+          {!IS_DEVICE && (
+            <>
+              Press <Kbd keys="E" /> to add one.
+            </>
+          )}
         </p>
       ) : (
         <>

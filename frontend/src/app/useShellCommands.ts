@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import { useCommands } from "../core/commands/commandsContext";
 import type { Command } from "../core/commands/registry";
+import { IS_DEVICE } from "../core/platform";
 import { useShortcut } from "../core/shortcuts/useShortcut";
 import { useTheme } from "../core/theme/useTheme";
 import { DATA_PATH, INSIGHTS_PATH } from "./paths";
@@ -88,14 +89,18 @@ export function useShellCommands(actions: ShellActions): void {
         shortcut: "[",
         run: toggleSidebar,
       },
-      {
-        id: "shell.shortcuts",
-        title: "Show keyboard shortcuts",
-        group: "General",
-        keywords: ["keys", "help", "hotkeys"],
-        shortcut: "?",
-        run: showShortcuts,
-      },
+      ...(IS_DEVICE
+        ? []
+        : [
+            {
+              id: "shell.shortcuts",
+              title: "Show keyboard shortcuts",
+              group: "General",
+              keywords: ["keys", "help", "hotkeys"],
+              shortcut: "?",
+              run: showShortcuts,
+            },
+          ]),
       {
         id: "shell.home",
         title: "Go to Home",

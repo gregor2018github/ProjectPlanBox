@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { cx } from "../../ui/cx";
 import { Dialog } from "../../ui/Dialog";
 import { Kbd } from "../../ui/Kbd";
+import { IS_DEVICE } from "../platform";
 import { entityTypeOf } from "../links/linkables";
 import { useLinkableSources } from "../links/linkablesContext";
 import { SearchHitContent } from "../search/SearchHitContent";
@@ -183,18 +184,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </li>
         )}
       </ul>
-      <div className="flex items-center gap-4 border-t border-border px-5 py-2 text-xs text-text-muted">
-        <span className="flex items-center gap-1">
-          <Kbd keys="Up" />
-          <Kbd keys="Down" /> to move
-        </span>
-        <span className="flex items-center gap-1">
-          <Kbd keys="Enter" /> to run or open
-        </span>
-        <span className="flex items-center gap-1">
-          <Kbd keys="Esc" /> to close
-        </span>
-      </div>
+      {!IS_DEVICE && (
+        <div className="flex items-center gap-4 border-t border-border px-5 py-2 text-xs text-text-muted">
+          <span className="flex items-center gap-1">
+            <Kbd keys="Up" />
+            <Kbd keys="Down" /> to move
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd keys="Enter" /> to run or open
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd keys="Esc" /> to close
+          </span>
+        </div>
+      )}
     </Dialog>
   );
 }

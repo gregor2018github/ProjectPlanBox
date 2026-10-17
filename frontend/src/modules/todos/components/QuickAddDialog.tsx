@@ -1,6 +1,7 @@
 import { useRef, useState, type SubmitEvent } from "react";
 
 import { Dialog } from "../../../ui/Dialog";
+import { IS_DEVICE } from "../../../core/platform";
 import { Kbd } from "../../../ui/Kbd";
 import { parseQuickAdd } from "../quickAddParser";
 import type { Placement } from "../types";
@@ -88,9 +89,11 @@ export function QuickAddDialog({
         )}
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-text-muted">
           <span>Adds to {target}</span>
-          <span className="flex items-center gap-1">
-            <Kbd keys="Enter" /> to add
-          </span>
+          {!IS_DEVICE && (
+            <span className="flex items-center gap-1">
+              <Kbd keys="Enter" /> to add
+            </span>
+          )}
         </div>
       </form>
     </Dialog>

@@ -7,6 +7,7 @@ import { CommandPalette } from "../core/commands/CommandPalette";
 import { ConfirmDeleteDialog } from "../core/confirm/ConfirmDeleteDialog";
 import { useRecordAppOpen } from "../core/insights/insightsQueries";
 import { useThemeSync } from "../core/theme/useThemeSync";
+import { IS_DEVICE } from "../core/platform";
 import { ShortcutsDialog } from "../core/shortcuts/ShortcutsDialog";
 import { DESKTOP_QUERY, PANE_INLINE_QUERY, useMediaQuery } from "../core/useMediaQuery";
 import { DndRoot } from "../ui/DndRoot";
@@ -185,7 +186,7 @@ export function AppShell() {
             ),
         )}
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-        <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        {!IS_DEVICE && <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />}
         <ConfirmDeleteDialog />
         <ShutdownDialog open={shutdownOpen} onOpenChange={setShutdownOpen} onStopped={stop} />
         <Toaster />

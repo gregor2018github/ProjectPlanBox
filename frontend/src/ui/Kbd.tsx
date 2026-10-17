@@ -1,3 +1,4 @@
+import { IS_DEVICE } from "../core/platform";
 import { formatKeys } from "../core/shortcuts/keys";
 import { cx } from "./cx";
 
@@ -8,8 +9,12 @@ export interface KbdProps {
   className?: string;
 }
 
-/** Shows a shortcut as key caps; sequences are joined with "then". */
+/**
+ * Shows a shortcut as key caps; sequences are joined with "then". Renders
+ * nothing in the phone app, which has no keyboard shortcuts.
+ */
 export function Kbd({ keys, className }: KbdProps) {
+  if (IS_DEVICE) return null;
   const chords = formatKeys(keys);
   return (
     <span className={cx("inline-flex items-center gap-1 text-xs text-text-muted", className)}>
