@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DRAG_SOURCE_ATTR, installTouchHoldGuard } from "./touchHold";
+import { DRAG_SOURCE_ATTR, installTouchHoldGuard, isTouchOpen } from "./touchHold";
 
 /** A cancelable touch event at one point (jsdom has no Touch constructor). */
 function touch(type: string, target: Element, at: { x: number; y: number }, time: number) {
@@ -51,5 +51,18 @@ describe("installTouchHoldGuard", () => {
   it("leaves touches elsewhere alone", () => {
     touch("touchstart", plain, { x: 100, y: 100 }, 0);
     expect(touch("touchmove", plain, { x: 102, y: 102 }, 50).defaultPrevented).toBe(false);
+  });
+});
+
+describe("isTouchOpen", () => {
+  it("knows Base UI's long-press timer and a touch contextmenu", () => {
+    expect(isTouchOpen(new Event("touchstart"))).toBe(true);
+    expect(isTouchOpen(new PointerEvent("contextmenu", { pointerType: "touch" }))).toBe(true);
+  });
+
+  it("leaves a mouse right-click and a missing event alone", () => {
+    expect(isTouchOpen(new PointerEvent("contextmenu", { pointerType: "mouse" }))).toBe(false);
+    expect(isTouchOpen(new MouseEvent("contextmenu"))).toBe(false);
+    expect(isTouchOpen(undefined)).toBe(false);
   });
 });

@@ -62,7 +62,7 @@ export function RankRow({
   }, [selected]);
 
   return (
-    <ContextMenu entries={entries}>
+    <ContextMenu entries={entries} longPress={false}>
       <div
         ref={ref}
         data-todo-id={todo.id}

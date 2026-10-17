@@ -51,8 +51,9 @@ export interface DndRootProps {
  * button. Keyboard users reorder with Alt+↑/↓ and "Move to…" instead.
  * The pointer sensor is configured so rows that are links can be dragged,
  * and a touch guard keeps the browser from scrolling during the hold.
- * On touch the same long-press starts a drag and opens the row's context
- * menu; once the drag moves, {@link useDragMoving} closes that menu.
+ * On touch the same long-press starts a drag and, on rows without a ⋯
+ * button, opens the row's context menu; once the drag moves,
+ * {@link useDragMoving} closes that menu.
  */
 export function DndRoot({ children }: DndRootProps) {
   useEffect(() => installTouchHoldGuard(), []);

@@ -54,7 +54,7 @@ export function EntryRow({
   ].filter((part): part is string => part !== null && part !== "");
 
   return (
-    <ContextMenu entries={menu}>
+    <ContextMenu entries={menu} longPress={false}>
       <div
         className={cx(
           "group flex items-start gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) ease-out",

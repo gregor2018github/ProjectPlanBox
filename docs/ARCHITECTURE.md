@@ -937,8 +937,10 @@ is less than a resting finger drifts). Android's WebView would claim the
 touch for scrolling after about 8 dp and cancel the pointer, so
 `ui/touchHold.ts` holds back the browser's default while a finger rests on
 a drag source (marked by the `ui/dnd` hooks); a swipe strays further at
-once and scrolls as usual. The same long-press opens the row's context
-menu, so `ContextMenu` closes, and stays shut, once a drag has moved 8 px.
+once and scrolls as usual. Rows with their own `⋯` button (todos, ranked
+todos, knowledge entries) pass `longPress={false}` to `ContextMenu`, so on
+them a long-press only drags. Elsewhere the same long-press also opens the
+context menu, which closes, and stays shut, once a drag has moved 8 px.
 
 ### Todo UI state
 

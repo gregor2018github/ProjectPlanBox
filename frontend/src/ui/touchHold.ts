@@ -18,6 +18,22 @@ export const TOUCH_HOLD = { value: 250, tolerance: 12 };
 export const DRAG_SOURCE_ATTR = "data-drag-source";
 
 /**
+ * Whether the event that asks a context menu to open came from a finger:
+ * Base UI's own long-press timer (a touch event) or the browser's
+ * long-press `contextmenu` (a touch pointer event).
+ *
+ * @param event The event behind the open request.
+ * @returns True for a touch long-press.
+ */
+export function isTouchOpen(event: Event | undefined): boolean {
+  if (event === undefined) return false;
+  if (event.type.startsWith("touch")) return true;
+  return typeof PointerEvent !== "undefined" && event instanceof PointerEvent
+    ? event.pointerType === "touch"
+    : false;
+}
+
+/**
  * Installs the guard on `target` (the document).
  *
  * @returns A function that removes it.

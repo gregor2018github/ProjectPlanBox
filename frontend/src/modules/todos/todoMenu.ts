@@ -18,7 +18,7 @@ import type { MenuEntry } from "../../ui/menuTypes";
 import { PRIORITY_LABELS, type Priority, type Todo } from "./types";
 import type { TodoActions } from "./useTodoActions";
 
-/** The actions offered for a todo (row ⋯ button, right-click, long-press). */
+/** The actions offered for a todo (row ⋯ button, right-click). */
 export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
   const dates = actions.quickDates();
   const done = todo.completed_at !== null;

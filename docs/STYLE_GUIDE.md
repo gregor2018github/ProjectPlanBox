@@ -369,8 +369,9 @@ live in `tokens.css`. Do not inline magic numbers.
   later.
 - **Never hover-only.** Anything revealed on hover is also revealed on
   `:focus-within` and is always visible on `(pointer: coarse)`. Every row
-  action is also in the row's context menu (right-click, long-press, or the
-  `⋯` button / `.` key).
+  action is also in the row's context menu (right-click, or the `⋯` button /
+  `.` key). Rows with a `⋯` button do not open the menu on a long-press,
+  which only starts a drag there; rows without one still do.
 - **Touch targets:** at least 44 × 44 px on coarse pointers. On fine pointers,
   icon buttons are at least 28 × 28 px visually with a 32 px hit area.
 - **Breakpoints (Tailwind defaults):** `md` 768, `lg` 1024, `xl` 1280. The
