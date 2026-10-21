@@ -20,7 +20,7 @@ def test_health_reports_ok_and_creates_the_database(client: TestClient, settings
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["version"] == "0.2.2"
+    assert body["version"] == "0.2.3"
     assert isinstance(body["schema_versions"], dict)
     assert settings.db_path.is_file()
 
