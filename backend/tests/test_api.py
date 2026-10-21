@@ -30,7 +30,7 @@ def test_meta_exposes_timezone_and_week_start(client: TestClient) -> None:
     body = client.get("/api/meta").json()
 
     assert body == {
-        "version": "0.2.2",
+        "version": "0.2.3",
         "mode": "test",
         "timezone": "Europe/Amsterdam",
         "week_starts_on": 1,
