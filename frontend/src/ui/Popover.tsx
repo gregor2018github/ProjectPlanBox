@@ -15,6 +15,8 @@ export interface PopoverProps {
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
   initialFocus?: RefObject<HTMLElement | null>;
+  /** Where focus goes on close (default: back to the trigger). */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
   /** Layout only (e.g. a width). */
   className?: string;
   children: ReactNode;
@@ -29,6 +31,7 @@ export function Popover({
   side = "bottom",
   align = "start",
   initialFocus,
+  finalFocus,
   className,
   children,
 }: PopoverProps) {
@@ -51,6 +54,7 @@ export function Popover({
           <BasePopover.Popup
             aria-label={label}
             {...(initialFocus && { initialFocus })}
+            {...(finalFocus && { finalFocus })}
             className={cx(
               "max-h-(--available-height) overflow-auto rounded-lg bg-surface-raised text-text shadow-md outline-none transition-[opacity,transform] duration-(--duration-base) ease-out data-[ending-style]:opacity-0 data-[ending-style]:duration-(--duration-exit) data-[starting-style]:scale-97 data-[starting-style]:opacity-0 dark:inset-ring dark:inset-ring-border",
               className,

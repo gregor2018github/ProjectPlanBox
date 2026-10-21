@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import type { RefObject } from "react";
 
 import { formatRelativeDay, type IsoDate } from "../../../core/time";
 import { Button } from "../../../ui/Button";
@@ -24,6 +25,8 @@ export interface DueDatePickerProps {
   label?: string;
   /** Layout only (e.g. revealing an empty compact trigger on hover). */
   className?: string | undefined;
+  /** Where focus goes on close (default: back to the trigger). */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 }
 
 /** A button showing the due date; opens quick picks and a month grid. */
@@ -37,6 +40,7 @@ export function DueDatePicker({
   compact = false,
   label = "Add date",
   className,
+  finalFocus,
 }: DueDatePickerProps) {
   const dates = actions.quickDates();
   const pick = (date: IsoDate | null) => {
@@ -58,6 +62,7 @@ export function DueDatePicker({
       open={open}
       onOpenChange={onOpenChange}
       label="Due date"
+      finalFocus={finalFocus}
       trigger={
         compact ? (
           <Button

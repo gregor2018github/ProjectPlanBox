@@ -1,5 +1,5 @@
 import { Tag as TagIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 
 import { newTagVars, useCreateTag, type Tag } from "./tagQueries";
 import { Button } from "../../ui/Button";
@@ -14,6 +14,10 @@ export interface TagPickerProps {
   /** Controlled opening (e.g. by the L shortcut); uncontrolled when absent. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** A small trigger: only the icon without tags, the count with some. */
+  compact?: boolean;
+  /** Where focus goes on close (default: back to the trigger). */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 }
 
 /** Toggle tags on an item; typing a new name and pressing Enter creates it. */
@@ -23,6 +27,8 @@ export function TagPicker({
   onChange,
   open: openProp,
   onOpenChange,
+  compact = false,
+  finalFocus,
 }: TagPickerProps) {
   const [openLocal, setOpenLocal] = useState(false);
   const open = openProp ?? openLocal;
@@ -33,6 +39,7 @@ export function TagPicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const createTag = useCreateTag();
 
+  const names = tags.filter((t) => selected.includes(t.id)).map((t) => t.name);
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter((t) => t !== id) : [...selected, id]);
   };
@@ -43,13 +50,25 @@ export function TagPicker({
       onOpenChange={setOpen}
       label="Tags"
       initialFocus={inputRef}
+      finalFocus={finalFocus}
       trigger={
-        <Button size="sm" className={selected.length === 0 ? "text-text-muted" : undefined}>
-          <TagIcon size={16} strokeWidth={1.75} aria-hidden />
-          {selected.length === 0
-            ? "Add tags"
-            : `${selected.length} tag${selected.length === 1 ? "" : "s"}`}
-        </Button>
+        compact ? (
+          <Button
+            size="sm"
+            aria-label={names.length === 0 ? "Add tags" : `Tags: ${names.join(", ")}`}
+            className="px-1.5 font-normal text-text-muted"
+          >
+            <TagIcon size={14} strokeWidth={1.75} aria-hidden />
+            {names.length > 0 && names.join(", ")}
+          </Button>
+        ) : (
+          <Button size="sm" className={selected.length === 0 ? "text-text-muted" : undefined}>
+            <TagIcon size={16} strokeWidth={1.75} aria-hidden />
+            {selected.length === 0
+              ? "Add tags"
+              : `${selected.length} tag${selected.length === 1 ? "" : "s"}`}
+          </Button>
+        )
       }
     >
       <PickerList

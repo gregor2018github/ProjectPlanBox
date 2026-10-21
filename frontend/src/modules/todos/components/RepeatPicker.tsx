@@ -1,5 +1,5 @@
 import { Repeat as RepeatIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 
 import { useMeta } from "../../../core/api/coreQueries";
 import { RecurrenceFields } from "../../../core/recurrence/RecurrenceFields";
@@ -19,11 +19,20 @@ import type { RepeatFrom, Todo } from "../types";
 
 /** Props for {@link RepeatPicker}. */
 export interface RepeatPickerProps {
-  todo: Todo;
+  /** A todo, or the draft of a new one. */
+  todo: RepeatSource;
   today: IsoDate;
   /** Called on close when the repeat changed (rule null: stop repeating). */
   onChange: (rrule: string | null, repeatFrom: RepeatFrom) => void;
+  /** A small trigger: only the icon without a repeat. */
+  compact?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Where focus goes on close (default: back to the trigger). */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 }
+
+/** The parts of a todo the repeat editor reads. */
+export type RepeatSource = Pick<Todo, "rrule" | "repeat_from" | "recurrence_anchor" | "due_date">;
 
 /** "After completion" has no fixed days: only every N days/weeks/months/years. */
 function plainSpec(spec: RecurrenceSpec): RecurrenceSpec {
@@ -31,7 +40,7 @@ function plainSpec(spec: RecurrenceSpec): RecurrenceSpec {
 }
 
 /** The words for a todo's repeat, e.g. "Every 3 days after completion". */
-function describeTodoRepeat(todo: Todo, timeZone: string): string {
+function describeTodoRepeat(todo: RepeatSource, timeZone: string): string {
   if (todo.rrule === null) return "Repeat";
   const anchor = todo.recurrence_anchor ?? todo.due_date ?? "";
   return describeRule(todo.rrule, anchor, timeZone, todo.repeat_from === "completion");
@@ -44,7 +53,14 @@ function describeTodoRepeat(todo: Todo, timeZone: string): string {
  * counted from when the todo was done. Changes are saved when the popover
  * closes.
  */
-export function RepeatPicker({ todo, today, onChange }: RepeatPickerProps) {
+export function RepeatPicker({
+  todo,
+  today,
+  onChange,
+  compact = false,
+  onOpenChange,
+  finalFocus,
+}: RepeatPickerProps) {
   const timeZone = useMeta().data?.timezone ?? "UTC";
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Repeat>({ kind: "none" });
@@ -72,6 +88,7 @@ export function RepeatPicker({ todo, today, onChange }: RepeatPickerProps) {
       }
     }
     setOpen(next);
+    onOpenChange?.(next);
   };
 
   const draftRule = ruleOf(draft, start);
@@ -82,11 +99,23 @@ export function RepeatPicker({ todo, today, onChange }: RepeatPickerProps) {
       onOpenChange={openChange}
       label="Repeat"
       className="w-80"
+      finalFocus={finalFocus}
       trigger={
-        <Button size="sm" className={cx(todo.rrule === null && "text-text-muted")}>
-          <RepeatIcon size={16} strokeWidth={1.75} aria-hidden />
-          {describeTodoRepeat(todo, timeZone)}
-        </Button>
+        compact ? (
+          <Button
+            size="sm"
+            aria-label={describeTodoRepeat(todo, timeZone)}
+            className="px-1.5 font-normal text-text-muted"
+          >
+            <RepeatIcon size={14} strokeWidth={1.75} aria-hidden />
+            {todo.rrule !== null && describeTodoRepeat(todo, timeZone)}
+          </Button>
+        ) : (
+          <Button size="sm" className={cx(todo.rrule === null && "text-text-muted")}>
+            <RepeatIcon size={16} strokeWidth={1.75} aria-hidden />
+            {describeTodoRepeat(todo, timeZone)}
+          </Button>
+        )
       }
     >
       <div className="flex flex-col gap-3 p-3">

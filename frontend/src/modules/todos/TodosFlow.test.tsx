@@ -436,6 +436,57 @@ describe("todos", () => {
     });
   });
 
+  it("picks a date, priority and tags with the buttons under a new todo", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(document, "hasFocus").mockReturnValue(true);
+    const tag = {
+      id: "01a11c71-6563-773d-8602-c5617ab6aa45",
+      name: "work",
+      created_at: "2026-10-01T08:00:00.000Z",
+      updated_at: "2026-10-01T08:00:00.000Z",
+    };
+    const api = open("/todos/inbox", createFakeTodoApi({ tags: [tag] }));
+
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    const field = screen.getByRole("textbox", { name: "New todo" });
+    await user.type(field, "Write report");
+
+    // Using the pickers is not "done typing": nothing is added yet.
+    await user.click(screen.getByRole("button", { name: "Add date" }));
+    await user.click(await screen.findByRole("button", { name: "Tomorrow" }));
+    await user.click(screen.getByRole("button", { name: "Priority" }));
+    await user.click(await screen.findByRole("menuitem", { name: "High" }));
+    await user.click(screen.getByRole("button", { name: "Add tags" }));
+    await user.click(await screen.findByRole("option", { name: "work" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("button", { name: "Priority: High" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tags: work" })).toBeInTheDocument();
+    expect(
+      api.state.requests.filter((r) => r.method === "POST" && r.path === "/api/todos/items"),
+    ).toHaveLength(0);
+
+    await waitFor(() => {
+      expect(field).toHaveFocus();
+    });
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(rowTitles("Inbox")).toEqual(["Write report"]);
+    });
+    const post = api.state.requests.find(
+      (r) => r.method === "POST" && r.path === "/api/todos/items",
+    );
+    expect(post?.body).toMatchObject({
+      title: "Write report",
+      due_date: "2026-10-09",
+      priority: 3,
+      tag_ids: [tag.id],
+    });
+    // The next todo starts fresh.
+    expect(screen.getByRole("button", { name: "Priority" })).toBeInTheDocument();
+  });
+
   it("adds the typed todo when the field loses focus, and ✕ discards", async () => {
     const user = userEvent.setup();
     // jsdom reports no focus once the field blurs to the body; a browser

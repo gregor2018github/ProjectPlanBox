@@ -38,6 +38,9 @@ phone can also use a running PC over the home network or Tailscale.
     `every 1st and 15th`, `every last day`. Add `after done` to a plain
     interval (`every 4 weeks after done`) to count the next date from when
     you finish it.
+- Under a new todo's field (the **Add todo** row and **Q**), small date,
+  repeat, priority and tag buttons set those while you type. Leave them
+  alone for the defaults; anything typed with the syntax above wins.
 
   **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
 - **Data** (bottom of the sidebar, **G D**): the backups, the off-site

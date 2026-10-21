@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from "@base-ui/react/menu";
-import type { ReactElement } from "react";
+import type { ReactElement, RefObject } from "react";
 
 import { MenuEntries } from "./MenuEntries";
 import { safeCollisionPadding } from "./safeArea";
@@ -17,10 +17,19 @@ export interface MenuProps {
   align?: "start" | "center" | "end";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Where focus goes on close (default: back to the trigger). */
+  finalFocus?: RefObject<HTMLElement | null> | undefined;
 }
 
 /** A dropdown menu of actions, fully keyboard operable. */
-export function Menu({ trigger, entries, align = "end", open, onOpenChange }: MenuProps) {
+export function Menu({
+  trigger,
+  entries,
+  align = "end",
+  open,
+  onOpenChange,
+  finalFocus,
+}: MenuProps) {
   return (
     <BaseMenu.Root
       {...(open !== undefined && { open })}
@@ -38,7 +47,7 @@ export function Menu({ trigger, entries, align = "end", open, onOpenChange }: Me
           collisionPadding={safeCollisionPadding()}
           className="z-50"
         >
-          <BaseMenu.Popup className={MENU_POPUP_CLASS}>
+          <BaseMenu.Popup className={MENU_POPUP_CLASS} {...(finalFocus && { finalFocus })}>
             <MenuEntries entries={entries} />
           </BaseMenu.Popup>
         </BaseMenu.Positioner>

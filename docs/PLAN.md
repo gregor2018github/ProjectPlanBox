@@ -480,6 +480,24 @@ Decisions:
   subtasks). A done todo can only be swiped to delete. The long-press
   menu was dropped from these rows on the same day, so a hold only drags.
 
+### Options while adding a todo (owner request, 2026-10-21)
+
+The inline **Add todo** field and the quick-add dialog get a row of small
+date, repeat, priority and tag buttons under the text, reusing the detail
+panel's pickers in a compact form (only an icon until something is
+picked). Frontend only: the create call already takes all four, so no API
+or twin change. No new dependencies.
+
+Decisions:
+- **Typed syntax wins over a picked value; tags add up.** A picked repeat
+  without a date starts on its first date from today (the server's rule),
+  not on the view's default date, matching a typed `every …`.
+- **Using a picker is not "done typing":** the inline field only adds on
+  blur when focus leaves the field, its buttons and their popups, and
+  closing a picker returns focus to the field so Enter adds.
+- **Each new todo starts fresh:** Enter clears the picked options with the
+  text. A tag created in the picker exists even if the todo is discarded.
+
 ## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions

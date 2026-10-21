@@ -3,10 +3,12 @@ import { useRef, useState, type SubmitEvent } from "react";
 import { Dialog } from "../../../ui/Dialog";
 import { IS_DEVICE } from "../../../core/platform";
 import { Kbd } from "../../../ui/Kbd";
+import { newTodoFields, NO_OPTIONS, type NewTodoOptions } from "../newTodoOptions";
 import { parseQuickAdd } from "../quickAddParser";
 import type { Placement } from "../types";
 import type { TodoActions } from "../useTodoActions";
 import type { TodoData } from "../useTodoData";
+import { NewTodoOptionsBar } from "./NewTodoOptionsBar";
 import { ParsedChips } from "./ParsedChips";
 
 /** Props for {@link QuickAddDialog}. */
@@ -34,12 +36,16 @@ export function QuickAddDialog({
   targetLabel,
 }: QuickAddDialogProps) {
   const [text, setText] = useState("");
+  const [options, setOptions] = useState<NewTodoOptions>(NO_OPTIONS);
   const inputRef = useRef<HTMLInputElement>(null);
   const parsed = data.parseContext ? parseQuickAdd(text, data.parseContext) : null;
   const isSubtask = placement.parent_id !== null;
 
   const close = (next: boolean) => {
-    if (!next) setText("");
+    if (!next) {
+      setText("");
+      setOptions(NO_OPTIONS);
+    }
     onOpenChange(next);
   };
 
@@ -48,13 +54,7 @@ export function QuickAddDialog({
     if (parsed === null || parsed.title === "") return;
     actions.create({
       ...(parsed.place && !isSubtask ? { ...parsed.place, parent_id: null } : placement),
-      title: parsed.title,
-      due_date: parsed.due_date ?? defaultDue,
-      priority: parsed.priority ?? 0,
-      tag_ids: parsed.tag_ids,
-      new_tags: parsed.new_tags,
-      ...(parsed.rrule !== null &&
-        !isSubtask && { rrule: parsed.rrule, repeat_from: parsed.repeat_from }),
+      ...newTodoFields(parsed, options, defaultDue, !isSubtask),
     });
     close(false);
   };
@@ -84,6 +84,17 @@ export function QuickAddDialog({
           }}
           className="h-10 w-full bg-transparent text-lg text-text outline-none placeholder:text-text-subtle"
         />
+        {data.today !== null && (
+          <NewTodoOptionsBar
+            value={options}
+            onChange={setOptions}
+            today={data.today}
+            tags={data.tags}
+            actions={actions}
+            canRepeat={!isSubtask}
+            field={inputRef}
+          />
+        )}
         {parsed && parsed.tokens.length > 0 && (
           <ParsedChips tokens={parsed.tokens} today={data.today} />
         )}

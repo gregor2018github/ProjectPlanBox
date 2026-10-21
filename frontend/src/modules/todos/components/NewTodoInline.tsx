@@ -3,10 +3,12 @@ import { useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 
 import { IconButton } from "../../../ui/IconButton";
 import { Input } from "../../../ui/Input";
+import { newTodoFields, NO_OPTIONS, type NewTodoOptions } from "../newTodoOptions";
 import { parseQuickAdd } from "../quickAddParser";
 import type { Placement } from "../types";
 import type { TodoActions } from "../useTodoActions";
 import type { TodoData } from "../useTodoData";
+import { NewTodoOptionsBar } from "./NewTodoOptionsBar";
 import { ParsedChips } from "./ParsedChips";
 
 /** Props for {@link NewTodoInline}. */
@@ -22,7 +24,8 @@ export interface NewTodoInlineProps {
 /**
  * "+ Add todo" at the end of a group. Enter adds and keeps the field open for
  * the next one; clicking or tabbing away adds and closes. Esc or the ✕
- * button discards. Understands the quick-add syntax.
+ * button discards. Understands the quick-add syntax, and has buttons for the
+ * date, repeat, priority and tags.
  */
 export function NewTodoInline({
   placement,
@@ -33,8 +36,11 @@ export function NewTodoInline({
 }: NewTodoInlineProps) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const [options, setOptions] = useState<NewTodoOptions>(NO_OPTIONS);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  // While a picker is open, focus is in its popup (outside the box) on purpose.
+  const pickerOpen = useRef(false);
   const parsed = data.parseContext ? parseQuickAdd(text, data.parseContext) : null;
 
   /** Adds the typed todo; returns whether there was one to add. */
@@ -42,31 +48,31 @@ export function NewTodoInline({
     if (parsed === null || parsed.title === "") return false;
     actions.create({
       ...(parsed.place ? { ...placement, ...parsed.place } : placement),
-      title: parsed.title,
-      due_date: parsed.due_date ?? defaults?.due_date ?? null,
-      priority: parsed.priority ?? 0,
-      tag_ids: parsed.tag_ids,
-      new_tags: parsed.new_tags,
-      ...(parsed.rrule !== null &&
-        placement.parent_id === null && { rrule: parsed.rrule, repeat_from: parsed.repeat_from }),
+      ...newTodoFields(parsed, options, defaults?.due_date ?? null, placement.parent_id === null),
     });
     setText("");
+    setOptions(NO_OPTIONS);
     return true;
   };
 
   const cancel = () => {
     setText("");
+    setOptions(NO_OPTIONS);
+    pickerOpen.current = false;
     setEditing(false);
   };
 
-  const onBlur = (event: FocusEvent<HTMLInputElement>) => {
-    // Moving to the ✕ button is not "done typing"; its click discards instead.
-    if (event.relatedTarget !== null && event.relatedTarget === cancelRef.current) return;
+  // On the box, so it also hears blurs from the option buttons and pickers.
+  const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (pickerOpen.current) return;
+    // Moving to an option or the ✕ button is not "done typing"; ✕ discards instead.
+    const next = event.relatedTarget;
+    if (next instanceof Node && boxRef.current?.contains(next)) return;
     // Switching to another window keeps the draft; focus comes back to it.
     if (!document.hasFocus()) return;
     // Leaving the field counts as Enter. Text that is only quick-add tokens
     // (no title yet) stays open, as Enter would.
-    if (text.trim() === "" || submit()) setEditing(false);
+    if (text.trim() === "" || submit()) cancel();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -95,7 +101,11 @@ export function NewTodoInline({
   }
 
   return (
-    <div className="flex flex-col gap-1 rounded-md bg-surface px-3 py-1.5 shadow-sm dark:inset-ring dark:inset-ring-border">
+    <div
+      ref={boxRef}
+      onBlur={onBlur}
+      className="flex flex-col gap-1 rounded-md bg-surface px-3 py-1.5 shadow-sm dark:inset-ring dark:inset-ring-border"
+    >
       <div className="flex items-center gap-3">
         <span
           aria-hidden
@@ -112,10 +122,8 @@ export function NewTodoInline({
             setText(event.target.value);
           }}
           onKeyDown={onKeyDown}
-          onBlur={onBlur}
         />
         <IconButton
-          ref={cancelRef}
           label="Discard new todo"
           shortcut="Escape"
           icon={X}
@@ -127,6 +135,20 @@ export function NewTodoInline({
           onClick={cancel}
         />
       </div>
+      {data.today !== null && (
+        <NewTodoOptionsBar
+          value={options}
+          onChange={setOptions}
+          today={data.today}
+          tags={data.tags}
+          actions={actions}
+          canRepeat={placement.parent_id === null}
+          field={inputRef}
+          onPickerOpenChange={(open) => {
+            pickerOpen.current = open;
+          }}
+        />
+      )}
       {parsed && parsed.tokens.length > 0 && (
         <ParsedChips tokens={parsed.tokens} today={data.today} />
       )}
