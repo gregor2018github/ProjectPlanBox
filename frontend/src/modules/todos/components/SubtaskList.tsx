@@ -10,6 +10,7 @@ import { childrenOf } from "../selectors";
 import type { Todo } from "../types";
 import type { TodoActions } from "../useTodoActions";
 import { InlineTitle } from "../../../ui/InlineTitle";
+import { SortableSubtask } from "./SortableSubtask";
 import { SubtaskDue } from "./SubtaskDue";
 
 /** Props for {@link SubtaskList}. */
@@ -23,11 +24,13 @@ export interface SubtaskListProps {
 
 /**
  * The checklist of subtasks in the detail panel, with an "add" field. Each
- * subtask can get its own due date here.
+ * subtask can get its own due date here, and is reordered by dragging its
+ * grip (or with Alt+↑/↓).
  */
 export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps) {
   const [draft, setDraft] = useState("");
   const children = childrenOf(todos, parent.id);
+  const childIds = children.map((c) => c.id);
   const done = children.filter((c) => c.completed_at !== null).length;
 
   const add = () => {
@@ -58,10 +61,13 @@ export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps)
         Subtasks{children.length > 0 && ` · ${done}/${children.length}`}
       </h2>
       <ul className="flex flex-col">
-        {children.map((child) => (
-          <li
+        {children.map((child, index) => (
+          <SortableSubtask
             key={child.id}
-            className="group flex items-center gap-3 rounded-md px-1 py-1 hover:bg-hover"
+            subtask={child}
+            index={index}
+            siblingIds={childIds}
+            actions={actions}
           >
             <Checkbox
               size="sm"
@@ -96,7 +102,7 @@ export function SubtaskList({ parent, todos, actions, today }: SubtaskListProps)
                 }}
               />
             </span>
-          </li>
+          </SortableSubtask>
         ))}
       </ul>
       {parent.completed_at === null && (

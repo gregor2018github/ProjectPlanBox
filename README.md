@@ -57,7 +57,9 @@ phone can also use a running PC over the home network or Tailscale.
   shows everything again. Items you add while filtering get the filter's
   tags.
 - Drag todos to reorder them, or drop them on a list in the sidebar. Drag
-  lists between areas, and drag sections by their grip.
+  lists between areas, and drag sections by their grip. In a todo's
+  details, drag subtasks by their grip (or press **Alt+↑/↓** in one) to
+  reorder its checklist.
 - Each area has a colour that quietly tints its pages and marks its todos
   elsewhere with a dot. Change it in **Area settings** (the area's ⋯ menu,
   or right-click it in the sidebar) with the colour wheel or a suggestion.

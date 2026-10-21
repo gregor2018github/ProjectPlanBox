@@ -373,6 +373,44 @@ describe("todos", () => {
     expect(within(checklist).getByRole("button", { name: "Due Tomorrow" })).toBeInTheDocument();
   });
 
+  it("reorders subtasks in the parent's checklist with Alt+arrows", async () => {
+    const user = userEvent.setup();
+    const parent = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa33", title: "Move" });
+    const first = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa34",
+      title: "Pack boxes",
+      parent_id: parent.id,
+      position: "a1",
+    });
+    const second = makeTodo({
+      id: "01a11c71-6563-773d-8602-c5617ab6aa35",
+      title: "Rent van",
+      parent_id: parent.id,
+      position: "a2",
+    });
+    const api = open("/todos/inbox", createFakeTodoApi({ todos: [parent, first, second] }));
+
+    await user.click(await screen.findByText("Move"));
+    const checklist = await screen.findByRole("region", { name: "Subtasks" });
+    const titles = () =>
+      within(checklist)
+        .getAllByRole("textbox", { name: "Subtask title" })
+        .map((box) => (box as HTMLInputElement).value);
+    expect(titles()).toEqual(["Pack boxes", "Rent van"]);
+    expect(
+      within(checklist).getByRole("button", { name: "Drag to reorder “Pack boxes”" }),
+    ).toBeInTheDocument();
+
+    within(checklist).getAllByRole("textbox", { name: "Subtask title" })[0]?.focus();
+    await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
+
+    await waitFor(() => {
+      expect(titles()).toEqual(["Rent van", "Pack boxes"]);
+    });
+    const move = api.state.requests.find((r) => r.path === `/api/todos/items/${first.id}/move`);
+    expect(move?.body).toMatchObject({ after_id: second.id, before_id: null });
+  });
+
   it("opens the tag picker for the selected todo with L", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa41", title: "Report" });

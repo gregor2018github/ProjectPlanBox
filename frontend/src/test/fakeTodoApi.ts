@@ -10,6 +10,7 @@ import type { Meta } from "../core/api/types";
 import type { Tag } from "../core/tags/tagQueries";
 import { keyBetween } from "../core/ordering";
 import { addDays } from "../core/time";
+import { applyMove } from "../modules/todos/apply";
 import type { Area, Section, Todo, TodoList } from "../modules/todos/types";
 
 /** The fake server's state, inspectable by tests. */
@@ -295,10 +296,23 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         return json(strip(target));
       }
       if (action === "move") {
+        const placement = {
+          list_id: (b.list_id as string | null | undefined) ?? null,
+          section_id: (b.section_id as string | null | undefined) ?? null,
+          parent_id: (b.parent_id as string | null | undefined) ?? null,
+        };
+        const live = state.todos.filter((t) => !t.deleted_at);
+        const placed = applyMove(
+          live,
+          target.id,
+          placement,
+          (b.before_id as string | null | undefined) ?? null,
+          (b.after_id as string | null | undefined) ?? null,
+          state.now,
+        ).find((t) => t.id === target.id);
         Object.assign(target, {
-          list_id: b.list_id ?? null,
-          section_id: b.section_id ?? null,
-          parent_id: b.parent_id ?? null,
+          ...placement,
+          position: placed?.position ?? target.position,
           updated_at: state.now,
         });
         return json({ todos: [strip(target)] });
