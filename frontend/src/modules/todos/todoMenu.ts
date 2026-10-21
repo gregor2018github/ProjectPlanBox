@@ -134,6 +134,7 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
           label: "Make subtask",
           icon: ArrowRightToLine,
           shortcut: "Alt+ArrowRight",
+          disabled: actions.indentBlocker(todo) !== null,
           onSelect: () => {
             actions.indent(todo);
           },
