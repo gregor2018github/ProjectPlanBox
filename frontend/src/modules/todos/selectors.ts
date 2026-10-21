@@ -64,6 +64,11 @@ export function childrenOf(todos: readonly Todo[], parentId: string): Todo[] {
   return todos.filter((t) => t.parent_id === parentId).sort(byPosition);
 }
 
+/** Whether a subtask can be added under a todo: open and not itself a subtask. */
+export function canHaveSubtasks(t: Todo): boolean {
+  return t.parent_id === null && t.completed_at === null;
+}
+
 /** One section of a list view; `section` null is the part above the first heading. */
 export interface SectionGroup {
   section: Section | null;

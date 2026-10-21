@@ -1,36 +1,34 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { MenuAction, MenuEntry } from "../../ui/menuTypes";
+import { todoCreate } from "./createStore";
 import { makeTodo } from "./testData";
 import { todoMenuEntries } from "./todoMenu";
 import type { TodoActions } from "./useTodoActions";
 
-function entry(entries: MenuEntry[], id: string): MenuAction {
+const actions = { quickDates: () => null } as unknown as TodoActions;
+
+function action(entries: MenuEntry[], id: string): MenuAction | undefined {
   const found = entries.find((e) => e.id === id);
-  if (found === undefined || found.kind === "separator") throw new Error(`no action ${id}`);
-  return found;
+  return found?.kind === "separator" ? undefined : found;
 }
 
-function fakeActions(blocker: string | null): TodoActions {
-  return {
-    quickDates: () => null,
-    indentBlocker: vi.fn(() => blocker),
-    indent: vi.fn(() => blocker === null),
-  } as unknown as TodoActions;
-}
+afterEach(() => {
+  todoCreate.close();
+});
 
 describe("todoMenuEntries", () => {
-  it("disables Make subtask when there is nothing to nest the todo under", () => {
-    const entries = todoMenuEntries(makeTodo(), fakeActions("no todo above"));
-    expect(entry(entries, "indent").disabled).toBe(true);
+  it("Create subtask opens quick add for a subtask of that todo", () => {
+    const todo = makeTodo();
+    action(todoMenuEntries(todo, actions), "subtask")?.onSelect();
+    expect(todoCreate.get()).toEqual({ kind: "subtask", parentId: todo.id });
   });
 
-  it("enables Make subtask when an open todo is above", () => {
-    const indentAction = vi.fn(() => true);
-    const actions = { ...fakeActions(null), indent: indentAction } as TodoActions;
-    const indent = entry(todoMenuEntries(makeTodo(), actions), "indent");
-    expect(indent.disabled).toBe(false);
-    indent.onSelect();
-    expect(indentAction).toHaveBeenCalled();
+  it("offers no Create subtask on a subtask or a completed todo", () => {
+    const sub = makeTodo({ parent_id: "p" });
+    const done = makeTodo({ completed_at: "2026-10-21T10:00:00.000Z" });
+    expect(action(todoMenuEntries(sub, actions), "subtask")).toBeUndefined();
+    expect(action(todoMenuEntries(sub, actions), "outdent")).toBeDefined();
+    expect(action(todoMenuEntries(done, actions), "subtask")).toBeUndefined();
   });
 });

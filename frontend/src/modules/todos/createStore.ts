@@ -6,7 +6,11 @@ import { useSyncExternalStore } from "react";
 
 /** Null when no dialog is open. */
 export type CreateRequest =
-  { kind: "todo" } | { kind: "list"; areaId: string | null } | { kind: "area" } | null;
+  | { kind: "todo" }
+  | { kind: "subtask"; parentId: string }
+  | { kind: "list"; areaId: string | null }
+  | { kind: "area" }
+  | null;
 
 let state: CreateRequest = null;
 const listeners = new Set<() => void>();
@@ -21,6 +25,10 @@ export const todoCreate = {
   /** Quick add, targeting the current view (the open list, Today's date, else Inbox). */
   todo: (): void => {
     set({ kind: "todo" });
+  },
+  /** Quick add of a subtask under the todo `parentId`. */
+  subtask: (parentId: string): void => {
+    set({ kind: "subtask", parentId });
   },
   /** A new list, inside `areaId` when given. */
   list: (areaId: string | null = null): void => {

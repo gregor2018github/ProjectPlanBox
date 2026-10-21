@@ -75,24 +75,6 @@ export function useTodoActions() {
       return { after_id: siblings[i - 1]?.id ?? null, before_id: siblings[i + 1]?.id ?? null };
     };
 
-    /**
-     * The open sibling above a top-level todo that indenting would nest it
-     * under, or the reason (shown to the owner) it can't be indented.
-     */
-    const indentParent = (t: Todo): Todo | string => {
-      if (t.parent_id !== null) return "It's already a subtask.";
-      if (cache().some((c) => c.parent_id === t.id)) {
-        return "It has subtasks of its own, and subtasks can't have subtasks.";
-      }
-      const siblings = siblingsOf(cache(), placementOf(t));
-      const i = siblings.findIndex((s) => s.id === t.id);
-      const parent = siblings
-        .slice(0, Math.max(i, 0))
-        .reverse()
-        .find((s) => s.completed_at === null);
-      return parent ?? "There's no open todo above it to put it under.";
-    };
-
     const move = (
       t: Todo,
       target: Placement,
@@ -355,22 +337,16 @@ export function useTodoActions() {
         }
       },
 
-      /** Why a todo can't become a subtask right now, or null when it can. */
-      indentBlocker(t: Todo): string | null {
-        const parent = indentParent(t);
-        return typeof parent === "string" ? parent : null;
-      },
-
-      /**
-       * Makes a top-level todo a subtask of the open sibling above it, or
-       * says (in a toast) why it can't.
-       */
+      /** Makes a top-level todo a subtask of the open sibling above it. */
       indent(t: Todo): boolean {
-        const parent = indentParent(t);
-        if (typeof parent === "string") {
-          show({ title: "Can't make a subtask", description: parent });
-          return false;
-        }
+        if (t.parent_id !== null || cache().some((c) => c.parent_id === t.id)) return false;
+        const siblings = siblingsOf(cache(), placementOf(t));
+        const i = siblings.findIndex((s) => s.id === t.id);
+        const parent = siblings
+          .slice(0, Math.max(i, 0))
+          .reverse()
+          .find((s) => s.completed_at === null);
+        if (parent === undefined) return false;
         move(t, { list_id: t.list_id, section_id: t.section_id, parent_id: parent.id }, null, null);
         todoUi.toggleExpanded(parent.id, true);
         return true;

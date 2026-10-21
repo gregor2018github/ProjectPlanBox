@@ -1,11 +1,12 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { useCommands } from "../../../core/commands/commandsContext";
 import type { Command } from "../../../core/commands/registry";
 import { useShortcut } from "../../../core/shortcuts/useShortcut";
 import { todoCreate, useCreateRequest } from "../createStore";
 import { todoPaths } from "../paths";
+import { canHaveSubtasks } from "../selectors";
 import { INBOX, type Placement } from "../types";
 import { todoUi } from "../uiStore";
 import { useContainerActions } from "../useContainerActions";
@@ -36,7 +37,6 @@ export function TodosHost() {
   useSelectionFollowsDetail();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [subtaskAdd, setSubtaskAdd] = useState<QuickAddTarget | null>(null);
   const request = useCreateRequest();
 
   /** The default target follows the current view: the open list, or Today's date. */
@@ -54,32 +54,33 @@ export function TodosHost() {
     return { placement: INBOX, defaultDue: null, label: "Inbox" };
   };
 
-  const openQuickAdd = () => {
-    setSubtaskAdd(null);
-    todoCreate.todo();
+  /** The quick-add target for a subtask request, or null when that todo can't take one. */
+  const subtaskTarget = (parentId: string): QuickAddTarget | null => {
+    const parent = data.allTodos.find((t) => t.id === parentId);
+    if (parent === undefined || !canHaveSubtasks(parent)) return null;
+    return {
+      placement: { list_id: parent.list_id, section_id: parent.section_id, parent_id: parent.id },
+      defaultDue: null,
+      label: `subtasks of “${parent.title}”`,
+    };
   };
+
+  const openQuickAdd = todoCreate.todo;
   // A plain quick add follows the view it was opened from.
-  const quickAdd = subtaskAdd ?? (request?.kind === "todo" ? contextualTarget() : null);
+  const quickAdd =
+    request?.kind === "todo"
+      ? contextualTarget()
+      : request?.kind === "subtask"
+        ? subtaskTarget(request.parentId)
+        : null;
   const closeQuickAdd = () => {
-    setSubtaskAdd(null);
-    if (todoCreate.get()?.kind === "todo") todoCreate.close();
+    const kind = todoCreate.get()?.kind;
+    if (kind === "todo" || kind === "subtask") todoCreate.close();
   };
   const openSubtaskAdd = () => {
     const selected = data.allTodos.find((t) => t.id === todoUi.get().selectedId);
-    const canHaveSubtasks = selected?.parent_id === null && selected.completed_at === null;
-    if (!canHaveSubtasks) {
-      openQuickAdd();
-      return;
-    }
-    setSubtaskAdd({
-      placement: {
-        list_id: selected.list_id,
-        section_id: selected.section_id,
-        parent_id: selected.id,
-      },
-      defaultDue: null,
-      label: `subtasks of “${selected.title}”`,
-    });
+    if (selected !== undefined && canHaveSubtasks(selected)) todoCreate.subtask(selected.id);
+    else openQuickAdd();
   };
   const go = (to: string) => () => {
     void navigate({ to });

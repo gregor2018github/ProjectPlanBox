@@ -1,11 +1,11 @@
 import {
   ArrowLeftToLine,
-  ArrowRightToLine,
   CalendarClock,
   CalendarDays,
   CalendarX,
   Check,
   FolderInput,
+  ListPlus,
   Tag,
   PanelRightOpen,
   RotateCcw,
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import type { MenuEntry } from "../../ui/menuTypes";
+import { todoCreate } from "./createStore";
+import { canHaveSubtasks } from "./selectors";
 import { PRIORITY_LABELS, type Priority, type Todo } from "./types";
 import type { TodoActions } from "./useTodoActions";
 
@@ -128,26 +130,32 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
         actions.open(todo, "place");
       },
     },
-    todo.parent_id === null
-      ? {
-          id: "indent",
-          label: "Make subtask",
-          icon: ArrowRightToLine,
-          shortcut: "Alt+ArrowRight",
-          disabled: actions.indentBlocker(todo) !== null,
-          onSelect: () => {
-            actions.indent(todo);
+    ...(canHaveSubtasks(todo)
+      ? [
+          {
+            id: "subtask",
+            label: "Create subtask",
+            icon: ListPlus,
+            shortcut: "Shift+Q",
+            onSelect: () => {
+              todoCreate.subtask(todo.id);
+            },
           },
-        }
-      : {
-          id: "outdent",
-          label: "Promote to todo",
-          icon: ArrowLeftToLine,
-          shortcut: "Alt+ArrowLeft",
-          onSelect: () => {
-            actions.outdent(todo);
+        ]
+      : []),
+    ...(todo.parent_id === null
+      ? []
+      : [
+          {
+            id: "outdent",
+            label: "Promote to todo",
+            icon: ArrowLeftToLine,
+            shortcut: "Alt+ArrowLeft",
+            onSelect: () => {
+              actions.outdent(todo);
+            },
           },
-        },
+        ]),
     { kind: "separator", id: "s4" },
     {
       id: "delete",

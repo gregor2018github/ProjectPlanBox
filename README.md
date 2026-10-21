@@ -39,7 +39,7 @@ phone can also use a running PC over the home network or Tailscale.
     interval (`every 4 weeks after done`) to count the next date from when
     you finish it.
 
-  **Shift+Q** adds a subtask to the selected todo.
+  **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
 - **Data** (bottom of the sidebar, **G D**): the backups, the off-site
   copy's state, **Back up now**, and export/import to move data between
   PCs (see [Data](#data)).
