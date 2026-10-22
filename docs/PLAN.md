@@ -30,6 +30,7 @@ this file records what was planned, decided and pinned.
 | My order (Today) | Built 2026-10-16 (owner request) |
 | Logbook activity | Built 2026-10-17 (owner request) |
 | Phone app (Android) and Google Drive sync | Built 2026-10-16 (owner request) |
+| Knowledge pages (OneNote-like) | Built 2026-10-22 (owner request; desktop first) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -70,7 +71,8 @@ items. Decisions:
 - **One entries table with a `kind`**, not three tables. The kinds differ by
   one column each, and three tables would triple the code and make "all of a
   collection" a union. It is still a specific table, not a generic item
-  model. A kind is fixed at creation.
+  model. A kind is fixed at creation. *Superseded 2026-10-22: every entry is
+  now a page (Knowledge pages below).*
 - Links need an `http(s)` URL, so a stored link can never run script.
 - Links to deleted items stay and show as deleted, so a restore brings them
   back. The link picker reads a client-side **linkable source registry**, so
@@ -498,6 +500,54 @@ Decisions:
 - **Each new todo starts fresh:** Enter clears the picked options with the
   text. A tag created in the picker exists even if the todo is discarded.
 
+### Knowledge pages (owner request, 2026-10-22)
+
+"Text areas exactly like in OneNote": one kind of entry, a **page**, where
+text boxes sit anywhere and can be moved, holding formatted text, tables
+and images; opened large, with full screen. Desktop first. ARCHITECTURE
+§7b has the model and the page view.
+
+Decisions (the owner chose the first three):
+- **Old notes, links and snippets become pages** (migration 0002): one
+  box at the top left with the note's lines, the link plus description,
+  or the snippet as a code block. The kind, address and language columns
+  are gone.
+- **Images stay on the PC that added them**: files in `<data>/images`,
+  outside the database, so exports, backups and Drive sync do not carry
+  them and other devices show them as missing. Chosen over storing them
+  (shrunk) in the database, which would have grown every backup and sync
+  file and needed a chunked phone upload.
+- **Tiptap 3** for the text in a box (over Lexical): tables, lists and
+  images are official extensions, and its JSON is easy to check on the
+  server. Pinned in Dependencies.
+- **A page is one JSON column**, not a table of boxes: written as a
+  whole, like a todo's notes. Two devices editing the same page between
+  syncs keep the newer page (the existing sync rule). Still a specific
+  table, not a generic block model (CLAUDE.md rule 3): the boxes are this
+  module's own format.
+- **The server checks every document** against the node and mark types
+  the editor makes, and only allows its own image URLs and http(s)/mailto
+  links, so stored content cannot load foreign resources or run script.
+  Pasted web images are dropped by the editor for the same reason.
+- `body` stays as the page's derived plain text, so search, previews,
+  filters and Insights (now pages, words, collections, tags) need no JSON.
+- **Saving:** the open page owns its content and saves it whole 600 ms
+  after the last edit, on leaving, and with `keepalive` when the window
+  goes; a new page opens with its title selected; the "new entry" dialog
+  is gone (E makes a page at once).
+- Search, links and Home still open the side panel (now a summary with
+  **Open page**); lists open the page itself.
+
+Diverged: CLAUDE.md rule 11 asks for both twins in the same commit, and the
+owner asked for the desktop first. The phone's **backend** twin is complete
+(same rules, scenarios pass on both); only image uploads answer 409 there,
+and the phone's UI is the same page view, not yet tuned for touch.
+
+Deferred (TODO.md): phone-friendly page editing and images on the phone;
+images in backups or off-site copies; removing image files no page uses;
+merging a change synced in while a page is open; page templates, ink and
+audio.
+
 ## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
@@ -550,6 +600,9 @@ dataclass does it), uuid6 (our own UUIDv7 in `core/ids.py`), pytest-cov.
 | @sqlite.org/sqlite-wasm | 3.53.4-build2 | (2026-10-16) SQLite compiled to WebAssembly, with the OPFS storage the phone app's database lives in. Writing a database engine is not ours; this is SQLite's own official build, released with every SQLite version. Loaded only by the device build. |
 | @capacitor/core, @capacitor/android | 8.5.3 | (2026-10-16) Wraps the device build as an Android app (WebView, plugin bridge, the built-in HTTP and lifecycle). The standard, actively released (monthly) way to ship a web app on Android; writing our own Android shell would mean maintaining a WebView host. |
 | @capacitor/cli | 8.5.3 | dev (2026-10-16). `cap sync`/`cap open` for the Android project. |
+| @tiptap/core, @tiptap/pm, @tiptap/react | 3.32.0 | (2026-10-22) The rich-text editor inside knowledge page boxes, on ProseMirror (`pm` re-exports it). A correct contenteditable editor with tables, lists and undo is far from ours to write; Tiptap is MIT, very active (weekly releases), and stores documents as JSON the backend can check. Owner chose it over Lexical. |
+| @tiptap/starter-kit, @tiptap/extensions, @tiptap/extension-list | 3.32.0 | (2026-10-22) The standard nodes and marks (paragraphs, headings, lists, task lists, code, links, undo) and the placeholder; same project and release train. |
+| @tiptap/extension-table, @tiptap/extension-image, @tiptap/extension-highlight | 3.32.0 | (2026-10-22) Tables (with column resizing), images and the highlighter on pages; same project. |
 | openapi-typescript | 7.13.0 | dev. Generates `schema.d.ts`. |
 | vitest, jsdom | 5.0.3 / 30.1.2 | dev |
 | @testing-library/react / dom / user-event / jest-dom | 16.3.3 / 10.4.2 / 14.6.7 / 7.0.1 | dev |

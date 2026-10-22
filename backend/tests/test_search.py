@@ -42,16 +42,19 @@ def todo(client: TestClient, title: str, **fields: Any) -> Json:  # noqa: ANN401
     return ok(client.post("/api/todos/items", json={"title": title, **fields}), 201)
 
 
-def entry(client: TestClient, title: str, kind: str = "note", **fields: Any) -> Json:  # noqa: ANN401
-    """Creates a knowledge entry."""
-    body = {"kind": kind, "title": title, **fields}
+def entry(client: TestClient, title: str, text: str = "", **fields: Any) -> Json:  # noqa: ANN401
+    """Creates a knowledge page, with the text in one box."""
+    paragraph = {"type": "paragraph", "content": [{"type": "text", "text": text}]}
+    doc = {"type": "doc", "content": [paragraph] if text else []}
+    content = {"boxes": [{"id": "b", "x": 0, "y": 0, "width": 400, "doc": doc}]}
+    body = {"title": title, "content": content, **fields}
     return ok(client.post("/api/knowledge/entries", json=body), 201)
 
 
 def test_finds_todos_and_entries_by_word_prefixes(client: TestClient) -> None:
     """Every word must match as a prefix, in title or text, across modules."""
     t = todo(client, "Write quarterly report", notes="Ask Anna for the numbers")
-    e = entry(client, "Report outline", body="Intro, numbers, outlook")
+    e = entry(client, "Report outline", text="Intro, numbers, outlook")
     entry(client, "Holiday ideas")
 
     assert {h["ref"] for h in search(client, "rep")} == {
@@ -64,7 +67,7 @@ def test_finds_todos_and_entries_by_word_prefixes(client: TestClient) -> None:
 
 def test_title_matches_rank_first_and_are_marked(client: TestClient) -> None:
     """A title match outranks a text match; matched terms are marked."""
-    entry(client, "Shopping", body="Remember the budget spreadsheet")
+    entry(client, "Shopping", text="Remember the budget spreadsheet")
     entry(client, "Budget 2027")
 
     hits = search(client, "budget")
@@ -75,20 +78,20 @@ def test_title_matches_rank_first_and_are_marked(client: TestClient) -> None:
 
 
 def test_hints_name_the_place_and_state(client: TestClient) -> None:
-    """Todos show their list (and Done); entries their kind and collection."""
+    """Todos show their list (and Done); pages their collection."""
     work = ok(client.post("/api/todos/lists", json={"name": "Work"}), 201)
     done = todo(client, "Alpha done", list_id=work["id"])
     ok(client.post(f"/api/todos/items/{done['id']}/complete"))
     todo(client, "Alpha open")
     recipes = ok(client.post("/api/knowledge/collections", json={"name": "Recipes"}), 201)
-    entry(client, "Alpha soup", kind="link", url="https://example.com", collection_id=recipes["id"])
+    entry(client, "Alpha soup", "https://example.com", collection_id=recipes["id"])
 
     hints = {plain(h["title"]): h["hint"] for h in search(client, "alpha")}
 
     assert hints == {
         "Alpha done": "Done · Work",
         "Alpha open": "Inbox",
-        "Alpha soup": "Link · Recipes",
+        "Alpha soup": "Page · Recipes",
     }
 
 

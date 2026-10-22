@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { cx } from "./cx";
 
@@ -7,12 +7,14 @@ export interface InlineTitleProps {
   value: string;
   label: string;
   onCommit: (value: string) => void;
-  /** Larger text for the detail panel's main title, smaller for secondary fields. */
-  size?: "sm" | "base" | "lg";
+  /** Larger text for the detail panel's main title (xl for a page's), smaller for secondary fields. */
+  size?: "sm" | "base" | "lg" | "xl";
   placeholder?: string;
   /** Lets the text be cleared (by default an empty edit reverts). */
   allowEmpty?: boolean;
   className?: string | undefined;
+  /** Focuses and selects the text when mounted, so typing replaces it (a new page's title). */
+  autoSelect?: boolean;
 }
 
 /**
@@ -27,10 +29,20 @@ export function InlineTitle({
   placeholder,
   allowEmpty = false,
   className,
+  autoSelect = false,
 }: InlineTitleProps) {
   const [draft, setDraft] = useState(value);
   const [source, setSource] = useState(value);
   const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoSelect) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+    // Only when mounted: later renders must not steal the focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Follow outside changes unless the user is editing.
   if (value !== source && !editing) {
     setSource(value);
@@ -58,6 +70,7 @@ export function InlineTitle({
 
   return (
     <input
+      ref={inputRef}
       aria-label={label}
       placeholder={placeholder}
       value={draft}
@@ -71,7 +84,13 @@ export function InlineTitle({
       onKeyDown={onKeyDown}
       className={cx(
         "min-w-0 flex-1 rounded-sm bg-transparent text-text outline-none placeholder:text-text-subtle focus-visible:outline-2 focus-visible:outline-offset-2",
-        size === "lg" ? "text-lg font-semibold" : size === "sm" ? "text-sm" : "text-base",
+        size === "xl"
+          ? "text-xl font-semibold"
+          : size === "lg"
+            ? "text-lg font-semibold"
+            : size === "sm"
+              ? "text-sm"
+              : "text-base",
         className,
       )}
     />

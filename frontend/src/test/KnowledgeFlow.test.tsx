@@ -8,7 +8,7 @@ import { renderApp, useDesktopViewport } from "./renderApp";
 import { todosModule } from "../modules/todos";
 import { makeTodo } from "../modules/todos/testData";
 import { knowledgeModule } from "../modules/knowledge";
-import { makeCollection, makeEntry } from "../modules/knowledge/testData";
+import { makeCollection, makeEntry, textBox } from "../modules/knowledge/testData";
 
 beforeEach(() => {
   useDesktopViewport();
@@ -23,78 +23,110 @@ function open(path: string, seed: Partial<FakeKnowledgeState> = {}, todos = crea
 }
 
 describe("knowledge", () => {
-  it("adds a note with E, shows it at once and opens it", async () => {
+  it("makes a page with E and opens it large with its title selected", async () => {
     const user = userEvent.setup();
     const api = open("/knowledge");
-    await screen.findByText(/No notes, links or snippets here yet/);
+    await screen.findByText(/No pages here yet/);
 
     await user.keyboard("e");
-    const dialog = await screen.findByRole("dialog", { name: "New note" });
-    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Soup ideas");
-    await user.type(
-      within(dialog).getByRole("textbox", { name: "Text" }),
-      "Tomato{Control>}{Enter}{/Control}",
-    );
 
-    expect(await screen.findByRole("button", { name: /^Note: Soup ideas/ })).toBeInTheDocument();
+    const title = await screen.findByRole("textbox", { name: "Page title" });
+    expect(title).toHaveValue("Untitled page");
+    await waitFor(() => {
+      expect(title).toHaveFocus();
+    });
     const post = api.state.requests.find(
       (r) => r.method === "POST" && r.path === "/api/knowledge/entries",
     );
-    expect(post?.body).toMatchObject({
-      kind: "note",
-      title: "Soup ideas",
-      body: "Tomato",
-      collection_id: null,
-    });
-    const details = await screen.findByRole("complementary", { name: "Details" });
-    expect(within(details).getByRole("textbox", { name: "Title" })).toHaveValue("Soup ideas");
-  });
+    expect(post?.body).toMatchObject({ title: "Untitled page", collection_id: null });
+    expect(screen.getByRole("toolbar", { name: "Formatting" })).toBeInTheDocument();
+    expect(screen.getByText("Click anywhere on the page to start writing.")).toBeInTheDocument();
 
-  it("names a link after its site and adds https://", async () => {
-    const user = userEvent.setup();
-    const api = open("/knowledge");
-
-    await user.click(await screen.findByRole("button", { name: "New entry" }));
-    const dialog = await screen.findByRole("dialog", { name: "New note" });
-    await user.click(within(dialog).getByRole("button", { name: "Link" }));
-    await user.type(
-      within(dialog).getByRole("textbox", { name: "Web address" }),
-      "www.example.com/docs",
-    );
-    await user.click(within(dialog).getByRole("button", { name: "Add link" }));
-
+    await user.keyboard("Soup ideas{Enter}");
     await waitFor(() => {
-      const post = api.state.requests.find((r) => r.method === "POST");
-      expect(post?.body).toMatchObject({
-        kind: "link",
-        title: "example.com",
-        url: "https://www.example.com/docs",
-      });
+      const patch = api.state.requests.find((r) => r.method === "PATCH");
+      expect(patch?.body).toEqual({ title: "Soup ideas" });
     });
   });
 
-  it("filters by kind and by words", async () => {
+  it("opens a page from the list and shows its boxes", async () => {
+    const user = userEvent.setup();
+    const soup = makeEntry({
+      title: "Tomato soup",
+      content: { boxes: [textBox("Simmer for an hour", { x: 120, y: 40 })] },
+    });
+    open("/knowledge", { entries: [soup] });
+
+    const row = await screen.findByRole("button", { name: /^Page: Tomato soup/ });
+    expect(row).toHaveTextContent("Simmer for an hour");
+    await user.click(row);
+
+    expect(await screen.findByRole("textbox", { name: "Page title" })).toHaveValue("Tomato soup");
+    expect(await screen.findByText("Simmer for an hour")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Move box/ })).toBeInTheDocument();
+  });
+
+  it("deletes a box with undo and saves the page each time", async () => {
+    const user = userEvent.setup();
+    const page = makeEntry({ title: "Plan", content: { boxes: [textBox("Keep me")] } });
+    const api = open(`/knowledge/pages/${page.id}`, { entries: [page] });
+    const patches = () => api.state.requests.filter((r) => r.method === "PATCH");
+
+    await screen.findByText("Keep me");
+    await user.click(screen.getByRole("button", { name: "Delete box" }));
+    await waitFor(() => {
+      expect(screen.queryByText("Keep me")).not.toBeInTheDocument();
+    });
+    await waitFor(
+      () => {
+        expect(patches().at(-1)?.body).toEqual({ content: { boxes: [] } });
+      },
+      { timeout: 2000 },
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+    expect(await screen.findByText("Keep me")).toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(patches().at(-1)?.body).toEqual({ content: page.content });
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it("adds a table box from the toolbar", async () => {
+    const user = userEvent.setup();
+    const page = makeEntry({ title: "Grid" });
+    const api = open(`/knowledge/pages/${page.id}`, { entries: [page] });
+
+    await user.click(await screen.findByRole("button", { name: "Add table" }));
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    await waitFor(
+      () => {
+        const patch = api.state.requests.find((r) => r.method === "PATCH");
+        const content = (patch?.body as { content?: { boxes: { doc: unknown }[] } }).content;
+        expect(JSON.stringify(content?.boxes[0]?.doc)).toContain("tableHeader");
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it("filters by words across titles, text and tags", async () => {
     const user = userEvent.setup();
     open("/knowledge", {
       entries: [
-        makeEntry({ title: "Tomato soup", body: "dinner" }),
-        makeEntry({ kind: "snippet", title: "Loop", body: "for x in y", language: "python" }),
+        makeEntry({ title: "Tomato soup", content: { boxes: [textBox("dinner")] } }),
+        makeEntry({ title: "Loop", content: { boxes: [textBox("for x in y")] } }),
       ],
     });
-    await screen.findByRole("button", { name: /^Note: Tomato soup/ });
+    await screen.findByRole("button", { name: /^Page: Tomato soup/ });
 
-    await user.click(screen.getByRole("button", { name: "Snippets" }));
+    await user.type(screen.getByRole("searchbox", { name: "Filter pages" }), "dinner");
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /^Note: Tomato soup/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Page: Loop/ })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: /^Snippet: Loop/ })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "All kinds" }));
-    await user.type(screen.getByRole("searchbox", { name: "Filter entries" }), "dinner");
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /^Snippet: Loop/ })).not.toBeInTheDocument();
-    });
-    expect(screen.getByRole("button", { name: /^Note: Tomato soup/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Page: Tomato soup/ })).toBeInTheDocument();
   });
 
   it("deletes with undo, and rolls back what the server refuses", async () => {
@@ -104,39 +136,33 @@ describe("knowledge", () => {
     await user.click(await screen.findByRole("button", { name: "Actions for “Keep me”" }));
     await user.click(await screen.findByRole("menuitem", { name: /Delete/ }));
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /^Note: Keep me/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Page: Keep me/ })).not.toBeInTheDocument();
     });
     await user.click(await screen.findByRole("button", { name: "Undo" }));
-    expect(await screen.findByRole("button", { name: /^Note: Keep me/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Page: Keep me/ })).toBeInTheDocument();
 
     api.state.failing.add("POST /api/knowledge/entries");
-    await user.keyboard("e");
-    const dialog = await screen.findByRole("dialog", { name: "New note" });
-    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Doomed{Enter}");
-    expect(await screen.findByText("Could not add the entry")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /^Note: Doomed/ })).not.toBeInTheDocument();
-    });
+    await user.click(screen.getByRole("button", { name: "New page" }));
+    // The toast and its screen-reader announcement.
+    expect(await screen.findAllByText("Could not add the entry")).not.toHaveLength(0);
+    expect(await screen.findByText("This page does not exist (anymore).")).toBeInTheDocument();
   });
 
-  it("puts new entries into the collection on screen", async () => {
+  it("puts new pages into the collection on screen", async () => {
     const user = userEvent.setup();
     const recipes = makeCollection({ name: "Recipes" });
     const api = open(`/knowledge/collections/${recipes.id}`, { collections: [recipes] });
 
     await screen.findByRole("heading", { name: "Recipes" });
     await user.keyboard("e");
-    const dialog = await screen.findByRole("dialog", { name: "New note" });
-    expect(within(dialog).getByText("Goes to Recipes.")).toBeInTheDocument();
-    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Pancakes{Enter}");
 
-    await waitFor(() => {
-      const post = api.state.requests.find((r) => r.method === "POST");
-      expect(post?.body).toMatchObject({ collection_id: recipes.id });
-    });
+    expect(await screen.findByRole("textbox", { name: "Page title" })).toBeInTheDocument();
+    const post = api.state.requests.find((r) => r.method === "POST");
+    expect(post?.body).toMatchObject({ collection_id: recipes.id });
+    expect(screen.getByRole("button", { name: "Collection: Recipes" })).toBeInTheDocument();
   });
 
-  it("links a todo to a note and shows the link from both sides", async () => {
+  it("links a todo to a page and shows the link from both sides", async () => {
     const user = userEvent.setup();
     const report = makeTodo({ title: "Write report" });
     const outline = makeEntry({ title: "Report outline" });

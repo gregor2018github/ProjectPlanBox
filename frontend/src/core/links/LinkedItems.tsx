@@ -82,7 +82,7 @@ export function LinkedItems({ entity, title }: LinkedItemsProps) {
         >
           <PickerList
             label="Link to"
-            placeholder="Find a todo, note, link…"
+            placeholder="Find a todo, page, event…"
             inputRef={inputRef}
             options={options}
             extraOptions={searchOptions}

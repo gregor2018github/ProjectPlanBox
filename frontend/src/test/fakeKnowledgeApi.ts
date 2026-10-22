@@ -7,7 +7,8 @@
 import type { FetchFn } from "../core/api/client";
 import { keyBetween } from "../core/ordering";
 import type { Link } from "../core/links/linkQueries";
-import type { Collection, Entry } from "../modules/knowledge/types";
+import { pageText } from "../modules/knowledge/pageText";
+import type { Collection, Entry, PageContent } from "../modules/knowledge/types";
 
 /** The fake server's state, inspectable by tests. */
 export interface FakeKnowledgeState {
@@ -15,6 +16,8 @@ export interface FakeKnowledgeState {
   collections: (Collection & { deleted_at?: string | null })[];
   links: (Link & { deleted?: boolean })[];
   requests: { method: string; path: string; body: unknown }[];
+  /** How many images were uploaded. */
+  images: number;
   /** Paths (method + " " + path prefix) that answer 500, to test rollbacks. */
   failing: Set<string>;
   now: string;
@@ -45,6 +48,7 @@ export function createFakeKnowledgeApi(
     collections: [],
     links: [],
     requests: [],
+    images: 0,
     failing: new Set(),
     now: "2026-10-08T12:00:00.000Z",
     ...seed,
@@ -114,15 +118,21 @@ export function createFakeKnowledgeApi(
     if (path === "/api/knowledge/collections" && method === "GET") {
       return json(state.collections.filter((c) => !c.deleted_at).map(strip));
     }
+    if (path === "/api/knowledge/images" && method === "POST") {
+      state.images += 1;
+      return json(
+        { url: `/api/knowledge/images/${String(state.images).padStart(36, "0")}.png` },
+        201,
+      );
+    }
     if (path === "/api/knowledge/entries" && method === "POST") {
+      const content = (b.content as PageContent | undefined) ?? { boxes: [] };
       const entry: Entry = {
         id: String(b.id),
         collection_id: (b.collection_id as string | null | undefined) ?? null,
-        kind: b.kind as Entry["kind"],
         title: String(b.title).trim(),
-        body: (b.body as string | undefined) ?? "",
-        url: (b.url as string | undefined) ?? null,
-        language: (b.language as string | null | undefined) ?? null,
+        content,
+        body: pageText(content),
         created_at: state.now,
         updated_at: state.now,
         tag_ids: (b.tag_ids as string[] | undefined) ?? [],
@@ -152,6 +162,7 @@ export function createFakeKnowledgeApi(
       if (!entry) return problem(404, "no entry");
       if (method === "PATCH") {
         Object.assign(entry, b, { updated_at: state.now });
+        entry.body = pageText(entry.content);
         return json(strip(entry));
       }
       if (method === "DELETE") {

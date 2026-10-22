@@ -1,11 +1,14 @@
 """HTTP routes for the knowledge module, mounted at ``/api/knowledge``."""
 
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
+from fastapi.responses import FileResponse
 
-from planbox.core.db.deps import ClockDep, ConnectionDep
+from planbox.core.db.deps import ClockDep, ConnectionDep, SettingsDep
 from planbox.core.tags.deps import TagServiceDep
+from planbox.modules.knowledge.images import ImageStore
 from planbox.modules.knowledge.models import Collection, Deletion, EntryRecord
 from planbox.modules.knowledge.schemas import (
     CollectionCreate,
@@ -15,7 +18,10 @@ from planbox.modules.knowledge.schemas import (
     EntryCreate,
     EntryOut,
     EntryPatch,
+    ImageOut,
+    ImageUpload,
     KnowledgeDeletedOut,
+    PageContent,
 )
 from planbox.modules.knowledge.service import (
     CollectionService,
@@ -35,8 +41,13 @@ def _entries(conn: ConnectionDep, clock: ClockDep, tags: TagServiceDep) -> Entry
     return EntryService(conn, Repositories.on(conn), tags, clock)
 
 
+def _images(settings: SettingsDep) -> ImageStore:
+    return ImageStore(settings.data_dir / "images")
+
+
 Collections = Annotated[CollectionService, Depends(_collections)]
 Entries = Annotated[EntryService, Depends(_entries)]
+Images = Annotated[ImageStore, Depends(_images)]
 
 
 def _collection(collection: Collection) -> CollectionOut:
@@ -48,11 +59,9 @@ def _entry(record: EntryRecord) -> EntryOut:
     return EntryOut(
         id=e.id,
         collection_id=e.collection_id,
-        kind=e.kind,
         title=e.title,
+        content=PageContent.model_validate(json.loads(e.content)),
         body=e.body,
-        url=e.url,
-        language=e.language,
         created_at=e.created_at,
         updated_at=e.updated_at,
         tag_ids=record.tag_ids,
@@ -126,16 +135,13 @@ def list_entries(service: Entries) -> list[EntryOut]:
 
 @router.post("/entries", status_code=status.HTTP_201_CREATED)
 def create_entry(body: EntryCreate, service: Entries, response: Response) -> EntryOut:
-    """Creates a note, link or snippet (idempotent per client id)."""
+    """Creates a page (idempotent per client id)."""
     record, created = service.create(
         NewEntry(
             id=body.id,
             collection_id=body.collection_id,
-            kind=body.kind,
             title=body.title,
-            body=body.body,
-            url=body.url,
-            language=body.language,
+            content=body.content.model_dump(),
             tag_ids=body.tag_ids,
         )
     )
@@ -147,6 +153,8 @@ def create_entry(body: EntryCreate, service: Entries, response: Response) -> Ent
 def update_entry(entry_id: str, body: EntryPatch, service: Entries) -> EntryOut:
     """Changes the fields present in the body."""
     changes = {name: getattr(body, name) for name in body.model_fields_set}
+    if body.content is not None:
+        changes["content"] = body.content.model_dump()
     return _entry(service.update(entry_id, changes))
 
 
@@ -160,3 +168,28 @@ def delete_entry(entry_id: str, service: Entries) -> KnowledgeDeletedOut:
 def restore_entry(entry_id: str, service: Entries) -> EntryOut:
     """Undoes a delete."""
     return _entry(service.restore(entry_id))
+
+
+# ------------------------------------------------------------------- images
+
+
+@router.post("/images", status_code=status.HTTP_201_CREATED)
+def upload_image(body: ImageUpload, images: Images) -> ImageOut:
+    """Saves an image for a page, on this PC only (it does not sync)."""
+    return ImageOut(url=images.save(body.data, body.type))
+
+
+# Not in the OpenAPI schema: it answers with the file, not JSON, and the
+# phone app has no images to serve.
+@router.get("/images/{name}", include_in_schema=False)
+def get_image(name: str, images: Images) -> FileResponse:
+    """Serves a saved image; its name never changes, so it may be cached forever."""
+    image = images.find(name)
+    return FileResponse(
+        image.path,
+        media_type=image.media_type,
+        headers={
+            "Cache-Control": "private, max-age=31536000, immutable",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

@@ -3,25 +3,22 @@
 import dataclasses
 import sqlite3
 from collections.abc import Mapping, Sequence
-from typing import cast
 
 from planbox.core.placement import Positions
-from planbox.modules.knowledge.models import Collection, Entry, EntryKind
+from planbox.modules.knowledge.models import Collection, Entry
 
 _COLLECTION = "id, name, position, created_at, updated_at, deleted_at"
-_ENTRY = "id, collection_id, kind, title, body, url, language, created_at, updated_at, deleted_at"
-_ENTRY_EDITABLE = frozenset({"collection_id", "title", "body", "url", "language"})
+_ENTRY = "id, collection_id, title, content, body, created_at, updated_at, deleted_at"
+_ENTRY_EDITABLE = frozenset({"collection_id", "title", "content", "body"})
 
 
 def _entry(row: sqlite3.Row) -> Entry:
     return Entry(
         id=str(row["id"]),
         collection_id=row["collection_id"],
-        kind=cast("EntryKind", row["kind"]),
         title=str(row["title"]),
+        content=str(row["content"]),
         body=str(row["body"]),
-        url=row["url"],
-        language=row["language"],
         created_at=str(row["created_at"]),
         updated_at=str(row["updated_at"]),
         deleted_at=row["deleted_at"],
@@ -128,8 +125,7 @@ class EntryRepository:
         """Inserts an entry."""
         self._conn.execute(
             f"INSERT INTO knowledge_entries ({_ENTRY}) VALUES "  # noqa: S608
-            "(:id, :collection_id, :kind, :title, :body, :url, :language, "
-            ":created_at, :updated_at, :deleted_at)",
+            "(:id, :collection_id, :title, :content, :body, :created_at, :updated_at, :deleted_at)",
             dataclasses.asdict(entry),
         )
 
@@ -179,21 +175,18 @@ def _update(
     )
 
 
-_KIND_LABELS = {"note": "Note", "link": "Link", "snippet": "Snippet"}
-
-
 def summarize_entries(
     conn: sqlite3.Connection, ids: Sequence[str]
 ) -> dict[str, tuple[str, bool, str]]:
     """Title, deleted flag and context hint per entry id (for core tags/links/search).
 
-    The hint is the kind and the collection, e.g. "Link · Recipes".
+    The hint names the collection, e.g. "Page · Recipes".
     """
     result: dict[str, tuple[str, bool, str]] = {}
     for start in range(0, len(ids), 500):
         chunk = list(ids[start : start + 500])
         rows = conn.execute(
-            "SELECT e.id, e.title, e.kind, e.deleted_at, c.name AS collection_name "  # noqa: S608
+            "SELECT e.id, e.title, e.deleted_at, c.name AS collection_name "  # noqa: S608
             "FROM knowledge_entries e "
             "LEFT JOIN knowledge_collections c ON c.id = e.collection_id "
             f"WHERE e.id IN ({','.join('?' * len(chunk))})",
@@ -201,7 +194,7 @@ def summarize_entries(
         ).fetchall()
         for r in rows:
             place = "Unsorted" if r["collection_name"] is None else str(r["collection_name"])
-            hint = f"{_KIND_LABELS.get(str(r['kind']), 'Entry')} · {place}"
+            hint = f"Page · {place}"
             result[str(r["id"])] = (str(r["title"]), r["deleted_at"] is not None, hint)
     return result
 
@@ -211,10 +204,10 @@ def entry_search_rows(
 ) -> list[tuple[str, str, str, bool, str]]:
     """``(id, title, text, deleted, updated_at)`` of entries changed at or after ``since``.
 
-    The text is the body, plus the address for links.
+    The text is the page's plain text (``body``).
     """
     rows = conn.execute(
-        "SELECT id, title, body, url, deleted_at, updated_at FROM knowledge_entries "
+        "SELECT id, title, body, deleted_at, updated_at FROM knowledge_entries "
         "WHERE :since IS NULL OR updated_at >= :since",
         {"since": since},
     ).fetchall()
@@ -222,7 +215,7 @@ def entry_search_rows(
         (
             str(r["id"]),
             str(r["title"]),
-            str(r["body"]) if r["url"] is None else f"{r['url']}\n{r['body']}",
+            str(r["body"]),
             r["deleted_at"] is not None,
             str(r["updated_at"]),
         )

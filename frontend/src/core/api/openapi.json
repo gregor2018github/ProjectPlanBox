@@ -904,13 +904,8 @@
         "type": "object"
       },
       "EntryCreate": {
-        "description": "Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.",
+        "description": "Create a page; send a client-generated ``id`` for idempotent, optimistic creates.",
         "properties": {
-          "body": {
-            "default": "",
-            "title": "Body",
-            "type": "string"
-          },
           "collection_id": {
             "anyOf": [
               {
@@ -921,6 +916,9 @@
               }
             ],
             "title": "Collection Id"
+          },
+          "content": {
+            "$ref": "#/components/schemas/PageContent"
           },
           "id": {
             "anyOf": [
@@ -933,20 +931,6 @@
             ],
             "title": "Id"
           },
-          "kind": {
-            "$ref": "#/components/schemas/Kind"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language"
-          },
           "tag_ids": {
             "items": {
               "type": "string"
@@ -957,31 +941,19 @@
           "title": {
             "title": "Title",
             "type": "string"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url"
           }
         },
         "required": [
-          "kind",
           "title"
         ],
         "title": "EntryCreate",
         "type": "object"
       },
       "EntryOut": {
-        "description": "A note, link or snippet. ``collection_id`` null means Unsorted.",
+        "description": "A page. ``collection_id`` null means Unsorted.",
         "properties": {
           "body": {
-            "description": "Note text, link description or snippet code.",
+            "description": "The page's plain text, derived from its content.",
             "title": "Body",
             "type": "string"
           },
@@ -996,6 +968,9 @@
             ],
             "title": "Collection Id"
           },
+          "content": {
+            "$ref": "#/components/schemas/PageContent"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -1003,21 +978,6 @@
           "id": {
             "title": "Id",
             "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/Kind"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Snippets only, e.g. python.",
-            "title": "Language"
           },
           "tag_ids": {
             "items": {
@@ -1033,28 +993,14 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Links only: an http(s) address.",
-            "title": "Url"
           }
         },
         "required": [
           "id",
           "collection_id",
-          "kind",
           "title",
+          "content",
           "body",
-          "url",
-          "language",
           "created_at",
           "updated_at",
           "tag_ids"
@@ -1063,19 +1009,8 @@
         "type": "object"
       },
       "EntryPatch": {
-        "description": "Partial update: absent fields stay unchanged, ``null`` clears (language, collection).",
+        "description": "Partial update: absent fields stay unchanged, ``null`` clears the collection.",
         "properties": {
-          "body": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Body"
-          },
           "collection_id": {
             "anyOf": [
               {
@@ -1087,16 +1022,15 @@
             ],
             "title": "Collection Id"
           },
-          "language": {
+          "content": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/PageContent"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Language"
+            ]
           },
           "tag_ids": {
             "anyOf": [
@@ -1122,17 +1056,6 @@
               }
             ],
             "title": "Title"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url"
           }
         },
         "title": "EntryPatch",
@@ -1901,6 +1824,47 @@
         "title": "HealthOut",
         "type": "object"
       },
+      "ImageOut": {
+        "description": "A saved image.",
+        "properties": {
+          "url": {
+            "description": "Where the image is served; use it as the image node's src.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ImageOut",
+        "type": "object"
+      },
+      "ImageUpload": {
+        "description": "An image to put on a page, as base64 (a JSON body, ARCHITECTURE §9).",
+        "properties": {
+          "data": {
+            "description": "The file's bytes, base64-encoded.",
+            "title": "Data",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/gif",
+              "image/webp"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "type"
+        ],
+        "title": "ImageUpload",
+        "type": "object"
+      },
       "ImportOut": {
         "description": "The outcome of an import.",
         "properties": {
@@ -1924,14 +1888,7 @@
         "title": "ImportOut",
         "type": "object"
       },
-      "Kind": {
-        "enum": [
-          "note",
-          "link",
-          "snippet"
-        ],
-        "type": "string"
-      },
+      "JsonValue": {},
       "KnowledgeDeletedOut": {
         "description": "What a delete (or its restore) touched; restore by id to undo.",
         "properties": {
@@ -2454,6 +2411,73 @@
           "by_weekday"
         ],
         "title": "OpenStatsOut",
+        "type": "object"
+      },
+      "PageBox": {
+        "description": "A box on a page: where it sits and the rich text it holds.",
+        "properties": {
+          "doc": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Tiptap (ProseMirror) JSON with a `doc` node at the top.",
+            "title": "Doc",
+            "type": "object"
+          },
+          "id": {
+            "description": "Unique within the page.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "width": {
+            "maximum": 10000.0,
+            "minimum": 40.0,
+            "title": "Width",
+            "type": "integer"
+          },
+          "x": {
+            "description": "Pixels from the page's left edge.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Pixels from the page's top edge.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "x",
+          "y",
+          "width",
+          "doc"
+        ],
+        "title": "PageBox",
+        "type": "object"
+      },
+      "PageContent": {
+        "description": "What a page holds: freely placed boxes, in stacking order.",
+        "properties": {
+          "boxes": {
+            "items": {
+              "$ref": "#/components/schemas/PageBox"
+            },
+            "maxItems": 500,
+            "title": "Boxes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "boxes"
+        ],
+        "title": "PageContent",
         "type": "object"
       },
       "PairingOut": {
@@ -6167,7 +6191,7 @@
         ]
       },
       "post": {
-        "description": "Creates a note, link or snippet (idempotent per client id).",
+        "description": "Creates a page (idempotent per client id).",
         "operationId": "knowledge_create_entry",
         "requestBody": {
           "content": {
@@ -6339,6 +6363,48 @@
           }
         },
         "summary": "Restore Entry",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/knowledge/images": {
+      "post": {
+        "description": "Saves an image for a page, on this PC only (it does not sync).",
+        "operationId": "knowledge_upload_image",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Upload Image",
         "tags": [
           "knowledge"
         ]

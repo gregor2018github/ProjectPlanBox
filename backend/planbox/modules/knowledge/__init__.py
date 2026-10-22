@@ -1,4 +1,4 @@
-"""Knowledge module: collections of notes, links and snippets."""
+"""Knowledge module: collections of pages (boxes of rich text placed freely)."""
 
 import sqlite3
 from collections.abc import Sequence

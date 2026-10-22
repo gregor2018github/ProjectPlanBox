@@ -1,9 +1,6 @@
 """Rows of the knowledge module."""
 
 from dataclasses import dataclass, field
-from typing import Literal
-
-type EntryKind = Literal["note", "link", "snippet"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,15 +17,17 @@ class Collection:
 
 @dataclass(frozen=True, slots=True)
 class Entry:
-    """A note, link or snippet; ``collection_id`` None means Unsorted."""
+    """A page; ``collection_id`` None means Unsorted.
+
+    ``content`` is the page's JSON (boxes of rich text, see ``content.py``) as
+    stored; ``body`` is its plain text, derived on every write.
+    """
 
     id: str
     collection_id: str | None
-    kind: EntryKind
     title: str
+    content: str
     body: str
-    url: str | None
-    language: str | None
     created_at: str
     updated_at: str
     deleted_at: str | None

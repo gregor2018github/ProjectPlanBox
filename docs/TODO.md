@@ -102,10 +102,20 @@ rule.
 
 - [ ] Link titles and previews fetched from the web. It would be the first
       outbound request, so decide that first.
-- [ ] Changing an entry's kind (note ↔ link ↔ snippet).
 - [ ] Manual order inside a collection (newest change first now), and nested
       collections.
-- [ ] Syntax highlighting for snippets (needs a dependency).
+- [ ] Syntax highlighting in code blocks (needs a dependency, e.g. lowlight).
+- [ ] Pages on the phone: touch-friendly moving and resizing of boxes, a
+      compact toolbar, and adding images (the device backend answers image
+      uploads with 409 now).
+- [ ] Images in backups and off-site copies (they live in `<data>/images`,
+      outside the database, so a backup restore loses no page but the images
+      are only as safe as that folder).
+- [ ] Remove image files no page (live or deleted) refers to any more.
+- [ ] A page that is open does not take in a change synced or imported
+      meanwhile; it shows when the page is opened again.
+- [ ] Bring a box to the front / send it back (boxes stack in creation order).
+- [ ] Text colour and font size, page templates, drawing (ink).
 
 ## Search
 

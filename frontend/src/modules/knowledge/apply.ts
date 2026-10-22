@@ -4,7 +4,8 @@
  */
 import type { components } from "../../core/api/schema";
 import { byPosition, placeAmong } from "../../core/ordering";
-import type { Collection, Entry } from "./types";
+import { pageText } from "./pageText";
+import type { Collection, Entry, PageContent } from "./types";
 
 /** Body of POST /api/knowledge/entries, with the client id required. */
 export type CreateEntryVars = components["schemas"]["EntryCreate"] & { id: string };
@@ -14,22 +15,17 @@ export type EntryPatch = components["schemas"]["EntryPatch"];
 
 const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
 
-/** A trimmed language, or null when blank (the server's rule). */
-const language = (value: string | null | undefined) => {
-  const trimmed = value?.trim() ?? "";
-  return trimmed === "" ? null : trimmed;
-};
+const EMPTY: PageContent = { boxes: [] };
 
 /** The entry the server will create for these variables. */
 export function buildEntry(vars: CreateEntryVars, now: string): Entry {
+  const content = vars.content ?? EMPTY;
   return {
     id: vars.id,
     collection_id: vars.collection_id ?? null,
-    kind: vars.kind,
     title: oneLine(vars.title),
-    body: vars.body ?? "",
-    url: vars.kind === "link" ? (vars.url?.trim() ?? "") : null,
-    language: vars.kind === "snippet" ? language(vars.language) : null,
+    content,
+    body: pageText(content),
     created_at: now,
     updated_at: now,
     tag_ids: vars.tag_ids ?? [],
@@ -47,9 +43,10 @@ export function applyEntryPatch(
   if (target === undefined) return [...entries];
   const updated: Entry = { ...target, updated_at: now };
   if (patch.title != null) updated.title = oneLine(patch.title);
-  if (patch.body != null) updated.body = patch.body;
-  if (patch.url != null) updated.url = patch.url.trim();
-  if (patch.language !== undefined) updated.language = language(patch.language);
+  if (patch.content != null) {
+    updated.content = patch.content;
+    updated.body = pageText(patch.content);
+  }
   if (patch.collection_id !== undefined) updated.collection_id = patch.collection_id;
   if (patch.tag_ids != null) updated.tag_ids = patch.tag_ids;
   return [updated, ...entries.filter((e) => e.id !== id)];

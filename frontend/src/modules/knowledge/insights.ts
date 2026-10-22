@@ -1,6 +1,6 @@
 /** Pure statistics over the cached knowledge entries (live ones only). */
 import { addMonths, startOfMonthOf, zonedParts, type IsoDate } from "../../core/time";
-import type { Collection, Entry, EntryKind } from "./types";
+import type { Collection, Entry } from "./types";
 
 /** A labelled count. */
 export interface Count {
@@ -9,11 +9,11 @@ export interface Count {
   count: number;
 }
 
-/** Entries per kind. */
-export function countsByKind(entries: readonly Entry[]): Record<EntryKind, number> {
-  const counts: Record<EntryKind, number> = { note: 0, link: 0, snippet: 0 };
-  for (const entry of entries) counts[entry.kind] += 1;
-  return counts;
+/** Words across the pages' text (runs of letters or digits). */
+export function wordCount(entries: readonly Entry[]): number {
+  let words = 0;
+  for (const entry of entries) words += entry.body.match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+  return words;
 }
 
 function ranked(counts: Map<string, Count>): Count[] {
@@ -36,33 +36,6 @@ export function countsByCollection(
   for (const entry of entries) {
     const id = entry.collection_id;
     tally(counts, id ?? "unsorted", id === null ? "Unsorted" : (names.get(id) ?? "…"));
-  }
-  return ranked(counts);
-}
-
-/** Saved links per site (host without "www."), largest first. */
-export function countsBySite(entries: readonly Entry[]): Count[] {
-  const counts = new Map<string, Count>();
-  for (const entry of entries) {
-    if (entry.kind !== "link" || entry.url === null) continue;
-    let host: string;
-    try {
-      host = new URL(entry.url).hostname.replace(/^www\./, "");
-    } catch {
-      continue;
-    }
-    tally(counts, host, host);
-  }
-  return ranked(counts);
-}
-
-/** Snippets per language ("Plain text" when none is set), largest first. */
-export function countsByLanguage(entries: readonly Entry[]): Count[] {
-  const counts = new Map<string, Count>();
-  for (const entry of entries) {
-    if (entry.kind !== "snippet") continue;
-    const language = entry.language?.trim() ?? "";
-    tally(counts, language.toLowerCase(), language === "" ? "Plain text" : language);
   }
   return ranked(counts);
 }

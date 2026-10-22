@@ -1,19 +1,14 @@
-import { Copy, ExternalLink, Folder, Inbox, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { FileText, Trash2 } from "lucide-react";
 
 import { LinkedItems } from "../../../core/links/LinkedItems";
-import { useShortcut } from "../../../core/shortcuts/useShortcut";
-import { TagPicker } from "../../../core/tags/TagPicker";
-import { AutosaveTextArea } from "../../../ui/AutosaveTextArea";
 import { Button } from "../../../ui/Button";
-import { cx } from "../../../ui/cx";
 import { InlineTitle } from "../../../ui/InlineTitle";
-import { Menu } from "../../../ui/Menu";
-import { KIND_ICONS } from "../kindIcons";
-import { isWebUrl, normalizeUrl } from "../selectors";
-import { entryRef, KIND_LABELS } from "../types";
+import { knowledgePaths } from "../paths";
+import { entryRef } from "../types";
 import { useKnowledgeActions } from "../useKnowledgeActions";
 import { useKnowledgeData } from "../useKnowledgeData";
+import { EntryProperties } from "./EntryProperties";
 
 /** Props for {@link EntryDetail}. */
 export interface EntryDetailProps {
@@ -21,51 +16,42 @@ export interface EntryDetailProps {
   id: string;
 }
 
-const BODY_LABELS = { note: "Text", link: "Description", snippet: "Code" } as const;
-
 const dateFormat = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
   year: "numeric",
 });
 
-/** The detail panel for one note, link or snippet: every field, links, delete. */
+/** How much of the page's text the panel previews. */
+const PREVIEW = 600;
+
+/**
+ * A page in the side panel (opened from search, links or Home): its title,
+ * collection, tags, the start of its text and its links. The page itself
+ * opens large in the main area.
+ */
 export function EntryDetail({ id }: EntryDetailProps) {
   const data = useKnowledgeData();
   const actions = useKnowledgeActions();
+  const navigate = useNavigate();
   const entry = data.allEntries.find((e) => e.id === id);
-  const [tagsOpen, setTagsOpen] = useState(false);
-  useShortcut(
-    entry === undefined
-      ? null
-      : {
-          id: "knowledge.tags",
-          keys: "L",
-          description: "Add or remove tags of the open entry",
-          group: "Knowledge",
-          run: () => {
-            setTagsOpen(true);
-          },
-        },
-  );
 
   if (entry === undefined) {
     return (
       <p className="pt-4 text-base text-text-muted">
-        {data.loading ? "" : "This entry is not here anymore (deleted)."}
+        {data.loading ? "" : "This page is not here anymore (deleted)."}
       </p>
     );
   }
 
-  const Icon = KIND_ICONS[entry.kind];
-  const url = entry.url;
+  const preview = entry.body.length > PREVIEW ? `${entry.body.slice(0, PREVIEW)}…` : entry.body;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
         <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
-          <Icon size={14} strokeWidth={1.75} aria-hidden />
-          {KIND_LABELS[entry.kind]}
+          <FileText size={14} strokeWidth={1.75} aria-hidden />
+          Page
         </span>
         <InlineTitle
           size="lg"
@@ -77,110 +63,24 @@ export function EntryDetail({ id }: EntryDetailProps) {
         />
       </div>
 
-      {entry.kind === "link" && (
-        <div className="flex items-center gap-2">
-          <InlineTitle
-            label="Web address"
-            value={url ?? ""}
-            size="sm"
-            onCommit={(next) => {
-              const address = normalizeUrl(next);
-              if (isWebUrl(address)) actions.update(entry.id, { url: address });
-            }}
-          />
-          {isWebUrl(url) && (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-sm text-text hover:bg-hover coarse:h-11"
-            >
-              <ExternalLink size={16} strokeWidth={1.75} aria-hidden />
-              Open
-            </a>
-          )}
-        </div>
-      )}
-
-      {entry.kind === "snippet" && (
-        <InlineTitle
-          label="Language"
-          placeholder="Language (e.g. python)"
-          allowEmpty
-          value={entry.language ?? ""}
+      <div>
+        <Button
+          variant="primary"
           size="sm"
-          onCommit={(language) => {
-            actions.update(entry.id, { language: language === "" ? null : language });
+          onClick={() => {
+            void navigate({ to: knowledgePaths.page(entry.id) });
           }}
-        />
-      )}
-
-      <div className="flex flex-wrap gap-1">
-        <Menu
-          align="start"
-          entries={[
-            {
-              id: "unsorted",
-              label: "Unsorted",
-              icon: Inbox,
-              checked: entry.collection_id === null,
-              onSelect: () => {
-                actions.moveTo(entry, null);
-              },
-            },
-            ...data.collections.map((c) => ({
-              id: c.id,
-              label: c.name,
-              icon: Folder,
-              checked: entry.collection_id === c.id,
-              onSelect: () => {
-                actions.moveTo(entry, c.id);
-              },
-            })),
-          ]}
-          trigger={
-            <Button
-              size="sm"
-              aria-label={`Collection: ${data.collectionName(entry.collection_id)}`}
-            >
-              <Folder size={16} strokeWidth={1.75} aria-hidden />
-              {data.collectionName(entry.collection_id)}
-            </Button>
-          }
-        />
-        <TagPicker
-          open={tagsOpen}
-          onOpenChange={setTagsOpen}
-          tags={data.tags}
-          selected={entry.tag_ids}
-          onChange={(tag_ids) => {
-            actions.update(entry.id, { tag_ids });
-          }}
-        />
-        {entry.kind === "snippet" && entry.body !== "" && (
-          <Button
-            size="sm"
-            onClick={() => {
-              actions.copy(entry.body, "Code copied");
-            }}
-          >
-            <Copy size={16} strokeWidth={1.75} aria-hidden />
-            Copy code
-          </Button>
-        )}
+        >
+          <FileText size={16} strokeWidth={1.75} aria-hidden />
+          Open page
+        </Button>
       </div>
 
-      <AutosaveTextArea
-        aria-label={BODY_LABELS[entry.kind]}
-        placeholder={BODY_LABELS[entry.kind]}
-        value={entry.body}
-        rows={entry.kind === "link" ? 4 : 12}
-        spellCheck={entry.kind !== "snippet"}
-        className={cx(entry.kind === "snippet" && "font-mono")}
-        onSave={(body) => {
-          actions.update(entry.id, { body });
-        }}
-      />
+      <EntryProperties entry={entry} data={data} actions={actions} />
+
+      {preview !== "" && (
+        <p className="line-clamp-12 text-base whitespace-pre-line text-text-muted">{preview}</p>
+      )}
 
       <LinkedItems entity={entryRef(entry.id)} title={entry.title} />
 

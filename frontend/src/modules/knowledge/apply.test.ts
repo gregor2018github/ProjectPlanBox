@@ -7,34 +7,35 @@ import {
   mergeEntries,
   moveCollection,
 } from "./apply";
-import { makeCollection, makeEntry } from "./testData";
+import { makeCollection, makeEntry, textBox } from "./testData";
 
 const NOW = "2026-10-10T12:00:00.000Z";
 
 describe("buildEntry", () => {
-  it("keeps only the kind's own fields, like the server", () => {
-    const vars = { id: "n1", kind: "note" as const, title: "  An   idea ", url: "https://x.y" };
-    expect(buildEntry(vars, NOW)).toMatchObject({ title: "An idea", url: null, language: null });
-
-    const snippet = buildEntry({ id: "s1", kind: "snippet", title: "x", language: "  " }, NOW);
-    expect(snippet.language).toBeNull();
+  it("cleans the title and derives the text from the content, like the server", () => {
+    const content = { boxes: [textBox("one\ntwo")] };
+    expect(buildEntry({ id: "n1", title: "  An   idea ", content }, NOW)).toMatchObject({
+      title: "An idea",
+      body: "one\ntwo",
+      content,
+    });
+    expect(buildEntry({ id: "n2", title: "Empty" }, NOW)).toMatchObject({
+      content: { boxes: [] },
+      body: "",
+    });
   });
 });
 
 describe("applyEntryPatch", () => {
-  it("changes present fields, clears language with null and moves the entry to the top", () => {
-    const a = makeEntry({ kind: "snippet", language: "py", body: "code" });
+  it("changes present fields, re-derives the text and moves the entry to the top", () => {
+    const a = makeEntry({ content: { boxes: [textBox("old")] } });
     const b = makeEntry();
+    const content = { boxes: [textBox("new", { x: 40 })] };
 
-    const result = applyEntryPatch([b, a], a.id, { title: "Loop", language: null }, NOW);
+    const result = applyEntryPatch([b, a], a.id, { title: "Loop", content }, NOW);
 
     expect(result.map((e) => e.id)).toEqual([a.id, b.id]);
-    expect(result[0]).toMatchObject({
-      title: "Loop",
-      language: null,
-      body: "code",
-      updated_at: NOW,
-    });
+    expect(result[0]).toMatchObject({ title: "Loop", body: "new", content, updated_at: NOW });
   });
 
   it("moves between collections", () => {

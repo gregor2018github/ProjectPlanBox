@@ -261,8 +261,9 @@ test("edits title and notes in the detail panel", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Notes" })).toHaveValue("Remember the attachment");
 });
 
-test("a note links to a todo, and the link shows from both sides after a reload", async ({
+test("a page holds boxes typed anywhere, and links to a todo from both sides", async ({
   page,
+  request,
 }) => {
   const id = tag();
   const todo = `Write report ${id}`;
@@ -272,11 +273,24 @@ test("a note links to a todo, and the link shows from both sides after a reload"
 
   await page.goto("/knowledge");
   await page.keyboard.press("e");
-  const dialog = page.getByRole("dialog", { name: "New note" });
-  await dialog.getByRole("textbox", { name: "Title" }).fill(note);
-  await dialog.getByRole("textbox", { name: "Text" }).fill("1. Numbers, 2. Story");
-  await dialog.getByRole("button", { name: "Add note" }).click();
+  const title = page.getByRole("textbox", { name: "Page title" });
+  await expect(title).toBeFocused();
+  await page.keyboard.type(note);
+  await page.keyboard.press("Enter");
 
+  // Click empty space on the page: a box starts there; type, then bold a word.
+  await page.getByRole("region", { name: "Page" }).click({ position: { x: 200, y: 120 } });
+  // Typed at once: the new box has the focus before the next key arrives.
+  await page.keyboard.type("Numbers and ");
+  const box = page.getByRole("textbox", { name: "Text box" });
+  await expect(box).toContainText("Numbers and");
+  await page.getByRole("button", { name: "Bold" }).click();
+  await page.keyboard.type("story");
+  await expect(box.locator("strong")).toHaveText("story");
+  await page.getByRole("button", { name: "Add table" }).click();
+  await expect(box.locator("table")).toBeVisible();
+
+  await page.getByRole("button", { name: "Details and links" }).click();
   const details = page.getByRole("complementary", { name: "Details" });
   await expect(details.getByRole("textbox", { name: "Title" })).toHaveValue(note);
   await details.getByRole("button", { name: "Link…" }).click();
@@ -284,12 +298,28 @@ test("a note links to a todo, and the link shows from both sides after a reload"
   await page.keyboard.press("Enter");
   await expect(details.getByRole("button", { name: new RegExp(`^${todo}`) })).toBeVisible();
 
+  // The page saves a moment after the last edit.
+  await expect
+    .poll(async () => {
+      const entries = (await (await request.get("/api/knowledge/entries")).json()) as {
+        title: string;
+        body: string;
+      }[];
+      return entries.find((e) => e.title === note)?.body;
+    })
+    .toContain("Numbers and story");
   await page.reload();
+  await expect(page.getByRole("textbox", { name: "Text box" }).locator("strong")).toHaveText(
+    "story",
+  );
+  await expect(page.getByRole("textbox", { name: "Text box" }).locator("table")).toBeVisible();
   await page
     .getByRole("complementary", { name: "Details" })
     .getByRole("button", { name: new RegExp(`^${todo}`) })
     .click();
-  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue(todo);
+  await expect(
+    page.getByRole("complementary", { name: "Details" }).getByRole("textbox", { name: "Title" }),
+  ).toHaveValue(todo);
   await expect(
     page
       .getByRole("complementary", { name: "Details" })

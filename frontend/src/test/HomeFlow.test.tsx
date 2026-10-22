@@ -77,7 +77,7 @@ describe("home", () => {
     expect(await within(card("Calendar")).findByText("Standup")).toBeInTheDocument();
     expect(await within(card("Habits")).findByText("0 of 1 done today")).toBeInTheDocument();
     expect(await within(card("Knowledge")).findByText("Sourdough recipe")).toBeInTheDocument();
-    expect(within(card("Knowledge")).getByRole("link", { name: "1 entry to sort" })).toBeVisible();
+    expect(within(card("Knowledge")).getByRole("link", { name: "1 page to sort" })).toBeVisible();
 
     const order = screen
       .getAllByRole("region")

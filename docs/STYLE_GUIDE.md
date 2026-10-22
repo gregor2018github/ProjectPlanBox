@@ -149,6 +149,13 @@ Raw colours and arbitrary colour, spacing, radius, shadow or type values
 dimensions (a panel width, `max-w-[85vw]`) are allowed when no utility
 fits.
 
+The one stylesheet besides the tokens is `styles/pageDoc.css`: the rich text
+inside knowledge page boxes is HTML the editor (Tiptap) renders, so its
+typography (headings, lists, tables, code, highlight, image handles) is
+plain CSS there. It uses only token variables (`var(--color-…)`,
+`calc(var(--spacing) * n)`), never raw values. A highlight is the accent's
+subtle tint, keeping the one-accent rule.
+
 The theme is set with `data-theme="light|dark"` on `<html>`. The preference
 is `system | light | dark` and is stored in `localStorage`. An inline script
 in `index.html` applies it before first paint. `system` follows

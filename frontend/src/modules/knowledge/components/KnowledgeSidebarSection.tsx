@@ -1,11 +1,11 @@
+import { useRouterState } from "@tanstack/react-router";
 import { FolderPlus, Inbox, Library, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { IconButton } from "../../../ui/IconButton";
 import { NameDialog } from "../../../ui/NameDialog";
-import { newEntryDialog } from "../newEntryStore";
 import { knowledgePaths } from "../paths";
-import { entryCounts } from "../selectors";
+import { collectionOnScreen, entryCounts } from "../selectors";
 import { useKnowledgeActions } from "../useKnowledgeActions";
 import { useKnowledgeData } from "../useKnowledgeData";
 import { CollectionLink } from "./CollectionLink";
@@ -18,6 +18,7 @@ export function KnowledgeSidebarSection() {
   const [creating, setCreating] = useState(false);
   const counts = useMemo(() => entryCounts(data.entries), [data.entries]);
   const orderedIds = data.collections.map((c) => c.id);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <>
@@ -25,11 +26,11 @@ export function KnowledgeSidebarSection() {
         <span className="text-xs font-medium text-text-muted">Knowledge</span>
         <div className="flex items-center">
           <IconButton
-            label="New note, link or snippet"
+            label="New knowledge page"
             icon={Plus}
             shortcut="E"
             onClick={() => {
-              newEntryDialog.open();
+              actions.createPage(collectionOnScreen(pathname, orderedIds));
             }}
           />
           <IconButton
@@ -43,7 +44,7 @@ export function KnowledgeSidebarSection() {
       </div>
       <KnowledgeNavLink
         to={knowledgePaths.all}
-        label="All entries"
+        label="All pages"
         icon={Library}
         count={counts.total}
         exact

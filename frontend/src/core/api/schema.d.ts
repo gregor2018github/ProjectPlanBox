@@ -717,7 +717,7 @@ export interface paths {
         put?: never;
         /**
          * Create Entry
-         * @description Creates a note, link or snippet (idempotent per client id).
+         * @description Creates a page (idempotent per client id).
          */
         post: operations["knowledge_create_entry"];
         delete?: never;
@@ -764,6 +764,26 @@ export interface paths {
          * @description Undoes a delete.
          */
         post: operations["knowledge_restore_entry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/knowledge/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Image
+         * @description Saves an image for a page, on this PC only (it does not sync).
+         */
+        post: operations["knowledge_upload_image"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1946,79 +1966,55 @@ export interface components {
         };
         /**
          * EntryCreate
-         * @description Create an entry; send a client-generated ``id`` for idempotent, optimistic creates.
+         * @description Create a page; send a client-generated ``id`` for idempotent, optimistic creates.
          */
         EntryCreate: {
-            /**
-             * Body
-             * @default
-             */
-            body?: string;
             /** Collection Id */
             collection_id?: string | null;
+            content?: components["schemas"]["PageContent"];
             /** Id */
             id?: string | null;
-            kind: components["schemas"]["Kind"];
-            /** Language */
-            language?: string | null;
             /** Tag Ids */
             tag_ids?: string[];
             /** Title */
             title: string;
-            /** Url */
-            url?: string | null;
         };
         /**
          * EntryOut
-         * @description A note, link or snippet. ``collection_id`` null means Unsorted.
+         * @description A page. ``collection_id`` null means Unsorted.
          */
         EntryOut: {
             /**
              * Body
-             * @description Note text, link description or snippet code.
+             * @description The page's plain text, derived from its content.
              */
             body: string;
             /** Collection Id */
             collection_id: string | null;
+            content: components["schemas"]["PageContent"];
             /** Created At */
             created_at: string;
             /** Id */
             id: string;
-            kind: components["schemas"]["Kind"];
-            /**
-             * Language
-             * @description Snippets only, e.g. python.
-             */
-            language: string | null;
             /** Tag Ids */
             tag_ids: string[];
             /** Title */
             title: string;
             /** Updated At */
             updated_at: string;
-            /**
-             * Url
-             * @description Links only: an http(s) address.
-             */
-            url: string | null;
         };
         /**
          * EntryPatch
-         * @description Partial update: absent fields stay unchanged, ``null`` clears (language, collection).
+         * @description Partial update: absent fields stay unchanged, ``null`` clears the collection.
          */
         EntryPatch: {
-            /** Body */
-            body?: string | null;
             /** Collection Id */
             collection_id?: string | null;
-            /** Language */
-            language?: string | null;
+            content?: components["schemas"]["PageContent"] | null;
             /** Tag Ids */
             tag_ids?: string[] | null;
             /** Title */
             title?: string | null;
-            /** Url */
-            url?: string | null;
         };
         /**
          * EventCreate
@@ -2340,6 +2336,33 @@ export interface components {
             version: string;
         };
         /**
+         * ImageOut
+         * @description A saved image.
+         */
+        ImageOut: {
+            /**
+             * Url
+             * @description Where the image is served; use it as the image node's src.
+             */
+            url: string;
+        };
+        /**
+         * ImageUpload
+         * @description An image to put on a page, as base64 (a JSON body, ARCHITECTURE §9).
+         */
+        ImageUpload: {
+            /**
+             * Data
+             * @description The file's bytes, base64-encoded.
+             */
+            data: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
+        };
+        /**
          * ImportOut
          * @description The outcome of an import.
          */
@@ -2352,8 +2375,7 @@ export interface components {
             /** Tables */
             tables: components["schemas"]["TableMergeOut"][];
         };
-        /** @enum {string} */
-        Kind: "note" | "link" | "snippet";
+        JsonValue: unknown;
         /**
          * KnowledgeDeletedOut
          * @description What a delete (or its restore) touched; restore by id to undo.
@@ -2587,6 +2609,44 @@ export interface components {
             first_at: string | null;
             /** In Range */
             in_range: number;
+        };
+        /**
+         * PageBox
+         * @description A box on a page: where it sits and the rich text it holds.
+         */
+        PageBox: {
+            /**
+             * Doc
+             * @description Tiptap (ProseMirror) JSON with a `doc` node at the top.
+             */
+            doc: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Id
+             * @description Unique within the page.
+             */
+            id: string;
+            /** Width */
+            width: number;
+            /**
+             * X
+             * @description Pixels from the page's left edge.
+             */
+            x: number;
+            /**
+             * Y
+             * @description Pixels from the page's top edge.
+             */
+            y: number;
+        };
+        /**
+         * PageContent
+         * @description What a page holds: freely placed boxes, in stacking order.
+         */
+        PageContent: {
+            /** Boxes */
+            boxes: components["schemas"]["PageBox"][];
         };
         /**
          * PairingOut
@@ -4866,6 +4926,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    knowledge_upload_image: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImageUpload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageOut"];
                 };
             };
             /** @description Problem details */

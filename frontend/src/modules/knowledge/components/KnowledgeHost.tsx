@@ -7,39 +7,32 @@ import type { Command } from "../../../core/commands/registry";
 import { useLinkableSource } from "../../../core/links/linkablesContext";
 import { useShortcut } from "../../../core/shortcuts/useShortcut";
 import { NameDialog } from "../../../ui/NameDialog";
-import { newEntryDialog, useNewEntryRequest } from "../newEntryStore";
 import { knowledgePaths } from "../paths";
-import { entryRef, ENTRY_KINDS, ENTRY_TYPE, KIND_LABELS } from "../types";
+import { collectionOnScreen } from "../selectors";
+import { entryRef, ENTRY_TYPE } from "../types";
 import { useKnowledgeActions } from "../useKnowledgeActions";
 import { useKnowledgeData } from "../useKnowledgeData";
-import { NewEntryDialog } from "./NewEntryDialog";
 
 /**
  * Mounted once for the app's lifetime: the module's shortcuts and palette
- * commands, the "new entry" and "new collection" dialogs, and its entries as
- * link targets.
+ * commands, the "new collection" dialog, and its pages as link targets.
  */
 export function KnowledgeHost() {
   const data = useKnowledgeData();
   const actions = useKnowledgeActions();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const request = useNewEntryRequest();
   const [creatingCollection, setCreatingCollection] = useState(false);
-
-  // New entries go to the collection on screen, else to Unsorted.
-  const match = /^\/knowledge\/collections\/([^/]+)/.exec(pathname);
-  const target = match ? data.collections.find((c) => c.id === match[1]) : undefined;
 
   const linkables = useMemo(
     () => ({
       entityType: ENTRY_TYPE,
-      noun: "Entry",
+      noun: "Page",
       icon: BookOpen,
       items: data.allEntries.map((e) => ({
         ref: entryRef(e.id),
         title: e.title,
-        hint: `${KIND_LABELS[e.kind]} · ${data.collectionName(e.collection_id)}`,
+        hint: `Page · ${data.collectionName(e.collection_id)}`,
       })),
     }),
     [data],
@@ -49,15 +42,22 @@ export function KnowledgeHost() {
   const go = (to: string) => () => {
     void navigate({ to });
   };
+  // New pages go to the collection on screen, else to Unsorted.
+  const newPage = () => {
+    actions.createPage(
+      collectionOnScreen(
+        pathname,
+        data.collections.map((c) => c.id),
+      ),
+    );
+  };
 
   useShortcut({
     id: "knowledge.new",
     keys: "E",
-    description: "New note, link or snippet",
+    description: "New knowledge page",
     group: "Knowledge",
-    run: () => {
-      newEntryDialog.open();
-    },
+    run: newPage,
   });
   useShortcut({
     id: "knowledge.go",
@@ -69,16 +69,14 @@ export function KnowledgeHost() {
 
   const commands = useMemo<Command[]>(
     () => [
-      ...ENTRY_KINDS.map((kind) => ({
-        id: `knowledge.new.${kind}`,
-        title: `New ${KIND_LABELS[kind].toLowerCase()}`,
+      {
+        id: "knowledge.new.page",
+        title: "New page",
         group: "Knowledge",
-        keywords: ["add", "create", "knowledge"],
-        ...(kind === "note" && { shortcut: "E" }),
-        run: () => {
-          newEntryDialog.open(kind);
-        },
-      })),
+        keywords: ["add", "create", "knowledge", "note"],
+        shortcut: "E",
+        run: newPage,
+      },
       {
         id: "knowledge.new.collection",
         title: "New collection",
@@ -92,13 +90,13 @@ export function KnowledgeHost() {
         id: "knowledge.go",
         title: "Go to Knowledge",
         group: "Navigation",
-        keywords: ["notes", "links", "snippets"],
+        keywords: ["notes", "pages"],
         shortcut: "G K",
         run: go(knowledgePaths.all),
       },
       {
         id: "knowledge.go.unsorted",
-        title: "Go to Unsorted entries",
+        title: "Go to Unsorted pages",
         group: "Navigation",
         run: go(knowledgePaths.unsorted),
       },
@@ -109,37 +107,22 @@ export function KnowledgeHost() {
         run: go(knowledgePaths.collection(c.id)),
       })),
     ],
-    // go reads navigate through its closure.
+    // go and newPage read navigate, actions and the path through their closures.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, navigate],
+    [data, navigate, actions, pathname],
   );
   useCommands(commands);
 
   return (
-    <>
-      <NewEntryDialog
-        initialKind={request?.kind ?? null}
-        onClose={newEntryDialog.close}
-        collectionId={target?.id ?? null}
-        collectionLabel={target?.name ?? "Unsorted"}
-        onCreate={(input) => {
-          const id = actions.create(input);
-          void navigate({
-            to: ".",
-            search: (prev: Record<string, unknown>) => ({ ...prev, item: entryRef(id) }),
-          });
-        }}
-      />
-      <NameDialog
-        open={creatingCollection}
-        onOpenChange={setCreatingCollection}
-        title="New collection"
-        submitLabel="Add collection"
-        onSubmit={(name) => {
-          const id = actions.createCollection(name);
-          void navigate({ to: knowledgePaths.collection(id) });
-        }}
-      />
-    </>
+    <NameDialog
+      open={creatingCollection}
+      onOpenChange={setCreatingCollection}
+      title="New collection"
+      submitLabel="Add collection"
+      onSubmit={(name) => {
+        const id = actions.createCollection(name);
+        void navigate({ to: knowledgePaths.collection(id) });
+      }}
+    />
   );
 }

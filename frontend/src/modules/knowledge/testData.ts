@@ -1,20 +1,40 @@
 /** Builders for knowledge test rows. */
-import type { Collection, Entry } from "./types";
+import { pageText } from "./pageText";
+import type { Collection, Entry, PageBox, PageContent } from "./types";
 
 let counter = 0;
 
-/** A note (override any field). */
+/** A box holding one paragraph per line of `text` (override any field). */
+export function textBox(text: string, fields: Partial<PageBox> = {}): PageBox {
+  counter += 1;
+  const content = text
+    .split("\n")
+    .map((line) =>
+      line === ""
+        ? { type: "paragraph" }
+        : { type: "paragraph", content: [{ type: "text", text: line }] },
+    );
+  return {
+    id: `box-${String(counter)}`,
+    x: 0,
+    y: 0,
+    width: 400,
+    doc: { type: "doc", content },
+    ...fields,
+  };
+}
+
+/** A page (override any field); `content` also sets the derived `body`. */
 export function makeEntry(fields: Partial<Entry> = {}): Entry {
   counter += 1;
   const stamp = `2026-10-0${String(1 + (counter % 8))}T10:00:00.000Z`;
+  const content: PageContent = fields.content ?? { boxes: [] };
   return {
     id: `entry-${String(counter)}`,
     collection_id: null,
-    kind: "note",
     title: `Entry ${String(counter)}`,
-    body: "",
-    url: null,
-    language: null,
+    content,
+    body: pageText(content),
     created_at: stamp,
     updated_at: stamp,
     tag_ids: [],

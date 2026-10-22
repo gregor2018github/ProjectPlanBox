@@ -23,7 +23,7 @@ def todo_ref(client: TestClient, title: str = "Write report") -> str:
 
 def note_ref(client: TestClient, title: str = "Report outline") -> str:
     """Creates a note and returns its entity reference."""
-    body = {"kind": "note", "title": title}
+    body = {"title": title}
     note = ok(client.post("/api/knowledge/entries", json=body), 201)
     return f"knowledge.entry:{note['id']}"
 

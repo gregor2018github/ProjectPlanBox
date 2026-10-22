@@ -1,8 +1,9 @@
-"""Knowledge use cases: collections and their notes, links and snippets.
+"""Knowledge use cases: collections and their pages.
 
-Rules (ARCHITECTURE §7b): an entry's kind is fixed at creation; links need an
-http(s) URL; only snippets have a language; deleting a collection deletes its
-entries with one shared ``deleted_at`` so a single restore undoes it exactly.
+Rules (ARCHITECTURE §7b): a page's content follows ``content.py`` and its
+plain text (``body``) is derived from it on every write; deleting a
+collection deletes its pages with one shared ``deleted_at`` so a single
+restore undoes it exactly.
 """
 
 import re
@@ -18,17 +19,14 @@ from planbox.core.errors import Conflict, NotFound, ValidationFailed
 from planbox.core.ids import is_valid_id, new_id
 from planbox.core.placement import free_position, place
 from planbox.core.tags.service import TagService
-from planbox.modules.knowledge.models import Collection, Deletion, Entry, EntryKind, EntryRecord
+from planbox.modules.knowledge.content import check_content, empty_content, page_text, serialize
+from planbox.modules.knowledge.models import Collection, Deletion, Entry, EntryRecord
 from planbox.modules.knowledge.repository import CollectionRepository, EntryRepository
 
 ENTITY_TYPE = "knowledge.entry"
 MAX_NAME = 200
 MAX_TITLE = 500
-MAX_BODY = 100_000
-MAX_URL = 2_000
-MAX_LANGUAGE = 40
 _WHITESPACE = re.compile(r"\s+")
-_URL = re.compile(r"^https?://\S+$", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,15 +44,12 @@ class Repositories:
 
 @dataclass(frozen=True, slots=True)
 class NewEntry:
-    """Input for creating an entry."""
+    """Input for creating a page (``content`` as in ``PageContent``)."""
 
-    kind: EntryKind
     title: str
     id: str | None = None
     collection_id: str | None = None
-    body: str = ""
-    url: str | None = None
-    language: str | None = None
+    content: Mapping[str, object] = field(default_factory=empty_content)
     tag_ids: list[str] = field(default_factory=list[str])
 
 
@@ -70,32 +65,14 @@ def _one_line(text: str, what: str, limit: int) -> str:
     return cleaned
 
 
-def clean_body(body: str) -> str:
-    """Checks the body length (bodies keep their line breaks and indentation)."""
-    if len(body) > MAX_BODY:
-        raise ValidationFailed(f"The text is at most {MAX_BODY} characters.")
-    return body
-
-
-def clean_url(url: str) -> str:
-    """Trims a URL and accepts only http(s), so a link can never run script.
+def clean_content(content: Mapping[str, object]) -> tuple[str, str]:
+    """Checks a page's content; returns it serialized and its plain text.
 
     Raises:
-        ValidationFailed: If the URL is not http(s) or too long.
+        ValidationFailed: If a box's document breaks the rules of ``content.py``.
     """
-    cleaned = url.strip()
-    if _URL.fullmatch(cleaned) is None:
-        raise ValidationFailed("Links need a web address starting with http:// or https://.")
-    if len(cleaned) > MAX_URL:
-        raise ValidationFailed(f"Web addresses are at most {MAX_URL} characters.")
-    return cleaned
-
-
-def clean_language(language: str | None) -> str | None:
-    """Trims a snippet language; blank means none."""
-    if language is None or not language.strip():
-        return None
-    return _one_line(language, "language", MAX_LANGUAGE)
+    check_content(content)
+    return serialize(content), page_text(content)
 
 
 def check_client_id(entity_id: str | None) -> None:
@@ -201,7 +178,7 @@ class CollectionService:
 
 
 class EntryService:
-    """Notes, links and snippets."""
+    """Pages."""
 
     def __init__(
         self, conn: sqlite3.Connection, repos: Repositories, tags: TagService, clock: Clock
@@ -218,23 +195,14 @@ class EntryService:
         return [EntryRecord(e, tags.get(e.id, [])) for e in entries]
 
     def create(self, new: NewEntry) -> tuple[EntryRecord, bool]:
-        """Creates an entry; idempotent per client id.
+        """Creates a page; idempotent per client id.
 
         Raises:
-            ValidationFailed: If a field breaks the kind's rules, or the collection is unknown.
+            ValidationFailed: If a field breaks the rules, or the collection is unknown.
         """
         check_client_id(new.id)
         title = _one_line(new.title, "title", MAX_TITLE)
-        body = clean_body(new.body)
-        if new.kind == "link":
-            url = clean_url(new.url or "")
-        elif new.url is not None:
-            raise ValidationFailed("Only links have a web address.")
-        else:
-            url = None
-        language = clean_language(new.language)
-        if language is not None and new.kind != "snippet":
-            raise ValidationFailed("Only snippets have a language.")
+        content, body = clean_content(new.content)
         with transaction(self._conn):
             if new.id is not None and (existing := self._repos.entries.get(new.id)) is not None:
                 return self._record(existing), False
@@ -243,11 +211,9 @@ class EntryService:
             entry = Entry(
                 id=new.id or new_id(),
                 collection_id=new.collection_id,
-                kind=new.kind,
                 title=title,
+                content=content,
                 body=body,
-                url=url,
-                language=language,
                 created_at=now,
                 updated_at=now,
                 deleted_at=None,
@@ -262,11 +228,11 @@ class EntryService:
 
         Raises:
             NotFound: If the entry does not exist or is deleted.
-            ValidationFailed: If a change breaks the kind's rules.
+            ValidationFailed: If a change breaks the rules.
         """
         with transaction(self._conn):
-            entry = _live(self._repos.entries.get(entry_id), "entry")
-            fields = self._clean_changes(entry, changes)
+            _live(self._repos.entries.get(entry_id), "entry")
+            fields = self._clean_changes(changes)
             now = utc_now_iso(self._clock)
             self._repos.entries.update(entry_id, fields, now)
             if "tag_ids" in changes:
@@ -303,21 +269,17 @@ class EntryService:
             self._repos.entries.set_deleted([entry_id], None, utc_now_iso(self._clock))
             return self._record(_live(self._repos.entries.get(entry_id), "entry"))
 
-    def _clean_changes(self, entry: Entry, changes: Mapping[str, object]) -> dict[str, object]:
+    def _clean_changes(self, changes: Mapping[str, object]) -> dict[str, object]:
         fields: dict[str, object] = {}
         for name, value in changes.items():
             if name == "title":
                 fields[name] = _one_line(str(value), "title", MAX_TITLE)
-            elif name == "body":
-                fields[name] = clean_body(str(value))
-            elif name == "url":
-                if entry.kind != "link":
-                    raise ValidationFailed("Only links have a web address.")
-                fields[name] = clean_url(str(value or ""))
-            elif name == "language":
-                if entry.kind != "snippet":
-                    raise ValidationFailed("Only snippets have a language.")
-                fields[name] = clean_language(None if value is None else str(value))
+            elif name == "content":
+                if not isinstance(value, Mapping):
+                    raise ValidationFailed("A page's content cannot be cleared.")
+                fields["content"], fields["body"] = clean_content(
+                    cast("Mapping[str, object]", value)
+                )
             elif name == "collection_id":
                 collection_id = None if value is None else str(value)
                 self._check_collection(collection_id)

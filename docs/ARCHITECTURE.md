@@ -41,7 +41,7 @@ ProjectPlanBox/
 │   │   │   └── preferences/  # preferences shared by every device (the theme)
 │   │   └── modules/
 │   │       ├── __init__.py   # ENABLED_MODULES: the only list of modules
-│   │       ├── knowledge/    # collections, notes, links, snippets (same layout as todos)
+│   │       ├── knowledge/    # collections and pages (same layout as todos, plus content.py, images.py)
 │   │       ├── calendar/     # events and recurring series
 │   │       ├── habits/       # habits, check-ins, streaks (streaks.py is pure)
 │   │       └── todos/
@@ -429,8 +429,8 @@ CREATE TABLE core_search_sync (id, entity_type, synced_through, created_at,
   body `snippet` (matched terms between U+E000 and U+E001, which the
   frontend renders as `<mark>`), plus the module's `hint` from `summarize`.
   The summary is fetched at query time, so a renamed list shows at once.
-- Indexed today: todos (title, notes) and knowledge entries (title, text,
-  and the address for links). Tags and calendar events are not indexed
+- Indexed today: todos (title, notes) and knowledge pages (title and the
+  page's plain text, `body`). Tags and calendar events are not indexed
   (TODO.md).
 - **Frontend.** `useSearch` (`core/search/`) debounces by 150 ms and keeps
   the previous hits while the next load. The command palette lists up to 8
@@ -682,7 +682,7 @@ that can be enforced in SQL are also CHECK constraints.
 | GET/POST/PATCH/DELETE | `/api/tags[/{id}]` | Core |
 | GET | `/api/health`, `/api/meta` | Liveness and schema versions; timezone, week start, app version |
 
-## 7b. Knowledge module data model (phase 2)
+## 7b. Knowledge module data model (phase 2; pages 2026-10-22)
 
 ```sql
 CREATE TABLE knowledge_collections (
@@ -692,27 +692,54 @@ CREATE TABLE knowledge_collections (
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
 ) STRICT;
 
-CREATE TABLE knowledge_entries (
+CREATE TABLE knowledge_entries (                -- pages (0002 rebuilt it)
   id TEXT PRIMARY KEY,
   collection_id TEXT REFERENCES knowledge_collections(id),  -- NULL = Unsorted
-  kind TEXT NOT NULL CHECK (kind IN ('note', 'link', 'snippet')),
   title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 500),
-  body TEXT NOT NULL DEFAULT '',                -- note text, link description, snippet code
-  url TEXT CHECK ((kind = 'link') = (url IS NOT NULL)),
-  language TEXT CHECK (language IS NULL OR (kind = 'snippet' AND length(language) <= 40)),
+  content TEXT NOT NULL CHECK (json_valid(content)),  -- {"boxes": [...]}, below
+  body TEXT NOT NULL DEFAULT '',                -- plain text, derived from content
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT
 ) STRICT;
 ```
 
-- One table for the three kinds, because they share everything except one
-  column each (PLAN.md, phase 2, argues the choice). The kind is fixed at
-  creation. Entity type: `knowledge.entry`.
-- Links need an `http(s)` URL. The frontend adds `https://` to bare
-  addresses and only ever renders http(s) as a link target.
-- Entries are listed newest change first (`updated_at`); changing tags
+Every entry is a **page** (owner request, 2026-10-22: "like OneNote, one
+type for everything"). Entity type: `knowledge.entry`.
+
+- **Content.** `{"boxes": [{id, x, y, width, doc}, ...]}`: boxes sit at
+  `x`/`y` pixels from the page's top left (0 to 100 000), are `width` pixels
+  wide (40 to 10 000) and stack in array order. `doc` is a Tiptap
+  (ProseMirror) JSON document. The schema checks the boxes; `content.py`
+  checks the documents: only the node and mark types the editor makes
+  (paragraphs, headings, lists, task lists, quotes, code blocks, rules,
+  hard breaks, tables, images; bold, italic, underline, strike, code,
+  link, highlight), unique box ids, at most 64 levels, at most 2 MB of
+  JSON. **Image nodes may only point at `/api/knowledge/images/<name>`
+  and link marks only at http(s) or mailto**, so stored content can never
+  load a foreign resource or run script. It is one JSON column, not rows
+  per box: a page is written as a whole (the sync rule of §13 then loses
+  one of two concurrent edits to the same page, as it would for a todo).
+- **body** is the page's plain text, derived on every write (`page_text`,
+  twin `pageText.ts`): each paragraph, heading or code block is a line;
+  boxes are joined by newlines, empty ones skipped. Search, previews,
+  filters and the word count read it; clients never send it.
+- **Migration 0002** rebuilt the table and turned every old entry into a
+  page with one box at the top left: a note's lines into paragraphs, a
+  link into its address (as a link) plus its description, a snippet into a
+  code block in its language. Box id = entry id and `updated_at` unchanged,
+  so a PC and a phone that both migrate hold equal rows.
+- **Images** are files in `<data>/images/<uuidv7>.<png|jpg|gif|webp>`, not
+  rows (owner's choice): `POST /api/knowledge/images` takes base64 in a
+  JSON body (§9) up to 20 MB and checks the file's signature against the
+  claimed type (no SVG). `GET /api/knowledge/images/{name}` serves it with
+  `nosniff` and an immutable cache header; it is outside the OpenAPI
+  schema (not JSON). Exports, backups and Drive sync do **not** carry
+  images, so another device shows them as missing. Files are never
+  deleted, so undoing any page change finds its images again. The phone
+  app answers uploads with 409 (TODO.md).
+- Pages are listed newest change first (`updated_at`); changing tags
   counts as a change. Collections are ordered by `position`.
-- Deleting a collection soft-deletes its entries with the same stamp;
-  restoring it restores exactly those. An entry whose collection is deleted
+- Deleting a collection soft-deletes its pages with the same stamp;
+  restoring it restores exactly those. A page whose collection is deleted
   cannot be restored on its own (409).
 
 | Method | Path | Notes |
@@ -720,14 +747,34 @@ CREATE TABLE knowledge_entries (
 | GET/POST | `/api/knowledge/collections` | List in order; create at the end (client `id`, idempotent) |
 | PATCH | `/api/knowledge/collections/{id}` | Rename |
 | POST | `…/collections/{id}/move` · `/restore` | `{before_id?, after_id?}`; undo a delete |
-| DELETE | `/api/knowledge/collections/{id}` | With its entries; returns counts |
-| GET/POST | `/api/knowledge/entries` | All live entries with `tag_ids`; create (client `id`, idempotent) |
-| PATCH | `/api/knowledge/entries/{id}` | title, body, url, language, collection_id, tag_ids; absent = unchanged |
+| DELETE | `/api/knowledge/collections/{id}` | With its pages; returns counts |
+| GET/POST | `/api/knowledge/entries` | All live pages with `content`, `body`, `tag_ids`; create (client `id`, idempotent; `content` defaults to no boxes) |
+| PATCH | `/api/knowledge/entries/{id}` | title, content (whole, never null), collection_id, tag_ids; absent = unchanged |
 | DELETE | `/api/knowledge/entries/{id}` · POST `…/restore` | Soft delete, undo |
+| POST | `/api/knowledge/images` | `{data, type}` → `{url}`; this PC only |
+| GET | `/api/knowledge/images/{name}` | The file (not in the schema) |
 
 On the frontend the module mirrors todos: one cache of all entries
 (`['knowledge','entries']`) plus collections; views are selectors over it;
 every mutation is optimistic in one serial scope (`knowledge`).
+
+**The page view** (`/knowledge/pages/<id>`, no tag filter) fills the main
+area: title, collection and tags, a toolbar, and the page (`PageCanvas`)
+with one `PageBox` per box, each its own Tiptap editor (`pageEditor.ts`
+holds the extensions; `styles/pageDoc.css` the typography). The open page
+owns its content (`usePageContent`): edits apply at once and are saved as
+a whole PATCH 600 ms after the last one, on leaving the page, and on
+`pagehide`/hidden with `keepalive` (a reload would cancel a normal
+request; bodies over 60 KB go without it). Server answers do not flow
+back into an open page, so typing is never interrupted; a change synced
+in from elsewhere shows when the page is opened again. Clicking empty
+page space adds a box there and focuses it synchronously (a layout effect,
+so the next key lands in it, not in a shortcut); a box left empty
+disappears when it loses the focus. Deleting a box is undoable (Ctrl+Z or
+the toast); text undo inside a box is the editor's own. Full screen covers
+the app (`fixed`) and asks the browser for the Fullscreen API too. Opening
+a page from search, links or Home goes to the side panel (`EntryDetail`:
+title, **Open page**, collection, tags, a text preview, links).
 
 ## 7c. Habits module data model (phase 5)
 

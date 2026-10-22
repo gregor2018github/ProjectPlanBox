@@ -65,7 +65,7 @@ def test_activity_counts_every_module(client: TestClient, clock: FixedClock) -> 
     gone = todo(client, "Never mind")
     ok(client.post(f"/api/todos/items/{done['id']}/complete"))
     ok(client.delete(f"/api/todos/items/{gone['id']}"))
-    ok(client.post("/api/knowledge/entries", json={"kind": "note", "title": "Idea"}), 201)
+    ok(client.post("/api/knowledge/entries", json={"title": "Idea"}), 201)
     ok(
         client.post(
             "/api/calendar/events",

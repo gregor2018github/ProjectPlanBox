@@ -241,9 +241,8 @@ def tags_links_search() -> list[Step]:
             "/api/knowledge/entries",
             {
                 "id": note,
-                "kind": "note",
                 "title": "Café notes",
-                "body": "Open Mondays",
+                "content": page(box("b1", 0, 0, para("Open Mondays"))),
                 "tag_ids": [cid(43), cid(42)],
             },
         ),
@@ -284,9 +283,59 @@ def tags_links_search() -> list[Step]:
     ]
 
 
+def para(*parts: Any) -> Step:  # noqa: ANN401 - JSON
+    """A paragraph of text nodes (strings) and other inline nodes."""
+    content = [{"type": "text", "text": p} if isinstance(p, str) else p for p in parts]
+    return {"type": "paragraph", "content": content}
+
+
+def box(box_id: str, x: int, y: int, *nodes: Step, width: int = 400) -> Step:
+    """A page box holding a document of these nodes."""
+    return {
+        "id": box_id,
+        "x": x,
+        "y": y,
+        "width": width,
+        "doc": {"type": "doc", "content": list(nodes)},
+    }
+
+
+def page(*boxes: Step) -> Step:
+    """Page content made of these boxes."""
+    return {"boxes": list(boxes)}
+
+
 def knowledge() -> list[Step]:
-    """Collections and entries of every kind."""
-    col, link, snippet = cid(50), cid(51), cid(52)
+    """Collections and pages: content rules, derived text, moves and deletes."""
+    col, bread, loop = cid(50), cid(51), cid(52)
+    link = {"type": "link", "attrs": {"href": "https://example.com/bread", "target": "_blank"}}
+    image = {
+        "type": "image",
+        "attrs": {"src": f"/api/knowledge/images/{cid(54)}.png", "alt": None, "width": 320},
+    }
+    table = {
+        "type": "table",
+        "content": [
+            {
+                "type": "tableRow",
+                "content": [
+                    {"type": "tableHeader", "attrs": {"colspan": 1}, "content": [para("Flour")]},
+                    {"type": "tableCell", "content": [para("500 g")]},
+                ],
+            }
+        ],
+    }
+    code = {
+        "type": "codeBlock",
+        "attrs": {"language": "python"},
+        "content": [{"type": "text", "text": "for x in y:\n    pass\n"}],
+    }
+    heading = {
+        "type": "heading",
+        "attrs": {"level": 2},
+        "content": [{"type": "text", "text": "Ü 🍞"}],
+    }
+    bad_link = {"type": "link", "attrs": {"href": "javascript:alert(1)"}}
     return [
         req("POST", "/api/knowledge/collections", {"id": col, "name": "Recipes"}),
         req("POST", "/api/knowledge/collections", {"id": cid(53), "name": "Work"}),
@@ -296,48 +345,105 @@ def knowledge() -> list[Step]:
             "POST",
             "/api/knowledge/entries",
             {
-                "id": link,
-                "kind": "link",
-                "title": "Bread",
-                "url": " https://example.com/bread ",
+                "id": bread,
+                "title": " Bread ",
                 "collection_id": col,
+                "content": page(
+                    box(
+                        "a",
+                        24,
+                        16,
+                        heading,
+                        para({"type": "text", "text": "recipe", "marks": [link, {"type": "bold"}]}),
+                        para("line", {"type": "hardBreak"}, "break"),
+                        table,
+                    ),
+                    box("b", 480, 0, {"type": "paragraph"}, width=200),
+                    box("c", 0, 400, image, {"type": "horizontalRule"}),
+                ),
             },
         ),
+        req("POST", "/api/knowledge/entries", {"id": loop, "title": "Loop"}),
         req(
             "POST",
             "/api/knowledge/entries",
-            {"kind": "link", "title": "Bad", "url": "javascript:alert(1)"},
-        ),
-        req(
-            "POST", "/api/knowledge/entries", {"kind": "note", "title": "Bad", "url": "https://x.y"}
+            {
+                "title": "Bad",
+                "content": page(
+                    box("a", 0, 0, para({"type": "text", "text": "x", "marks": [bad_link]}))
+                ),
+            },
         ),
         req(
             "POST",
             "/api/knowledge/entries",
             {
-                "id": snippet,
-                "kind": "snippet",
-                "title": "Loop",
-                "body": "for x in y:\n    pass",
-                "language": " python ",
+                "title": "Bad",
+                "content": page(
+                    box("a", 0, 0, {"type": "image", "attrs": {"src": "https://x.y/a.png"}})
+                ),
             },
         ),
-        req("POST", "/api/knowledge/entries", {"kind": "note", "title": "Bad", "language": "py"}),
+        req(
+            "POST",
+            "/api/knowledge/entries",
+            {"title": "Bad", "content": page(box("a", 0, 0, {"type": "iframe"}))},
+        ),
+        req(
+            "POST",
+            "/api/knowledge/entries",
+            {"title": "Bad", "content": page(box("a", 0, 0), box("a", 9, 9))},
+        ),
+        req(
+            "POST",
+            "/api/knowledge/entries",
+            {"title": "Bad", "content": page(box("a", 0, 0, width=20))},
+        ),
+        req("POST", "/api/knowledge/entries", {"title": "Bad", "content": page(box("a", -1, 0))}),
+        req(
+            "POST",
+            "/api/knowledge/entries",
+            {
+                "title": "Bad",
+                "content": {
+                    "boxes": [
+                        {"id": "a", "x": 0, "y": 0, "width": 99, "doc": {"type": "paragraph"}}
+                    ]
+                },
+            },
+        ),
+        req(
+            "POST",
+            "/api/knowledge/entries",
+            {
+                "title": "Bad",
+                "content": page(
+                    box("a", 0, 0, {"type": "paragraph", "content": [{"type": "text"}]})
+                ),
+            },
+        ),
         req(
             "PATCH",
-            f"/api/knowledge/entries/{snippet}",
-            {"language": None, "collection_id": col},
+            f"/api/knowledge/entries/{loop}",
+            {"content": page(box("only", 10, 20, code)), "collection_id": col},
             advance=60,
         ),
-        req("PATCH", f"/api/knowledge/entries/{link}", {"language": "x"}),
-        req("PATCH", f"/api/knowledge/entries/{link}", {"url": "https://example.org"}, advance=60),
+        req("PATCH", f"/api/knowledge/entries/{loop}", {"content": None}),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {"body": "ignored", "title": "Loops"},
+            advance=60,
+        ),
+        req("GET", "/api/search?q=flour"),
+        req("GET", "/api/search?q=pass"),
         req("DELETE", f"/api/knowledge/collections/{col}", advance=60),
-        req("POST", f"/api/knowledge/entries/{link}/restore"),
+        req("POST", f"/api/knowledge/entries/{bread}/restore"),
         req("POST", f"/api/knowledge/collections/{col}/restore", advance=60),
         req("GET", "/api/knowledge/collections"),
         req("GET", "/api/knowledge/entries"),
-        req("DELETE", f"/api/knowledge/entries/{link}"),
-        req("POST", f"/api/knowledge/entries/{link}/restore"),
+        req("DELETE", f"/api/knowledge/entries/{bread}"),
+        req("POST", f"/api/knowledge/entries/{bread}/restore"),
     ]
 
 

@@ -1,5 +1,5 @@
 /**
- * What the user can do to knowledge entries and collections, in their words:
+ * What the user can do to knowledge pages and collections, in their words:
  * each action applies the optimistic mutation and records how to undo it
  * (a toast for deletes, Ctrl+Z for everything).
  */
@@ -10,7 +10,6 @@ import { confirmDelete } from "../../core/confirm/confirmDelete";
 import { newId } from "../../core/ids";
 import { useTagFilter } from "../../core/tags/tagFilter";
 import { useUndo } from "../../core/undo/undoContext";
-import { useToast } from "../../ui/useToast";
 import type { CreateEntryVars, EntryPatch } from "./apply";
 import {
   useCreateCollection,
@@ -24,13 +23,13 @@ import {
   useUpdateEntry,
   type MoveCollectionVars,
 } from "./mutations";
-import { entryRef, KIND_LABELS, type Collection, type Entry } from "./types";
+import { knowledgePaths } from "./paths";
+import { entryRef, UNTITLED, type Collection, type Entry } from "./types";
 
 /** Returns the knowledge actions bound to the current caches. */
 export function useKnowledgeActions() {
   const navigate = useNavigate();
   const pushUndo = useUndo();
-  const { show } = useToast();
   const createEntry = useCreateEntry();
   const updateEntry = useUpdateEntry();
   const deleteEntry = useDeleteEntry();
@@ -42,21 +41,31 @@ export function useKnowledgeActions() {
   const restoreCollection = useRestoreCollection();
   const { tagIds: filterTagIds } = useTagFilter();
 
-  return useMemo(
-    () => ({
-      /**
-       * Creates an entry; returns its id immediately (optimistic). It also gets
-       * the active filter tags, so it does not vanish from the filtered view.
-       */
-      create(input: Omit<CreateEntryVars, "id">): string {
-        const id = newId();
-        const tag_ids = [...new Set([...(input.tag_ids ?? []), ...filterTagIds])];
-        createEntry.mutate({ ...input, id, tag_ids });
+  return useMemo(() => {
+    /**
+     * Creates an entry; returns its id immediately (optimistic). It also gets
+     * the active filter tags, so it does not vanish from the filtered view.
+     */
+    const create = (input: Omit<CreateEntryVars, "id">): string => {
+      const id = newId();
+      const tag_ids = [...new Set([...(input.tag_ids ?? []), ...filterTagIds])];
+      createEntry.mutate({ ...input, id, tag_ids });
+      return id;
+    };
+
+    return {
+      create,
+
+      /** Creates an empty page in a collection (null = Unsorted) and opens it. */
+      createPage(collectionId: string | null): string {
+        const id = create({ title: UNTITLED, collection_id: collectionId });
+        void navigate({ to: knowledgePaths.page(id) });
         return id;
       },
 
-      update(id: string, patch: EntryPatch): void {
-        updateEntry.mutate({ id, patch });
+      /** Saves a change; `keepalive` lets the request outlive the page (it is being left). */
+      update(id: string, patch: EntryPatch, options: { keepalive?: boolean } = {}): void {
+        updateEntry.mutate({ id, patch, keepalive: options.keepalive ?? false });
       },
 
       /** Moves an entry to a collection (null = Unsorted). */
@@ -74,13 +83,12 @@ export function useKnowledgeActions() {
       },
 
       remove(entry: Entry): void {
-        const noun = KIND_LABELS[entry.kind].toLowerCase();
         confirmDelete(
-          { title: `Delete ${noun}?`, description: `“${entry.title}” will be deleted.` },
+          { title: "Delete page?", description: `“${entry.title}” will be deleted.` },
           () => {
             deleteEntry.mutate({ id: entry.id });
             pushUndo({
-              label: `Deleted ${noun} “${entry.title}”`,
+              label: `Deleted page “${entry.title}”`,
               undo: () => {
                 restoreEntry.mutate({ id: entry.id });
               },
@@ -89,24 +97,17 @@ export function useKnowledgeActions() {
         );
       },
 
-      /** Opens an entry in the detail panel. */
+      /** Opens a page, large, in the main area. */
       open(entry: Entry): void {
+        void navigate({ to: knowledgePaths.page(entry.id) });
+      },
+
+      /** Opens a page's details (collection, tags, links) in the side panel. */
+      openDetails(entry: Entry): void {
         void navigate({
           to: ".",
           search: (prev: Record<string, unknown>) => ({ ...prev, item: entryRef(entry.id) }),
         });
-      },
-
-      /** Copies text (a snippet's code, a link's address) and confirms with a toast. */
-      copy(text: string, confirmation: string): void {
-        navigator.clipboard.writeText(text).then(
-          () => {
-            show({ title: confirmation });
-          },
-          () => {
-            show({ title: "Could not copy", tone: "error" });
-          },
-        );
       },
 
       createCollection(name: string): string {
@@ -148,23 +149,21 @@ export function useKnowledgeActions() {
           },
         );
       },
-    }),
-    [
-      navigate,
-      pushUndo,
-      show,
-      createEntry,
-      updateEntry,
-      deleteEntry,
-      restoreEntry,
-      createCollection,
-      renameCollection,
-      moveCollection,
-      deleteCollection,
-      restoreCollection,
-      filterTagIds,
-    ],
-  );
+    };
+  }, [
+    navigate,
+    pushUndo,
+    createEntry,
+    updateEntry,
+    deleteEntry,
+    restoreEntry,
+    createCollection,
+    renameCollection,
+    moveCollection,
+    deleteCollection,
+    restoreCollection,
+    filterTagIds,
+  ]);
 }
 
 /** The bound knowledge actions. */

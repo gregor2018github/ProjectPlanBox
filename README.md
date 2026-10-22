@@ -1,14 +1,15 @@
 # PlanBox
 
 A personal, local-first planner for one person. It combines todos,
-knowledge collections (notes, links and snippets grouped into collections),
+knowledge pages (OneNote-like pages of freely placed text boxes, grouped
+into collections),
 a calendar and habit tracking. The app grows one module at a time. It runs
 on Windows PCs (from Python or as `PlanBox.exe`) and as an Android app,
 each with its own database; your own Google Drive keeps them in step. A
 phone can also use a running PC over the home network or Tailscale.
 
 > **Status:** every planned phase is built: todos (with repeats and a
-> hand-sorted "My order"), knowledge collections and links between items,
+> hand-sorted "My order"), knowledge pages in collections and links between items,
 > search (Ctrl+K), calendar (`C` or the right-edge icon; `G C` for the full
 > page) and habits (`H`; `G B` for the page), a Home overview (`G H`), an
 > Insights page with statistics across all of them (`G S`), backups and
@@ -18,12 +19,12 @@ phone can also use a running PC over the home network or Tailscale.
 ## Using it
 
 - **Ctrl+K** opens the command palette: every action and every list, and
-  a search over all todos (completed ones too), knowledge entries and
+  a search over all todos (completed ones too), knowledge pages and
   habits. Words match as prefixes, so `rep out` finds "Report outline".
   **?** shows all keyboard shortcuts.
 - The **+** buttons create things: by the sidebar's **Todos** heading (a
   todo, same as **Q**), **Lists** (a list; the folder button makes an area),
-  next to each area (a list in that area), **Knowledge** (an entry; the
+  next to each area (a list in that area), **Knowledge** (a page; the
   folder button makes a collection) and **Habits**. An area's page has
   **New list** and an **Add todo** row under each list; a list's page has a
   **New section** button.
@@ -66,13 +67,24 @@ phone can also use a running PC over the home network or Tailscale.
 - Each area has a colour that quietly tints its pages and marks its todos
   elsewhere with a dot. Change it in **Area settings** (the area's ⋯ menu,
   or right-click it in the sidebar) with the colour wheel or a suggestion.
-- **E** adds a note, link or snippet (to the collection on screen, else to
-  Unsorted); **G K** opens Knowledge. Filter a view by kind or by words and
-  tags. Drag entries onto a collection in the sidebar, and drag collections
-  to reorder them. In a list of entries, **↑/↓** move and **Delete** deletes.
+- **E** makes a knowledge page (in the collection on screen, else in
+  Unsorted) and opens it large; type its title. **G K** opens Knowledge.
+  A page works like OneNote: click anywhere on it to start a text box there,
+  drag a box by its grip to move it (or focus the grip and use the arrow
+  keys) and by its right edge to resize it. The toolbar formats the box with
+  the cursor: bold, italic, underline, strikethrough, highlight, code,
+  headings, lists, checklists, quotes, code blocks, links (Ctrl+click opens
+  one), tables (with row and column tools while in one) and images. Paste
+  or drop images straight into a box or onto the page. **F** (or the button)
+  shows the page full screen; **Esc** leaves. Pages save themselves as you
+  type. **Images stay on the PC that added them**: backups, exports and
+  Google Drive sync do not carry them, so another device shows them as
+  missing. Filter a list of pages by words and tags. Drag pages onto a
+  collection in the sidebar, and drag collections to reorder them. In a
+  list of pages, **↑/↓** move and **Delete** deletes.
 - **Home** (sidebar, or **G H**) is the overview: overdue and due-today
   todos to tick off, with counts for the next 7 days and the Inbox; the
-  week's events; today's habits; recently changed knowledge entries; and
+  week's events; today's habits; recently changed knowledge pages; and
   the last 7 days across everything. Each card's title opens the full view.
 - **Insights** (sidebar, or **G S**) shows statistics: a year of activity
   across every module as a heat map, active-day streaks and when you open
@@ -80,12 +92,13 @@ phone can also use a running PC over the home network or Tailscale.
   (overall and per priority), the biggest lists, areas and tags, how long
   open todos have waited (the oldest ones open in the detail panel),
   priorities, a weekday × hour punch card of completions, how often due
-  dates are met, streaks and records; for knowledge growth per month,
-  collections, tags, saved sites and snippet languages; for habits
+  dates are met, streaks and records; for knowledge pages and words,
+  growth per month, collections and tags; for habits
   consistency per habit and weekday and check-ins per week. Every chart
   has a readout line: point at, tap or arrow-key through it.
-- Every todo and entry has a **Links** block in its detail panel: "Link…"
-  connects it to any other todo or entry, and the link shows on both sides.
+- Every todo and page has a **Links** block in its detail panel (on a page,
+  **Details and links** opens it): "Link…" connects it to any other todo or
+  page, and the link shows on both sides.
 
 ## What it is
 

@@ -1,12 +1,10 @@
-import { MoreHorizontal } from "lucide-react";
+import { FileText, MoreHorizontal } from "lucide-react";
 
 import { ContextMenu } from "../../../ui/ContextMenu";
 import { cx } from "../../../ui/cx";
 import { Menu } from "../../../ui/Menu";
 import { entryMenuEntries } from "../entryMenu";
-import { KIND_ICONS } from "../kindIcons";
-import { hostOf } from "../selectors";
-import { KIND_LABELS, type Entry } from "../types";
+import type { Entry } from "../types";
 import type { KnowledgeActions } from "../useKnowledgeActions";
 import type { KnowledgeData } from "../useKnowledgeData";
 
@@ -22,17 +20,17 @@ export interface EntryRowProps {
    * row of the list. The list turns it on when any of its entries has tags.
    */
   tagColumn: boolean;
-  /** True while this entry is open in the detail panel. */
+  /** True while this page's details are open in the side panel. */
   isOpen: boolean;
 }
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 
 /**
- * One entry: kind icon, title, a one-line preview, metadata and tags. In a
+ * One page: icon, title, a one-line preview of its text, metadata and tags. In a
  * wide list (container query on the list) the tags are a fixed-width column
  * at the right edge, lined up across rows; in a narrow one they wrap under
- * the metadata. Click (or Enter) opens it in the detail panel; every action
+ * the metadata. Click (or Enter) opens the page; every action
  * is in the ⋯ and context menus.
  */
 export function EntryRow({
@@ -43,12 +41,9 @@ export function EntryRow({
   tagColumn,
   isOpen,
 }: EntryRowProps) {
-  const Icon = KIND_ICONS[entry.kind];
   const menu = entryMenuEntries(entry, actions);
   const preview = entry.body.replace(/\s+/g, " ").trim();
   const meta = [
-    entry.kind === "link" ? hostOf(entry.url) : null,
-    entry.kind === "snippet" ? entry.language : null,
     showCollection ? data.collectionName(entry.collection_id) : null,
     dateFormat.format(new Date(entry.updated_at)),
   ].filter((part): part is string => part !== null && part !== "");
@@ -61,7 +56,7 @@ export function EntryRow({
           isOpen ? "bg-selected" : "hover:bg-hover",
         )}
       >
-        <Icon
+        <FileText
           size={16}
           strokeWidth={1.75}
           aria-hidden
@@ -70,7 +65,7 @@ export function EntryRow({
         <button
           type="button"
           data-entry-id={entry.id}
-          aria-label={`${KIND_LABELS[entry.kind]}: ${entry.title}`}
+          aria-label={`Page: ${entry.title}`}
           onClick={() => {
             actions.open(entry);
           }}
@@ -78,16 +73,7 @@ export function EntryRow({
         >
           <span className="flex min-w-0 basis-full flex-col gap-0.5 @2xl:flex-1 @2xl:basis-0">
             <span className="min-w-0 break-words">{entry.title}</span>
-            {preview !== "" && (
-              <span
-                className={cx(
-                  "truncate text-sm text-text-muted",
-                  entry.kind === "snippet" && "font-mono",
-                )}
-              >
-                {preview}
-              </span>
-            )}
+            {preview !== "" && <span className="truncate text-sm text-text-muted">{preview}</span>}
             <span className="truncate text-sm text-text-muted tabular-nums">
               {meta.join(" · ")}
             </span>

@@ -3,6 +3,8 @@ export const knowledgePaths = {
   all: "/knowledge",
   unsorted: "/knowledge/unsorted",
   collection: (id: string) => `/knowledge/collections/${id}`,
+  /** One page, large, in the main area. */
+  page: (id: string) => `/knowledge/pages/${id}`,
 } as const;
 
 /** Which entries a view shows: all, those without a collection, or one collection. */

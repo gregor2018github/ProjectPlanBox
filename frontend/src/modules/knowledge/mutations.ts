@@ -24,6 +24,9 @@ import type { Collection, Entry } from "./types";
 
 const SCOPE = { id: "knowledge" };
 
+/** The largest body a keepalive request may carry (the browsers' limit is 64 KB). */
+const KEEPALIVE_LIMIT = 60_000;
+
 interface CacheEdits {
   entries?: (entries: Entry[]) => Entry[];
   collections?: (collections: Collection[]) => Collection[];
@@ -89,7 +92,7 @@ function useReplaceCollection() {
 
 // -------------------------------------------------------------------- entries
 
-/** Creates a note, link or snippet. */
+/** Creates a page. */
 export function useCreateEntry() {
   const client = useApiClient();
   const merge = useMergeEntries();
@@ -103,16 +106,18 @@ export function useCreateEntry() {
   });
 }
 
-/** Changes title, text, address, language, collection or tags. */
+/** Changes title, content, collection or tags. */
 export function useUpdateEntry() {
   const client = useApiClient();
   const merge = useMergeEntries();
-  return useOptimisticMutation<{ id: string; patch: EntryPatch }, Entry>({
-    mutationFn: ({ id, patch }) =>
+  return useOptimisticMutation<{ id: string; patch: EntryPatch; keepalive?: boolean }, Entry>({
+    mutationFn: ({ id, patch, keepalive = false }) =>
       unwrap(
         client.PATCH("/api/knowledge/entries/{entry_id}", {
           params: { path: { entry_id: id } },
           body: patch,
+          // Browsers refuse keepalive bodies over 64 KB; a larger page takes its chances.
+          keepalive: keepalive && JSON.stringify(patch).length < KEEPALIVE_LIMIT,
         }),
       ),
     edit: ({ id, patch }) => ({ entries: (entries) => applyEntryPatch(entries, id, patch, now()) }),

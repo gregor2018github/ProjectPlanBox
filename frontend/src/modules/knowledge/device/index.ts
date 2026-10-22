@@ -24,17 +24,13 @@ import {
   type Handlers,
 } from "../../../core/device/server";
 import { TagService } from "../../../core/device/tags";
+import { pageText } from "../pageText";
+import { checkContent, serializeContent, type DeviceContent } from "./content";
 
 const ENTITY_TYPE = "knowledge.entry";
 const MAX_NAME = 200;
 const MAX_TITLE = 500;
-const MAX_BODY = 100_000;
-const MAX_URL = 2_000;
-const MAX_LANGUAGE = 40;
-const URL_RE = /^https?:\/\/\S+$/iu;
-const KIND_LABELS: Record<string, string> = { note: "Note", link: "Link", snippet: "Snippet" };
-
-type Kind = "note" | "link" | "snippet";
+const EMPTY_CONTENT: DeviceContent = { boxes: [] };
 
 interface Collection {
   id: string;
@@ -48,11 +44,11 @@ interface Collection {
 interface Entry {
   id: string;
   collection_id: string | null;
-  kind: Kind;
   title: string;
+  /** The page's JSON as stored. */
+  content: string;
+  /** Its plain text, derived on every write. */
   body: string;
-  url: string | null;
-  language: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -65,9 +61,8 @@ interface Deletion {
 }
 
 const COLLECTION = "id, name, position, created_at, updated_at, deleted_at";
-const ENTRY =
-  "id, collection_id, kind, title, body, url, language, created_at, updated_at, deleted_at";
-const ENTRY_EDITABLE = new Set(["collection_id", "title", "body", "url", "language"]);
+const ENTRY = "id, collection_id, title, content, body, created_at, updated_at, deleted_at";
+const ENTRY_EDITABLE = new Set(["collection_id", "title", "content", "body"]);
 
 function collectionOf(r: Row): Collection {
   return {
@@ -84,11 +79,9 @@ function entryOf(r: Row): Entry {
   return {
     id: text(r, "id"),
     collection_id: textOrNull(r, "collection_id"),
-    kind: text(r, "kind") as Kind,
     title: text(r, "title"),
+    content: text(r, "content"),
     body: text(r, "body"),
-    url: textOrNull(r, "url"),
-    language: textOrNull(r, "language"),
     created_at: text(r, "created_at"),
     updated_at: text(r, "updated_at"),
     deleted_at: textOrNull(r, "deleted_at"),
@@ -185,7 +178,7 @@ class EntryRepository {
   insert(e: Entry): void {
     this.db.run(
       `INSERT INTO knowledge_entries (${ENTRY}) VALUES ` +
-        "(:id, :collection_id, :kind, :title, :body, :url, :language, :created_at, :updated_at, :deleted_at)",
+        "(:id, :collection_id, :title, :content, :body, :created_at, :updated_at, :deleted_at)",
       { ...e },
     );
   }
@@ -230,24 +223,10 @@ function cleanOneLine(value: string, what: string, limit: number): string {
   return cleaned;
 }
 
-function cleanBody(body: string): string {
-  if (textLength(body) > MAX_BODY)
-    throw new ValidationFailed(`The text is at most ${String(MAX_BODY)} characters.`);
-  return body;
-}
-
-function cleanUrl(url: string): string {
-  const cleaned = url.trim();
-  if (!URL_RE.test(cleaned))
-    throw new ValidationFailed("Links need a web address starting with http:// or https://.");
-  if (textLength(cleaned) > MAX_URL)
-    throw new ValidationFailed(`Web addresses are at most ${String(MAX_URL)} characters.`);
-  return cleaned;
-}
-
-function cleanLanguage(language: string | null): string | null {
-  if (!language?.trim()) return null;
-  return cleanOneLine(language, "language", MAX_LANGUAGE);
+/** Checks a page's content; returns it serialized and its plain text. */
+function cleanContent(content: DeviceContent): [string, string] {
+  checkContent(content);
+  return [serializeContent(content), pageText(content)];
 }
 
 function live<T extends { deleted_at: string | null }>(row: T | null, what: string): T {
@@ -349,13 +328,10 @@ interface EntryRecord {
 }
 
 interface NewEntry {
-  kind: Kind;
   title: string;
   id: string | null;
   collectionId: string | null;
-  body: string;
-  url: string | null;
-  language: string | null;
+  content: DeviceContent;
   tagIds: readonly string[];
 }
 
@@ -385,14 +361,7 @@ class EntryService {
   create(input: NewEntry): [EntryRecord, boolean] {
     checkClientId(input.id);
     const title = cleanOneLine(input.title, "title", MAX_TITLE);
-    const body = cleanBody(input.body);
-    let url: string | null;
-    if (input.kind === "link") url = cleanUrl(input.url ?? "");
-    else if (input.url !== null) throw new ValidationFailed("Only links have a web address.");
-    else url = null;
-    const language = cleanLanguage(input.language);
-    if (language !== null && input.kind !== "snippet")
-      throw new ValidationFailed("Only snippets have a language.");
+    const [content, body] = cleanContent(input.content);
     return this.db.transaction(() => {
       if (input.id !== null) {
         const existing = this.entries.get(input.id);
@@ -403,11 +372,9 @@ class EntryService {
       const entry: Entry = {
         id: input.id ?? newId(),
         collection_id: input.collectionId,
-        kind: input.kind,
         title,
+        content,
         body,
-        url,
-        language,
         created_at: now,
         updated_at: now,
         deleted_at: null,
@@ -421,8 +388,8 @@ class EntryService {
 
   update(id: string, changes: ReadonlyMap<string, unknown>): EntryRecord {
     return this.db.transaction(() => {
-      const entry = live(this.entries.get(id), "entry");
-      const fields = this.cleanChanges(entry, changes);
+      live(this.entries.get(id), "entry");
+      const fields = this.cleanChanges(changes);
       const now = nowIso(this.clock);
       this.entries.update(id, fields, now);
       if (changes.has("tag_ids")) {
@@ -458,19 +425,15 @@ class EntryService {
     });
   }
 
-  private cleanChanges(entry: Entry, changes: ReadonlyMap<string, unknown>): Record<string, Value> {
+  private cleanChanges(changes: ReadonlyMap<string, unknown>): Record<string, Value> {
     const fields: Record<string, Value> = {};
     for (const [name, value] of changes) {
       if (name === "title") fields.title = cleanOneLine(pyStr(value), "title", MAX_TITLE);
-      else if (name === "body") fields.body = cleanBody(pyStr(value));
-      else if (name === "url") {
-        if (entry.kind !== "link") throw new ValidationFailed("Only links have a web address.");
-        fields.url = cleanUrl(typeof value === "string" ? value : "");
-      } else if (name === "language") {
-        if (entry.kind !== "snippet") throw new ValidationFailed("Only snippets have a language.");
-        fields.language = cleanLanguage(
-          value === null || value === undefined ? null : pyStr(value),
-        );
+      else if (name === "content") {
+        if (value === null || value === undefined) {
+          throw new ValidationFailed("A page's content cannot be cleared.");
+        }
+        [fields.content, fields.body] = cleanContent(value as DeviceContent);
       } else if (name === "collection_id") {
         const collectionId = value === null || value === undefined ? null : pyStr(value);
         this.checkCollection(collectionId);
@@ -509,11 +472,9 @@ function entryOut({ entry: e, tagIds }: EntryRecord) {
   return {
     id: e.id,
     collection_id: e.collection_id,
-    kind: e.kind,
     title: e.title,
+    content: JSON.parse(e.content) as DeviceContent,
     body: e.body,
-    url: e.url,
-    language: e.language,
     created_at: e.created_at,
     updated_at: e.updated_at,
     tag_ids: tagIds,
@@ -542,11 +503,8 @@ const handlers: Handlers = {
     const [record, isNew] = entries(ctx).create({
       id: body.id ?? null,
       collectionId: body.collection_id ?? null,
-      kind: body.kind,
       title: body.title,
-      body: body.body ?? "",
-      url: body.url ?? null,
-      language: body.language ?? null,
+      content: body.content ?? EMPTY_CONTENT,
       tagIds: body.tag_ids ?? [],
     });
     return isNew ? entryOut(record) : new Answer(entryOut(record), 200);
@@ -555,9 +513,16 @@ const handlers: Handlers = {
     entryOut(entries(ctx).update(path.entry_id, changesOf(body, fields))),
   knowledge_delete_entry: ({ path }, ctx) => entries(ctx).delete(path.entry_id),
   knowledge_restore_entry: ({ path }, ctx) => entryOut(entries(ctx).restore(path.entry_id)),
+  // Images stay on the PC that saved them (they do not sync); the phone app
+  // cannot add any yet.
+  knowledge_upload_image: () => {
+    throw new Conflict(
+      "Images can be added in PlanBox on a PC; the phone app cannot add them yet.",
+    );
+  },
 };
 
-/** Collections of notes, links and snippets. */
+/** Collections of pages. */
 export const knowledgeDevice: DeviceModule = {
   id: "knowledge",
   migrations: {
@@ -578,13 +543,13 @@ export const knowledgeDevice: DeviceModule = {
         const result = new Map<string, { title: string; deleted: boolean; hint: string }>();
         for (const chunk of chunks(ids)) {
           const rows = db.all(
-            "SELECT e.id, e.title, e.kind, e.deleted_at, c.name AS collection_name FROM knowledge_entries e " +
+            "SELECT e.id, e.title, e.deleted_at, c.name AS collection_name FROM knowledge_entries e " +
               `LEFT JOIN knowledge_collections c ON c.id = e.collection_id WHERE e.id IN (${marks(chunk)})`,
             chunk,
           );
           for (const r of rows) {
             const place = r.collection_name === null ? "Unsorted" : String(r.collection_name);
-            const hint = `${KIND_LABELS[String(r.kind)] ?? "Entry"} · ${place}`;
+            const hint = `Page · ${place}`;
             result.set(text(r, "id"), {
               title: text(r, "title"),
               deleted: r.deleted_at !== null,
@@ -597,14 +562,14 @@ export const knowledgeDevice: DeviceModule = {
       documents: (db, since) =>
         db
           .all(
-            "SELECT id, title, body, url, deleted_at, updated_at FROM knowledge_entries " +
+            "SELECT id, title, body, deleted_at, updated_at FROM knowledge_entries " +
               "WHERE :since IS NULL OR updated_at >= :since",
             { since },
           )
           .map((r) => ({
             id: text(r, "id"),
             title: text(r, "title"),
-            body: r.url === null ? text(r, "body") : `${text(r, "url")}\n${text(r, "body")}`,
+            body: text(r, "body"),
             deleted: r.deleted_at !== null,
             updatedAt: text(r, "updated_at"),
           })),

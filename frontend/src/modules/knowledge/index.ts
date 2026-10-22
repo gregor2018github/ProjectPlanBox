@@ -8,7 +8,7 @@ import { KnowledgeSidebarSection } from "./components/KnowledgeSidebarSection";
 import { knowledgeRoutes } from "./routes";
 import { ENTRY_TYPE } from "./types";
 
-/** Knowledge: collections of notes, links and snippets. */
+/** Knowledge: collections of pages (text boxes placed freely, like OneNote). */
 export const knowledgeModule: ModuleManifest = {
   id: "knowledge",
   label: "Knowledge",
