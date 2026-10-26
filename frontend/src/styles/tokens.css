@@ -49,6 +49,13 @@
   --color-heat-2: oklch(0.76 0.11 264);
   --color-heat-3: oklch(0.63 0.16 264);
   --color-heat-4: oklch(0.52 0.19 264);
+  /* Pen colours on knowledge pages (strokes store the name, so ink follows the theme). */
+  --color-ink-default: oklch(0.22 0.01 260);
+  --color-ink-red: oklch(0.55 0.2 27);
+  --color-ink-orange: oklch(0.62 0.16 52);
+  --color-ink-green: oklch(0.56 0.14 150);
+  --color-ink-blue: oklch(0.52 0.18 255);
+  --color-ink-purple: oklch(0.5 0.2 305);
 
   /* Typography */
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
@@ -131,6 +138,12 @@
   --color-heat-2: oklch(0.46 0.1 264);
   --color-heat-3: oklch(0.58 0.13 264);
   --color-heat-4: oklch(0.72 0.15 264);
+  --color-ink-default: oklch(0.95 0.004 260);
+  --color-ink-red: oklch(0.7 0.17 25);
+  --color-ink-orange: oklch(0.77 0.14 60);
+  --color-ink-green: oklch(0.75 0.15 150);
+  --color-ink-blue: oklch(0.72 0.13 250);
+  --color-ink-purple: oklch(0.72 0.15 305);
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.1);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.16), 0 2px 4px -2px oklch(0 0 0 / 0.1);
   --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.32), 0 4px 8px -4px oklch(0 0 0 / 0.13);

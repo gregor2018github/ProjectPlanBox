@@ -308,8 +308,13 @@ def page(*boxes: Step) -> Step:
     return {"boxes": list(boxes)}
 
 
+def stroke(*points: int, color: str = "default", width: int = 3) -> Step:
+    """A pen stroke through these x, y points."""
+    return {"color": color, "width": width, "points": list(points)}
+
+
 def knowledge() -> list[Step]:
-    """Collections and pages: content rules, derived text, moves and deletes."""
+    """Collections and pages: content rules, drawings, derived text, moves and deletes."""
     col, bread, loop = cid(50), cid(51), cid(52)
     link = {"type": "link", "attrs": {"href": "https://example.com/bread", "target": "_blank"}}
     image = {
@@ -339,6 +344,9 @@ def knowledge() -> list[Step]:
         "content": [{"type": "text", "text": "Ü 🍞"}],
     }
     bad_link = {"type": "link", "attrs": {"href": "javascript:alert(1)"}}
+    pen = stroke(0, 0, 12, 30, 40, 8)
+    ink = {"id": "ink", "x": 30, "y": 500, "strokes": [pen, stroke(5, 5, color="blue", width=8)]}
+    ink2 = {"id": "ink2", "x": 0, "y": 0, "strokes": [stroke(0, 0, 1, 1, color="purple")]}
     return [
         req("POST", "/api/knowledge/collections", {"id": col, "name": "Recipes"}),
         req("POST", "/api/knowledge/collections", {"id": cid(53), "name": "Work"}),
@@ -430,6 +438,37 @@ def knowledge() -> list[Step]:
             f"/api/knowledge/entries/{loop}",
             {"content": page(box("only", 10, 20, code)), "collection_id": col},
             advance=60,
+        ),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {"content": {**page(box("only", 10, 20, code)), "drawings": [ink, ink2]}},
+            advance=60,
+        ),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {"content": {"boxes": [], "drawings": [ink, ink]}},
+        ),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {"content": {"boxes": [], "drawings": [{**ink, "strokes": []}]}},
+        ),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {"content": {"boxes": [], "drawings": [{**ink, "strokes": [stroke(1, 2, 3)]}]}},
+        ),
+        req(
+            "PATCH",
+            f"/api/knowledge/entries/{loop}",
+            {
+                "content": {
+                    "boxes": [],
+                    "drawings": [{**ink, "strokes": [{**pen, "color": "#f00"}]}],
+                }
+            },
         ),
         req("PATCH", f"/api/knowledge/entries/{loop}", {"content": None}),
         req(

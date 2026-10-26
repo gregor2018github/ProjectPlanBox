@@ -1,7 +1,9 @@
 /**
- * Pure edits of a page's content (its boxes). Positions and widths are whole
- * pixels inside the server's limits, so every result is a valid PATCH body.
+ * Pure edits of a page's content (its boxes; drawings are in `ink.ts`).
+ * Positions and widths are whole pixels inside the server's limits, so every
+ * result is a valid PATCH body.
  */
+import { drawingBounds } from "./ink";
 import type { PageBox, PageContent, PageDoc } from "./types";
 
 /** How wide a new box starts. */
@@ -92,12 +94,12 @@ export function resizeBounds(
 }
 
 function mapBox(content: PageContent, id: string, edit: (box: PageBox) => PageBox): PageContent {
-  return { boxes: content.boxes.map((box) => (box.id === id ? edit(box) : box)) };
+  return { ...content, boxes: content.boxes.map((box) => (box.id === id ? edit(box) : box)) };
 }
 
 /** Adds a box on top of the others. */
 export function addBox(content: PageContent, box: PageBox): PageContent {
-  return { boxes: [...content.boxes, box] };
+  return { ...content, boxes: [...content.boxes, box] };
 }
 
 /** Moves a box to a point (clamped onto the page). */
@@ -127,7 +129,7 @@ export function setBoxDoc(content: PageContent, id: string, doc: PageDoc): PageC
 
 /** Removes a box. */
 export function removeBox(content: PageContent, id: string): PageContent {
-  return { boxes: content.boxes.filter((box) => box.id !== id) };
+  return { ...content, boxes: content.boxes.filter((box) => box.id !== id) };
 }
 
 /** Puts a removed box back where it was in the stacking order (undo). */
@@ -135,7 +137,7 @@ export function restoreBox(content: PageContent, box: PageBox, index: number): P
   if (content.boxes.some((b) => b.id === box.id)) return content;
   const boxes = [...content.boxes];
   boxes.splice(Math.min(index, boxes.length), 0, box);
-  return { boxes };
+  return { ...content, boxes };
 }
 
 /** Whether a document holds nothing (no text, no image, no table…), e.g. a box never typed in. */
@@ -151,8 +153,8 @@ export function isEmptyDoc(doc: PageDoc): boolean {
 }
 
 /**
- * How large the page's area must be to hold every box with room to add
- * more: right and below the furthest box.
+ * How large the page's area must be to hold every box and drawing with room
+ * to add more: right and below the furthest one.
  */
 export function pageExtent(content: PageContent): { width: number; height: number } {
   let right = 0;
@@ -160,6 +162,11 @@ export function pageExtent(content: PageContent): { width: number; height: numbe
   for (const box of content.boxes) {
     right = Math.max(right, box.x + box.width);
     bottom = Math.max(bottom, box.y + (box.height ?? 0));
+  }
+  for (const drawing of content.drawings ?? []) {
+    const bounds = drawingBounds(drawing);
+    right = Math.max(right, bounds.x + bounds.width);
+    bottom = Math.max(bottom, bounds.y + bounds.height);
   }
   return { width: right + 480, height: bottom + 960 };
 }

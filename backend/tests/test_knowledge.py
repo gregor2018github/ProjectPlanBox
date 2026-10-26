@@ -60,7 +60,7 @@ def test_a_new_page_is_empty(client: TestClient) -> None:
     """A page made with only a title has no boxes and no text."""
     page = entry(client, "Idea")
 
-    assert page["content"] == {"boxes": []}
+    assert page["content"] == {"boxes": [], "drawings": []}
     assert (page["body"], page["collection_id"]) == ("", None)
     assert [e["id"] for e in entries(client)] == [page["id"]]
 
@@ -136,6 +136,36 @@ def test_content_rules_are_enforced(client: TestClient) -> None:
         link("mailto:me@example.com"),
     )
     entry(client, content={"boxes": [fine]})
+
+
+def stroke(*points: int, color: str = "default", width: int = 2) -> Json:
+    """A pen stroke through these x, y points."""
+    return {"color": color, "width": width, "points": list(points)}
+
+
+def test_drawings_are_kept_and_checked(client: TestClient) -> None:
+    """Drawings sit beside the boxes; ids are unique, strokes need whole points; no text."""
+    drawing = {"id": "d1", "x": 40, "y": 60, "strokes": [stroke(0, 0, 10, 12, color="red")]}
+    page = entry(client, content={"boxes": [box(paragraph("Hi"))], "drawings": [drawing]})
+
+    assert page["content"]["drawings"] == [drawing]
+    assert page["body"] == "Hi"
+
+    def create(*drawings: Json) -> Any:  # noqa: ANN401 - a response
+        content = {"boxes": [], "drawings": list(drawings)}
+        return client.post("/api/knowledge/entries", json={"title": "x", "content": content})
+
+    assert problem(create(drawing, drawing), 422) == "validation_failed"
+    assert problem(create({**drawing, "strokes": []}), 422) == "validation_failed"
+    assert problem(create({**drawing, "strokes": [stroke(1, 2, 3)]}), 422) == "validation_failed"
+    assert problem(create({**drawing, "strokes": [stroke()]}), 422) == "validation_failed"
+    assert problem(create({**drawing, "strokes": [stroke(0, 0, color="#f00")]}), 422) == (
+        "invalid_request"
+    )
+    assert problem(create({**drawing, "strokes": [stroke(0, 0, width=0)]}), 422) == (
+        "invalid_request"
+    )
+    assert problem(create({**drawing, "strokes": [stroke(-1, 0)]}), 422) == "invalid_request"
 
 
 def test_create_is_idempotent_per_client_id(client: TestClient) -> None:

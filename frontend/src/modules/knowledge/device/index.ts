@@ -30,7 +30,7 @@ import { checkContent, serializeContent, type DeviceContent } from "./content";
 const ENTITY_TYPE = "knowledge.entry";
 const MAX_NAME = 200;
 const MAX_TITLE = 500;
-const EMPTY_CONTENT: DeviceContent = { boxes: [] };
+const EMPTY_CONTENT: DeviceContent = { boxes: [], drawings: [] };
 
 interface Collection {
   id: string;
@@ -468,18 +468,20 @@ function collectionOut(c: Collection) {
   };
 }
 
+/** Like the server's schema: boxes stored before heights existed answer null, pages before drawings none. */
+function contentOut(content: DeviceContent) {
+  return {
+    boxes: content.boxes.map((box) => ({ ...box, height: box.height ?? null })),
+    drawings: content.drawings ?? [],
+  };
+}
+
 function entryOut({ entry: e, tagIds }: EntryRecord) {
   return {
     id: e.id,
     collection_id: e.collection_id,
     title: e.title,
-    // Like the server's schema: boxes stored before heights existed answer null.
-    content: {
-      boxes: (JSON.parse(e.content) as DeviceContent).boxes.map((box) => ({
-        ...box,
-        height: box.height ?? null,
-      })),
-    },
+    content: contentOut(JSON.parse(e.content) as DeviceContent),
     body: e.body,
     created_at: e.created_at,
     updated_at: e.updated_at,

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { newId } from "../../../core/ids";
 import { useShortcut } from "../../../core/shortcuts/useShortcut";
+import { readStorage, writeStorage } from "../../../core/storage";
 import { useUndo } from "../../../core/undo/undoContext";
 import { cx } from "../../../ui/cx";
 import { IconButton } from "../../../ui/IconButton";
@@ -27,6 +28,19 @@ import {
   setBoxBounds,
   setBoxDoc,
 } from "../pageContent";
+import {
+  addStroke,
+  eraseAt,
+  INK_COLORS,
+  INK_WIDTHS,
+  moveDrawing,
+  putBackDrawings,
+  removeDrawing,
+  removeLastStroke,
+  restackDrawing,
+  type DrawingSnapshot,
+  type Pen,
+} from "../ink";
 import { knowledgePaths } from "../paths";
 import { UNTITLED, type Entry, type PageContent, type PageDoc } from "../types";
 import { useKnowledgeActions } from "../useKnowledgeActions";
@@ -34,7 +48,7 @@ import { useKnowledgeData } from "../useKnowledgeData";
 import { usePageContent } from "../usePageContent";
 import { useUploadImage } from "../useUploadImage";
 import { EntryProperties } from "./EntryProperties";
-import { PageCanvas } from "./PageCanvas";
+import { PageCanvas, type PageInk, type PageTool } from "./PageCanvas";
 import { PageToolbar } from "./PageToolbar";
 
 /** Props for {@link PageView}. */
@@ -60,6 +74,24 @@ function tableDoc(): PageDoc {
 /** How far from the visible top left a box added from the toolbar goes. */
 const INSET = 24;
 
+/** Where this browser remembers the last pen. */
+const PEN_KEY = "planbox.knowledge.pen";
+/** How far around the eraser strokes go (pixels). */
+const ERASER_REACH = 8;
+
+/** The pen this browser used last, or a thin one in the text colour. */
+function storedPen(): Pen {
+  const fallback: Pen = { color: "default", width: 2 };
+  try {
+    const value = JSON.parse(readStorage(PEN_KEY) ?? "null") as Partial<Pen> | null;
+    const color = INK_COLORS.find((c) => c === value?.color) ?? fallback.color;
+    const width = INK_WIDTHS.find((w) => w === value?.width) ?? fallback.width;
+    return { color, width };
+  } catch {
+    return fallback;
+  }
+}
+
 /**
  * One knowledge page, large: its title, collection and tags, a formatting
  * toolbar and the page itself, where text boxes sit wherever they were put.
@@ -82,6 +114,13 @@ export function PageView({ entry }: PageViewProps) {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [full, setFull] = useState(false);
+  const [tool, setToolState] = useState<PageTool>("type");
+  const [pen, setPenState] = useState(storedPen);
+  const [selectedDrawing, setSelectedDrawing] = useState<string | null>(null);
+  /** The drawing the last stroke went into: the next one nearby joins it. */
+  const inkJoin = useRef<string | null>(null);
+  /** The drawings an erase gesture changed, as they were before it. */
+  const erased = useRef(new Map<string, DrawingSnapshot>());
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNew = entry.title === UNTITLED && entry.content.boxes.length === 0;
@@ -164,6 +203,94 @@ export function PageView({ entry }: PageViewProps) {
     [page.content, change, pushUndo],
   );
 
+  const setTool = (next: PageTool) => {
+    inkJoin.current = null;
+    setSelectedDrawing(null);
+    if (next !== "type") {
+      const focused = document.activeElement;
+      if (focused instanceof HTMLElement && rootRef.current?.contains(focused)) focused.blur();
+    }
+    setToolState(next);
+  };
+  const setPen = (next: Pen) => {
+    setPenState(next);
+    writeStorage(PEN_KEY, JSON.stringify(next));
+  };
+
+  const onRemoveDrawing = useCallback(
+    (id: string) => {
+      const drawings = page.content.drawings ?? [];
+      const index = drawings.findIndex((d) => d.id === id);
+      const drawing = drawings[index];
+      if (drawing === undefined) return;
+      setSelectedDrawing(null);
+      change((content) => removeDrawing(content, id));
+      pushUndo({
+        label: "Deleted a drawing",
+        undo: () => {
+          change((content) => putBackDrawings(content, [{ drawing, index }]));
+        },
+      });
+    },
+    [page.content, change, pushUndo],
+  );
+
+  const ink: PageInk = {
+    tool,
+    pen,
+    selectedId: selectedDrawing,
+    onSelect: setSelectedDrawing,
+    onStroke: (points) => {
+      let drawingId = "";
+      let count = 0;
+      change((content) => {
+        const added = addStroke(content, points, pen, inkJoin.current, newId());
+        drawingId = added.drawingId;
+        count = added.content.drawings?.find((d) => d.id === drawingId)?.strokes.length ?? 0;
+        return added.content;
+      });
+      inkJoin.current = drawingId;
+      pushUndo({
+        label: "Drew a stroke",
+        silent: true,
+        undo: () => {
+          change((content) => removeLastStroke(content, drawingId, count));
+        },
+      });
+    },
+    onErase: (x, y) => {
+      change((content) => {
+        const result = eraseAt(content, x, y, ERASER_REACH);
+        for (const snapshot of result.before) {
+          if (!erased.current.has(snapshot.drawing.id)) {
+            erased.current.set(snapshot.drawing.id, snapshot);
+          }
+        }
+        return result.content;
+      });
+    },
+    onEraseEnd: () => {
+      const before = [...erased.current.values()];
+      erased.current = new Map();
+      if (before.length === 0) return;
+      inkJoin.current = null;
+      pushUndo({
+        label: "Erased ink",
+        silent: true,
+        undo: () => {
+          change((content) => putBackDrawings(content, before));
+        },
+      });
+    },
+    onMove: (id, x, y) => {
+      change((content) => moveDrawing(content, id, x, y));
+    },
+    onRestack: (id, to) => {
+      change((content) => restackDrawing(content, id, to));
+    },
+    onRemove: onRemoveDrawing,
+  };
+
   const onActive = useCallback((editor: Editor, active: boolean) => {
     setActiveEditor((current) => (active ? editor : current === editor ? null : current));
   }, []);
@@ -199,8 +326,31 @@ export function PageView({ entry }: PageViewProps) {
     group: "Knowledge",
     run: toggleFull,
   });
+  useShortcut({
+    id: "knowledge.pen",
+    keys: "P",
+    description: "Pen on the page (again to put it down)",
+    group: "Knowledge",
+    run: () => {
+      setTool(tool === "pen" ? "type" : "pen");
+    },
+  });
   useShortcut(
-    full
+    tool !== "type"
+      ? {
+          id: "knowledge.pen.leave",
+          keys: "Escape",
+          description: "Stop drawing",
+          group: "Knowledge",
+          hidden: true,
+          run: () => {
+            setTool("type");
+          },
+        }
+      : null,
+  );
+  useShortcut(
+    full && tool === "type"
       ? {
           id: "knowledge.fullscreen.leave",
           keys: "Escape",
@@ -290,11 +440,15 @@ export function PageView({ entry }: PageViewProps) {
           }}
           onAddImages={onAddImages}
           onAddTable={onAddTable}
+          tool={tool}
+          onTool={setTool}
+          pen={pen}
+          onPen={setPen}
         />
       </div>
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-surface">
         <div className="relative min-h-full w-max min-w-full p-6">
-          {page.content.boxes.length === 0 && (
+          {page.content.boxes.length === 0 && (page.content.drawings ?? []).length === 0 && (
             <p className="pointer-events-none absolute top-8 left-10 text-base text-text-subtle">
               Click anywhere on the page to start writing.
             </p>
@@ -321,6 +475,7 @@ export function PageView({ entry }: PageViewProps) {
             }}
             onActive={onActive}
             uploadImage={uploadImage}
+            ink={ink}
           />
         </div>
       </div>

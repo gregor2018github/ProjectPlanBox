@@ -6,6 +6,7 @@ import {
   Bold,
   Code,
   Columns3,
+  Eraser,
   Heading1,
   Heading2,
   Heading3,
@@ -16,6 +17,8 @@ import {
   List,
   ListOrdered,
   ListTodo,
+  MousePointer2,
+  PenLine,
   Pilcrow,
   Quote,
   Redo2,
@@ -31,9 +34,14 @@ import {
 } from "lucide-react";
 import { useRef, useState, type MouseEvent } from "react";
 
+import { cx } from "../../../ui/cx";
 import { IconButton } from "../../../ui/IconButton";
+import { Tooltip } from "../../../ui/Tooltip";
+import { INK_COLOR_NAMES, INK_COLORS, INK_WIDTHS, type Pen } from "../ink";
 import { IMAGE_TYPES } from "../pageEditor";
+import { inkSwatchClass } from "./inkClass";
 import { LinkDialog } from "./LinkDialog";
+import type { PageTool } from "./PageCanvas";
 
 /** Props for {@link PageToolbar}. */
 export interface PageToolbarProps {
@@ -45,6 +53,12 @@ export interface PageToolbarProps {
   onAddImages: (files: File[]) => void;
   /** Adds a table: into the box with the cursor, else into a new box in view. */
   onAddTable: () => void;
+  /** What the pointer does on the page. */
+  tool: PageTool;
+  onTool: (tool: PageTool) => void;
+  /** The pen's colour and thickness. */
+  pen: Pen;
+  onPen: (pen: Pen) => void;
 }
 
 interface Tool {
@@ -60,11 +74,29 @@ const keepFocus = (event: MouseEvent) => {
   event.preventDefault();
 };
 
+/** The tools for the pointer, in the toolbar's order. */
+const TOOLS: { tool: PageTool; label: string; icon: LucideIcon; shortcut?: string }[] = [
+  { tool: "type", label: "Type and select", icon: MousePointer2 },
+  { tool: "pen", label: "Pen", icon: PenLine, shortcut: "P" },
+  { tool: "eraser", label: "Eraser (rub over strokes)", icon: Eraser },
+];
+
 /**
- * Formatting for the box with the cursor: marks, headings, lists, links,
- * images and tables (with row and column tools while in one), plus a new box.
+ * The page's tools: type and select, the pen or the eraser. While typing it
+ * formats the box with the cursor (marks, headings, lists, links, images and
+ * tables, with row and column tools while in one) and adds boxes; with the
+ * pen in hand it picks the pen's colour and thickness.
  */
-export function PageToolbar({ editor, onAddBox, onAddImages, onAddTable }: PageToolbarProps) {
+export function PageToolbar({
+  editor,
+  onAddBox,
+  onAddImages,
+  onAddTable,
+  tool,
+  onTool,
+  pen,
+  onPen,
+}: PageToolbarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const state = useEditorState({
@@ -234,12 +266,97 @@ export function PageToolbar({ editor, onAddBox, onAddImages, onAddTable }: PageT
     <span key={key} aria-hidden className="mx-1 h-5 w-px shrink-0 bg-border" />
   );
 
+  const tools = TOOLS.map((t) => (
+    <IconButton
+      key={t.tool}
+      label={t.label}
+      icon={t.icon}
+      shortcut={t.shortcut}
+      pressed={tool === t.tool}
+      onMouseDown={keepFocus}
+      onClick={() => {
+        onTool(t.tool);
+      }}
+    />
+  ));
+
+  if (tool !== "type") {
+    return (
+      <div
+        role="toolbar"
+        aria-label="Drawing"
+        className="flex min-h-10 items-center gap-0.5 overflow-x-auto px-2 py-1"
+      >
+        {tools}
+        {tool === "pen" && [
+          divider("dc"),
+          ...INK_COLORS.map((color) => (
+            <Tooltip key={color} content={`${INK_COLOR_NAMES[color]} pen`}>
+              <button
+                type="button"
+                aria-label={`${INK_COLOR_NAMES[color]} pen`}
+                aria-pressed={pen.color === color}
+                onClick={() => {
+                  onPen({ ...pen, color });
+                }}
+                className={cx(
+                  "inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors duration-(--duration-fast) ease-out hover:bg-hover coarse:size-11",
+                  pen.color === color && "bg-selected",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cx(
+                    "size-4 rounded-full",
+                    inkSwatchClass[color],
+                    pen.color === color && "ring-2 ring-accent ring-offset-2 ring-offset-surface",
+                  )}
+                />
+              </button>
+            </Tooltip>
+          )),
+          divider("dw"),
+          ...INK_WIDTHS.map((width) => (
+            <Tooltip key={width} content={`${String(width)} px`}>
+              <button
+                type="button"
+                aria-label={`Thickness ${String(width)} px`}
+                aria-pressed={pen.width === width}
+                onClick={() => {
+                  onPen({ ...pen, width });
+                }}
+                className={cx(
+                  "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors duration-(--duration-fast) ease-out hover:bg-hover coarse:size-11",
+                  pen.width === width && "bg-selected text-text",
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cx("rounded-full", inkSwatchClass[pen.color])}
+                  style={{ width: Math.max(width, 3), height: Math.max(width, 3) }}
+                />
+              </button>
+            </Tooltip>
+          )),
+        ]}
+        {tool === "eraser" && (
+          <span className="ml-2 shrink-0 text-sm text-text-muted">
+            Rub over a stroke to erase it. Ctrl+Z brings it back.
+          </span>
+        )}
+        <span className="ml-auto shrink-0 pl-2 text-sm text-text-subtle">Esc to stop drawing</span>
+      </div>
+    );
+  }
+
   return (
     <div
       role="toolbar"
       aria-label="Formatting"
       className="flex min-h-10 items-center gap-0.5 overflow-x-auto px-2 py-1"
     >
+      {tools}
+      {divider("dk")}
       <IconButton
         label="New text box"
         icon={SquarePlus}

@@ -705,7 +705,7 @@ CREATE TABLE knowledge_entries (                -- pages (0002 rebuilt it)
 Every entry is a **page** (owner request, 2026-10-22: "like OneNote, one
 type for everything"). Entity type: `knowledge.entry`.
 
-- **Content.** `{"boxes": [{id, x, y, width, height, doc}, ...]}`: boxes sit
+- **Content.** `{"boxes": [{id, x, y, width, height, doc}, ...], "drawings": [...]}`: boxes sit
   at `x`/`y` pixels from the page's top left (0 to 100 000), are `width`
   pixels wide (40 to 10 000) and stack in array order. `height` (24 to
   100 000, or null to fit the text) is the text area's *least* height: a
@@ -721,6 +721,17 @@ type for everything"). Entity type: `knowledge.entry`.
   load a foreign resource or run script. It is one JSON column, not rows
   per box: a page is written as a whole (the sync rule of §13 then loses
   one of two concurrent edits to the same page, as it would for a todo).
+- **Drawings** (ink, 2026-10-26): `{id, x, y, strokes: [{color, width,
+  points}]}`, above the boxes and stacked in array order. `x`/`y` is the
+  top left of the drawing's points; `points` is a flat `x0, y0, x1, y1, …`
+  list of whole pixels from there (0 to 100 000, at most 20 000 numbers per
+  stroke, 2 000 strokes per drawing, 500 drawings). `color` is a name
+  (`default`, `red`, `orange`, `green`, `blue`, `purple`) that maps to an
+  `ink-*` token, so ink follows the theme; `width` is 1 to 64 px.
+  `content.py` also checks that drawing ids are unique, every drawing has a
+  stroke and every stroke has at least one whole x, y pair. Pages stored
+  before drawings existed read as `drawings: []`. Ink adds nothing to
+  `body`.
 - **body** is the page's plain text, derived on every write (`page_text`,
   twin `pageText.ts`): each paragraph, heading or code block is a line;
   boxes are joined by newlines, empty ones skipped. Search, previews,
@@ -779,7 +790,23 @@ edges move the box); the right and bottom edges also take arrow keys.
 Images resize from all eight handles too (Tiptap's resizable node view;
 sides stretch one way, Shift keeps the proportions) and store `width` and
 `height` on the image node. Deleting a box is undoable (Ctrl+Z or
-the toast); text undo inside a box is the editor's own. Full screen covers
+the toast); text undo inside a box is the editor's own.
+**Ink** (`ink.ts`, `InkSurface`, `DrawingLayer`): the toolbar's tool switch
+(Type, Pen **P**, Eraser; Esc goes back to Type) and, with the pen, six
+colours and four thicknesses, remembered per browser
+(`planbox.knowledge.pen`). With a pen or the eraser in hand, a sheet
+covers the page and takes the pointer, one at a time; once a stylus has
+touched it, touches are ignored (palm rejection). A stroke is cleaned to
+whole pixels and simplified (Ramer–Douglas–Peucker, 0.75 px), then joins the
+drawing just drawn if it comes within 48 px of it, else starts a new one on
+top. So a sketch made in one go moves as one layer. Strokes are drawn as
+smoothed SVG paths (quadratic curves through midpoints). The eraser removes
+whole strokes within 8 px; a drawing left empty goes. Each stroke and each
+erase gesture is a silent undo entry (Ctrl+Z only, no toast). With Type,
+clicking a stroke (within 8 px) picks its drawing and drags it; a picked
+drawing has a focusable frame (drag, arrow keys, Delete, Esc) and buttons
+for Bring to front, Send to back and Delete (undoable with a toast).
+Clicking elsewhere lets go of it without adding a box. Full screen covers
 the app (`fixed`) and asks the browser for the Fullscreen API too. Opening
 a page from search, links or Home goes to the side panel (`EntryDetail`:
 title, **Open page**, collection, tags, a text preview, links).

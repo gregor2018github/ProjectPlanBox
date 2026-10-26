@@ -1,12 +1,13 @@
 """The rules of a page's content: what a page may hold and its plain text.
 
-A page is ``{"boxes": [...]}``; each box sits at ``x``/``y`` (pixels from the
-page's top left), is ``width`` pixels wide and holds a rich-text document in
-Tiptap's (ProseMirror's) JSON. The shape of boxes is checked by the schema;
-this module checks the documents: only the node and mark types the editor
-knows, image sources that point at this app's own images, and link targets
-that can never run script. The twin is ``frontend/src/modules/knowledge/pageText.ts``
-and the device service.
+A page is ``{"boxes": [...], "drawings": [...]}``; each box sits at ``x``/``y``
+(pixels from the page's top left), is ``width`` pixels wide and holds a
+rich-text document in Tiptap's (ProseMirror's) JSON. Each drawing sits at
+``x``/``y`` too and holds pen strokes. The shape of both is checked by the
+schema; this module checks the documents (only the node and mark types the
+editor knows, image sources that point at this app's own images, and link
+targets that can never run script) and that every stroke has whole points.
+The twin is ``frontend/src/modules/knowledge/pageText.ts`` and the device service.
 """
 
 import json
@@ -58,8 +59,8 @@ _HREF = re.compile(r"(?:https?://|mailto:)\S+", re.IGNORECASE)
 
 
 def empty_content() -> dict[str, object]:
-    """A page without boxes."""
-    return {"boxes": []}
+    """A page without boxes or drawings."""
+    return {"boxes": [], "drawings": []}
 
 
 def serialize(content: Mapping[str, object]) -> str:
@@ -75,11 +76,13 @@ def serialize(content: Mapping[str, object]) -> str:
 
 
 def check_content(content: Mapping[str, object]) -> None:
-    """Checks every box's document (the box fields are checked by the schema).
+    """Checks every box's document and every drawing's strokes (the schema checks the fields).
 
     Raises:
-        ValidationFailed: If box ids repeat or a document holds something the
-            editor does not make (an unknown node, a foreign image, a script link).
+        ValidationFailed: If box or drawing ids repeat, a document holds
+            something the editor does not make (an unknown node, a foreign
+            image, a script link), or a drawing has no strokes or a stroke no
+            whole point.
     """
     boxes = cast("Sequence[Mapping[str, object]]", content["boxes"])
     ids = [box["id"] for box in boxes]
@@ -90,6 +93,18 @@ def check_content(content: Mapping[str, object]) -> None:
         if not isinstance(doc, dict) or cast("dict[str, object]", doc).get("type") != "doc":
             raise ValidationFailed("Each box holds one document.")
         _check_node(cast("dict[str, object]", doc), 0)
+    drawings = cast("Sequence[Mapping[str, object]]", content.get("drawings", []))
+    drawing_ids = [drawing["id"] for drawing in drawings]
+    if len(set(drawing_ids)) != len(drawing_ids):
+        raise ValidationFailed("Drawing ids must be unique within a page.")
+    for drawing in drawings:
+        strokes = cast("Sequence[Mapping[str, object]]", drawing["strokes"])
+        if not strokes:
+            raise ValidationFailed("A drawing holds at least one stroke.")
+        for stroke in strokes:
+            points = cast("Sequence[int]", stroke["points"])
+            if not points or len(points) % 2 != 0:
+                raise ValidationFailed("A stroke's points come in x, y pairs.")
 
 
 def _check_node(node: object, depth: int) -> None:

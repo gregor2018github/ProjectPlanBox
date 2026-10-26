@@ -115,7 +115,10 @@ rule.
 - [ ] A page that is open does not take in a change synced or imported
       meanwhile; it shows when the page is opened again.
 - [ ] Bring a box to the front / send it back (boxes stack in creation order).
-- [ ] Text colour and font size, page templates, drawing (ink).
+- [ ] Text colour and font size, page templates.
+- [ ] Ink: pressure-sensitive thickness, a highlighter pen, lasso selection
+      across drawings, resizing a drawing, a partial (point) eraser, and ink
+      behind the text (drawings sit above the boxes now).
 
 ## Search
 

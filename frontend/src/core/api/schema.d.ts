@@ -2647,11 +2647,63 @@ export interface components {
         };
         /**
          * PageContent
-         * @description What a page holds: freely placed boxes, in stacking order.
+         * @description What a page holds: freely placed boxes and, above them, drawings; each in stacking order.
          */
         PageContent: {
             /** Boxes */
             boxes: components["schemas"]["PageBox"][];
+            /**
+             * Drawings
+             * @description Pages saved before drawings existed read as none.
+             */
+            drawings?: components["schemas"]["PageDrawing"][];
+        };
+        /**
+         * PageDrawing
+         * @description A drawing on a page: strokes that move together, like a layer.
+         */
+        PageDrawing: {
+            /**
+             * Id
+             * @description Unique within the page.
+             */
+            id: string;
+            /**
+             * Strokes
+             * @description At least one.
+             */
+            strokes: components["schemas"]["PageStroke"][];
+            /**
+             * X
+             * @description Pixels from the page's left edge.
+             */
+            x: number;
+            /**
+             * Y
+             * @description Pixels from the page's top edge.
+             */
+            y: number;
+        };
+        /**
+         * PageStroke
+         * @description One pen stroke: a line through its points, in one colour and thickness.
+         */
+        PageStroke: {
+            /**
+             * Color
+             * @enum {string}
+             */
+            color: "default" | "red" | "orange" | "green" | "blue" | "purple";
+            /**
+             * Points
+             * @description x0, y0, x1, y1, …: pixels from the drawing's top left (at least one point).
+             */
+            points: number[];
+            /**
+             * Width
+             * @description Thickness in pixels.
+             */
+            width: number;
         };
         /**
          * PairingOut

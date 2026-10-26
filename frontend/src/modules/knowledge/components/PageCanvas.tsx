@@ -1,10 +1,31 @@
 import type { Editor } from "@tiptap/core";
-import type { DragEvent, PointerEvent, Ref } from "react";
+import { useRef, type DragEvent, type PointerEvent, type Ref } from "react";
 
+import type { Pen } from "../ink";
 import { pageExtent, type BoxBounds } from "../pageContent";
 import { imageFiles } from "../pageEditor";
 import type { PageContent, PageDoc } from "../types";
+import { DrawingLayer } from "./DrawingLayer";
+import { InkSurface } from "./InkSurface";
 import { PageBox } from "./PageBox";
+
+/** What the pointer does on the page: type and move things, draw, or erase. */
+export type PageTool = "type" | "pen" | "eraser";
+
+/** How the page's drawings are drawn on, picked and changed. */
+export interface PageInk {
+  tool: PageTool;
+  pen: Pen;
+  /** The picked drawing, if any. */
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  onStroke: (points: [number, number][]) => void;
+  onErase: (x: number, y: number) => void;
+  onEraseEnd: () => void;
+  onMove: (id: string, x: number, y: number) => void;
+  onRestack: (id: string, to: "front" | "back") => void;
+  onRemove: (id: string) => void;
+}
 
 /** Props for {@link PageCanvas}. */
 export interface PageCanvasProps {
@@ -22,6 +43,8 @@ export interface PageCanvasProps {
   onLeaveEmpty: (id: string) => void;
   onActive: (editor: Editor, active: boolean) => void;
   uploadImage: (file: File) => Promise<string | null>;
+  /** The page's drawings and the pen. */
+  ink: PageInk;
   /** The page area itself (to find the visible part when adding a box from the toolbar). */
   areaRef?: Ref<HTMLDivElement>;
 }
@@ -31,8 +54,9 @@ const GRIP_OFFSET = { x: 16, y: 12 };
 
 /**
  * The page: an open area where boxes sit wherever they were put, like a sheet
- * of paper. Click (or tap) empty space to start typing there; drop images on
- * it to place them. It grows to the right and down with its boxes.
+ * of paper, with drawings above them. Click (or tap) empty space to start
+ * typing there; drop images on it to place them. With a pen in hand the whole
+ * page is for drawing. It grows to the right and down with its content.
  */
 export function PageCanvas({
   content,
@@ -46,9 +70,21 @@ export function PageCanvas({
   onLeaveEmpty,
   onActive,
   uploadImage,
+  ink,
   areaRef,
 }: PageCanvasProps) {
   const extent = pageExtent(content);
+  /** A click that only let go of the picked drawing adds no box. */
+  const deselected = useRef(false);
+
+  const onPointerDownCapture = (event: PointerEvent<HTMLDivElement>) => {
+    deselected.current = false;
+    if (ink.selectedId === null) return;
+    const holder = (event.target as Element).closest("[data-drawing-id]");
+    if (holder?.getAttribute("data-drawing-id") === ink.selectedId) return;
+    ink.onSelect(null);
+    deselected.current = true;
+  };
 
   const pointOf = (event: { clientX: number; clientY: number; currentTarget: HTMLElement }) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -60,6 +96,7 @@ export function PageCanvas({
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget || event.button !== 0) return;
+    if (deselected.current || ink.tool !== "type") return;
     // Keep the focus from jumping to the page area; the new box takes it.
     event.preventDefault();
     const { x, y } = pointOf(event);
@@ -84,6 +121,7 @@ export function PageCanvas({
       ref={areaRef}
       role="region"
       aria-label="Page"
+      onPointerDownCapture={onPointerDownCapture}
       onPointerDown={onPointerDown}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -104,6 +142,27 @@ export function PageCanvas({
           uploadImage={uploadImage}
         />
       ))}
+      {(content.drawings ?? []).map((drawing) => (
+        <DrawingLayer
+          key={drawing.id}
+          drawing={drawing}
+          selected={drawing.id === ink.selectedId}
+          interactive={ink.tool === "type"}
+          onSelect={ink.onSelect}
+          onMove={ink.onMove}
+          onRestack={ink.onRestack}
+          onRemove={ink.onRemove}
+        />
+      ))}
+      {ink.tool !== "type" && (
+        <InkSurface
+          tool={ink.tool}
+          pen={ink.pen}
+          onStroke={ink.onStroke}
+          onErase={ink.onErase}
+          onEraseEnd={ink.onEraseEnd}
+        />
+      )}
     </div>
   );
 }

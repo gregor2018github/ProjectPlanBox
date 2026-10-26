@@ -366,3 +366,48 @@ test("works on a 375 px phone screen", async ({ page }) => {
   );
   expect(overflow).toBe(false);
 });
+
+test("draws on a knowledge page, moves the drawing, and keeps it after a reload", async ({
+  page,
+}) => {
+  await page.goto("/knowledge");
+  await page.keyboard.press("e");
+  await expect(page.getByRole("textbox", { name: "Page title" })).toBeFocused();
+  await page.getByRole("button", { name: "Pen", exact: true }).click();
+  await page.getByRole("button", { name: "Red pen" }).click();
+  await page.getByRole("button", { name: "Thickness 8 px" }).click();
+
+  const area = page.getByRole("region", { name: "Page" });
+  const box = await area.boundingBox();
+  if (box === null) throw new Error("no page area");
+  const at = (x: number, y: number) => [box.x + x, box.y + y] as const;
+  await page.mouse.move(...at(100, 100));
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i += 1) await page.mouse.move(...at(100 + i * 15, 100 + i * 8));
+  await page.mouse.up();
+  // Nearby: the same drawing.
+  await page.mouse.move(...at(120, 160));
+  await page.mouse.down();
+  await page.mouse.move(...at(220, 160));
+  await page.mouse.up();
+  await page.keyboard.press("Escape");
+
+  const drawing = page.locator("[data-drawing-id]");
+  await expect(drawing).toHaveCount(1);
+  await expect(drawing.locator("path.stroke-ink-red")).toHaveCount(2);
+
+  // Pick it by a stroke and drag it 200 px right.
+  await page.mouse.move(...at(220, 160));
+  await page.mouse.down();
+  await page.mouse.move(...at(320, 160));
+  await page.mouse.move(...at(420, 160));
+  await page.mouse.up();
+  await expect(page.getByRole("button", { name: /^Drawing \(drag/ })).toBeFocused();
+  const moved = await drawing.boundingBox();
+
+  await page.reload();
+  await expect(page.locator("[data-drawing-id] path.stroke-ink-red")).toHaveCount(2);
+  const after = await page.locator("[data-drawing-id]").boundingBox();
+  expect(after?.x).toBeCloseTo(moved?.x ?? 0, 0);
+  expect(moved?.x ?? 0).toBeGreaterThan(box.x + 250);
+});

@@ -3,6 +3,7 @@
  * `backend/planbox/modules/knowledge/content.py`.
  */
 import { textLength, ValidationFailed } from "../../../core/device/errors";
+import type { InkColor } from "../types";
 
 const MAX_CONTENT = 2_000_000;
 const MAX_DEPTH = 64;
@@ -42,9 +43,25 @@ export interface DeviceBox {
   doc: Node;
 }
 
-/** Page content as the schema has validated it. */
+/** A pen stroke as the schema has validated it. */
+export interface DeviceStroke {
+  color: InkColor;
+  width: number;
+  points: number[];
+}
+
+/** A drawing as the schema has validated it. */
+export interface DeviceDrawing {
+  id: string;
+  x: number;
+  y: number;
+  strokes: DeviceStroke[];
+}
+
+/** Page content as the schema has validated it (stored pages may lack drawings). */
 export interface DeviceContent {
   boxes: DeviceBox[];
+  drawings?: DeviceDrawing[];
 }
 
 function isNode(value: unknown): value is Node {
@@ -95,7 +112,7 @@ function pyRepr(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** Checks every box's document; throws `ValidationFailed` like the server. */
+/** Checks every box's document and every drawing's strokes; throws `ValidationFailed` like the server. */
 export function checkContent(content: DeviceContent): void {
   const ids = content.boxes.map((box) => box.id);
   if (new Set(ids).size !== ids.length) {
@@ -107,9 +124,24 @@ export function checkContent(content: DeviceContent): void {
     }
     checkNode(box.doc, 0);
   }
+  const drawings = content.drawings ?? [];
+  const drawingIds = drawings.map((drawing) => drawing.id);
+  if (new Set(drawingIds).size !== drawingIds.length) {
+    throw new ValidationFailed("Drawing ids must be unique within a page.");
+  }
+  for (const drawing of drawings) {
+    if (drawing.strokes.length === 0) {
+      throw new ValidationFailed("A drawing holds at least one stroke.");
+    }
+    for (const stroke of drawing.strokes) {
+      if (stroke.points.length === 0 || stroke.points.length % 2 !== 0) {
+        throw new ValidationFailed("A stroke's points come in x, y pairs.");
+      }
+    }
+  }
 }
 
-/** The stored form: compact JSON with the box fields in the server's order. */
+/** The stored form: compact JSON with the fields in the server's order. */
 export function serializeContent(content: DeviceContent): string {
   const text = JSON.stringify({
     boxes: content.boxes.map(({ id, x, y, width, height, doc }) => ({
@@ -119,6 +151,12 @@ export function serializeContent(content: DeviceContent): string {
       width,
       height: height ?? null,
       doc,
+    })),
+    drawings: (content.drawings ?? []).map(({ id, x, y, strokes }) => ({
+      id,
+      x,
+      y,
+      strokes: strokes.map(({ color, width, points }) => ({ color, width, points })),
     })),
   });
   if (textLength(text) > MAX_CONTENT) {

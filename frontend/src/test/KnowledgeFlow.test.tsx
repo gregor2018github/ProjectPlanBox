@@ -1,6 +1,6 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFakeKnowledgeApi, type FakeKnowledgeState } from "./fakeKnowledgeApi";
 import { createFakeTodoApi } from "./fakeTodoApi";
@@ -107,6 +107,78 @@ describe("knowledge", () => {
         const patch = api.state.requests.find((r) => r.method === "PATCH");
         const content = (patch?.body as { content?: { boxes: { doc: unknown }[] } }).content;
         expect(JSON.stringify(content?.boxes[0]?.doc)).toContain("tableHeader");
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it("draws with the pen, then picks the drawing and deletes it with undo", async () => {
+    // jsdom has no pointer capture.
+    Element.prototype.setPointerCapture = vi.fn();
+    const user = userEvent.setup();
+    const page = makeEntry({ title: "Sketch", content: { boxes: [textBox("Label")] } });
+    const api = open(`/knowledge/pages/${page.id}`, { entries: [page] });
+    const lastContent = () =>
+      (
+        api.state.requests.filter((r) => r.method === "PATCH").at(-1)?.body as
+          { content?: { boxes: unknown[]; drawings?: unknown[] } } | undefined
+      )?.content;
+
+    await screen.findByText("Label");
+    await user.keyboard("p");
+    expect(screen.getByRole("toolbar", { name: "Drawing" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Blue pen" }));
+    await user.click(screen.getByRole("button", { name: "Thickness 8 px" }));
+
+    const surface = screen.getByRole("application", { name: "Drawing surface" });
+    const at = (clientX: number, clientY: number) => ({
+      pointerId: 1,
+      pointerType: "mouse",
+      button: 0,
+      clientX,
+      clientY,
+    });
+    fireEvent.pointerDown(surface, at(100, 200));
+    fireEvent.pointerMove(surface, at(140, 230));
+    fireEvent.pointerUp(surface, at(140, 230));
+
+    await waitFor(
+      () => {
+        expect(lastContent()?.drawings).toEqual([
+          {
+            id: expect.any(String) as string,
+            x: 100,
+            y: 200,
+            strokes: [{ color: "blue", width: 8, points: [0, 0, 40, 30] }],
+          },
+        ]);
+      },
+      { timeout: 2000 },
+    );
+    expect(lastContent()?.boxes).toHaveLength(1);
+
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("toolbar", { name: "Formatting" })).toBeInTheDocument();
+    const stroke = document.querySelector('path[pointer-events="stroke"]');
+    expect(stroke).not.toBeNull();
+    fireEvent.pointerDown(stroke!, at(120, 215));
+    fireEvent.pointerUp(stroke!, at(120, 215));
+    const frame = await screen.findByRole("button", { name: /^Drawing \(drag/ });
+    await waitFor(() => {
+      expect(frame).toHaveFocus();
+    });
+
+    await user.keyboard("{Delete}");
+    await waitFor(
+      () => {
+        expect(lastContent()?.drawings).toEqual([]);
+      },
+      { timeout: 2000 },
+    );
+    await user.click(await screen.findByRole("button", { name: "Undo" }));
+    await waitFor(
+      () => {
+        expect(lastContent()?.drawings).toHaveLength(1);
       },
       { timeout: 2000 },
     );

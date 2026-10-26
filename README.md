@@ -78,7 +78,14 @@ phone can also use a running PC over the home network or Tailscale.
   the cursor: bold, italic, underline, strikethrough, highlight, code,
   headings, lists, checklists, quotes, code blocks, links (Ctrl+click opens
   one), tables (with row and column tools while in one) and images. Paste
-  or drop images straight into a box or onto the page. **F** (or the button)
+  or drop images straight into a box or onto the page. **P** (or the pen
+  in the toolbar) draws on the page in six colours and four thicknesses,
+  with a mouse, a finger or a stylus (once a stylus has touched the page,
+  fingers are ignored). Strokes made close together form one drawing,
+  which sits above the text like a layer. The eraser rubs strokes out, and
+  **Ctrl+Z** takes back the last stroke or erase. **Esc** puts the pen down.
+  Click a drawing to pick it, then drag it (or use the arrow keys) to move
+  it, bring it to the front, send it back, or delete it. **F** (or the button)
   shows the page full screen; **Esc** leaves. Pages save themselves as you
   type. **Images stay on the PC that added them**: backups, exports and
   Google Drive sync do not carry them, so another device shows them as

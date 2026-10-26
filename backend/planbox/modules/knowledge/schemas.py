@@ -1,6 +1,6 @@
 """HTTP shapes for the knowledge module."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, JsonValue
 
@@ -54,10 +54,41 @@ class PageBox(BaseModel):
     )
 
 
+InkColor = Literal["default", "red", "orange", "green", "blue", "purple"]
+"""A pen colour by name, so ink follows the theme ("default" is the text colour)."""
+
+InkPoint = Annotated[int, Field(ge=0, le=100_000)]
+
+
+class PageStroke(BaseModel):
+    """One pen stroke: a line through its points, in one colour and thickness."""
+
+    color: InkColor
+    width: int = Field(ge=1, le=64, description="Thickness in pixels.")
+    points: list[InkPoint] = Field(
+        max_length=20_000,
+        description="x0, y0, x1, y1, …: pixels from the drawing's top left (at least one point).",
+    )
+
+
+class PageDrawing(BaseModel):
+    """A drawing on a page: strokes that move together, like a layer."""
+
+    id: str = Field(min_length=1, max_length=64, description="Unique within the page.")
+    x: int = Field(ge=0, le=100_000, description="Pixels from the page's left edge.")
+    y: int = Field(ge=0, le=100_000, description="Pixels from the page's top edge.")
+    strokes: list[PageStroke] = Field(max_length=2_000, description="At least one.")
+
+
 class PageContent(BaseModel):
-    """What a page holds: freely placed boxes, in stacking order."""
+    """What a page holds: freely placed boxes and, above them, drawings; each in stacking order."""
 
     boxes: list[PageBox] = Field(max_length=500)
+    drawings: list[PageDrawing] = Field(
+        default_factory=list[PageDrawing],
+        max_length=500,
+        description="Pages saved before drawings existed read as none.",
+    )
 
 
 class EntryOut(BaseModel):

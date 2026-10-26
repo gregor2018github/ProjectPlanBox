@@ -31,6 +31,7 @@ this file records what was planned, decided and pinned.
 | Logbook activity | Built 2026-10-17 (owner request) |
 | Phone app (Android) and Google Drive sync | Built 2026-10-16 (owner request) |
 | Knowledge pages (OneNote-like) | Built 2026-10-22 (owner request; desktop first) |
+| Drawing on pages (ink) | Built 2026-10-26 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -547,6 +548,37 @@ Deferred (TODO.md): phone-friendly page editing and images on the phone;
 images in backups or off-site copies; removing image files no page uses;
 merging a change synced in while a page is open; page templates, ink and
 audio.
+
+### Drawing on pages (owner request, 2026-10-26)
+
+"Draw in the knowledge part like in OneNote. Pens can change thickness and
+colour. Drawings are layers that can be shifted around." ARCHITECTURE §7b
+has the model and the interaction.
+
+Decisions:
+- **Drawings live in the page's JSON** (`content.drawings`), beside the
+  boxes: no migration, and they save, sync and back up with the page. Older
+  pages read as having none.
+- **A drawing is a group of strokes that moves as one layer.** A stroke
+  joins the drawing just drawn when it comes within 48 px of it, else it
+  starts a new one. Chosen over one layer per pen session (unrelated
+  sketches would stick together) and over one layer per stroke (a sketch
+  could not be moved in one go). Drawings sit above the boxes, like ink in
+  OneNote, and can be brought to the front or sent back among themselves.
+- **Colours are names** mapped to `ink-*` tokens (an exception to the
+  one-accent rule, STYLE_GUIDE B1), so ink stays legible in both themes;
+  six colours, four thicknesses (2, 4, 8, 16 px; the API allows 1 to 64).
+- **Points are whole pixels**, flat `x, y` lists relative to the drawing,
+  so the Python and the device twins store the same JSON and moving a
+  drawing changes only `x`/`y`.
+- **The eraser removes whole strokes** (OneNote's default), not parts of
+  them.
+- No new dependency: smoothing, simplification and hit-testing are small
+  pure functions (`ink.ts`).
+
+Deferred (TODO.md): pressure-sensitive thickness, a highlighter pen,
+lasso selection across drawings, resizing a drawing, a partial (point)
+eraser, putting ink behind the text.
 
 ## Dependencies
 

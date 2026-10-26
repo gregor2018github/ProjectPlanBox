@@ -2477,7 +2477,7 @@
         "type": "object"
       },
       "PageContent": {
-        "description": "What a page holds: freely placed boxes, in stacking order.",
+        "description": "What a page holds: freely placed boxes and, above them, drawings; each in stacking order.",
         "properties": {
           "boxes": {
             "items": {
@@ -2486,12 +2486,106 @@
             "maxItems": 500,
             "title": "Boxes",
             "type": "array"
+          },
+          "drawings": {
+            "description": "Pages saved before drawings existed read as none.",
+            "items": {
+              "$ref": "#/components/schemas/PageDrawing"
+            },
+            "maxItems": 500,
+            "title": "Drawings",
+            "type": "array"
           }
         },
         "required": [
           "boxes"
         ],
         "title": "PageContent",
+        "type": "object"
+      },
+      "PageDrawing": {
+        "description": "A drawing on a page: strokes that move together, like a layer.",
+        "properties": {
+          "id": {
+            "description": "Unique within the page.",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "strokes": {
+            "description": "At least one.",
+            "items": {
+              "$ref": "#/components/schemas/PageStroke"
+            },
+            "maxItems": 2000,
+            "title": "Strokes",
+            "type": "array"
+          },
+          "x": {
+            "description": "Pixels from the page's left edge.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Pixels from the page's top edge.",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "x",
+          "y",
+          "strokes"
+        ],
+        "title": "PageDrawing",
+        "type": "object"
+      },
+      "PageStroke": {
+        "description": "One pen stroke: a line through its points, in one colour and thickness.",
+        "properties": {
+          "color": {
+            "enum": [
+              "default",
+              "red",
+              "orange",
+              "green",
+              "blue",
+              "purple"
+            ],
+            "title": "Color",
+            "type": "string"
+          },
+          "points": {
+            "description": "x0, y0, x1, y1, …: pixels from the drawing's top left (at least one point).",
+            "items": {
+              "maximum": 100000.0,
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 20000,
+            "title": "Points",
+            "type": "array"
+          },
+          "width": {
+            "description": "Thickness in pixels.",
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "color",
+          "width",
+          "points"
+        ],
+        "title": "PageStroke",
         "type": "object"
       },
       "PairingOut": {

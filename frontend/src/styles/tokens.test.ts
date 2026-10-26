@@ -92,6 +92,19 @@ describe.each([
 describe.each([
   ["light", light],
   ["dark", dark],
+])("%s ink", (_, theme) => {
+  for (const ink of ["default", "red", "orange", "green", "blue", "purple"]) {
+    it(`ink-${ink} is a visible mark on the page (3:1)`, () => {
+      const colour = theme.get(`ink-${ink}`);
+      expect(colour, ink).toBeDefined();
+      expect(contrast(colour!, theme.get("surface")!)).toBeGreaterThanOrEqual(3);
+    });
+  }
+});
+
+describe.each([
+  ["light", light],
+  ["dark", dark],
 ])("%s heat ramp", (_, theme) => {
   const ramp = [0, 1, 2, 3, 4].map((step) => theme.get(`heat-${step}`));
 

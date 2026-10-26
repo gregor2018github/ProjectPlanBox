@@ -4,11 +4,20 @@ import type { components } from "../../core/api/schema";
 /** A page; `collection_id` null means Unsorted. */
 export type Entry = components["schemas"]["EntryOut"];
 
-/** What a page holds: freely placed boxes of rich text. */
+/** What a page holds: freely placed boxes of rich text and, above them, drawings. */
 export type PageContent = components["schemas"]["PageContent"];
 
 /** One box on a page: where it sits, how wide it is, and its Tiptap document. */
 export type PageBox = components["schemas"]["PageBox"];
+
+/** A drawing on a page: pen strokes that move together, like a layer. */
+export type PageDrawing = components["schemas"]["PageDrawing"];
+
+/** One pen stroke: points relative to its drawing's top left. */
+export type PageStroke = components["schemas"]["PageStroke"];
+
+/** A pen colour by name ("default" is the text colour, so ink follows the theme). */
+export type InkColor = PageStroke["color"];
 
 /** A box's rich-text document (Tiptap/ProseMirror JSON). */
 export type PageDoc = PageBox["doc"];
