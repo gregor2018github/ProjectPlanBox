@@ -473,7 +473,13 @@ function entryOut({ entry: e, tagIds }: EntryRecord) {
     id: e.id,
     collection_id: e.collection_id,
     title: e.title,
-    content: JSON.parse(e.content) as DeviceContent,
+    // Like the server's schema: boxes stored before heights existed answer null.
+    content: {
+      boxes: (JSON.parse(e.content) as DeviceContent).boxes.map((box) => ({
+        ...box,
+        height: box.height ?? null,
+      })),
+    },
     body: e.body,
     created_at: e.created_at,
     updated_at: e.updated_at,

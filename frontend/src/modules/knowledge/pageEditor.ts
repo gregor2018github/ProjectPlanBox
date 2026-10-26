@@ -43,7 +43,10 @@ export function isOwnImage(src: string | null): boolean {
   return src !== null && src.startsWith(IMAGE_PREFIX) && !src.includes("?");
 }
 
-/** Images that only parse from PlanBox's own sources, and resize by their corners. */
+/**
+ * Images that only parse from PlanBox's own sources. They resize from every
+ * side and corner; sides stretch one way, Shift keeps the proportions.
+ */
 const PageImage = Image.extend({
   parseHTML() {
     return [
@@ -56,10 +59,19 @@ const PageImage = Image.extend({
 }).configure({
   resize: {
     enabled: true,
-    directions: ["bottom-right", "bottom-left"],
-    minWidth: 48,
-    minHeight: 48,
-    alwaysPreserveAspectRatio: true,
+    directions: [
+      "top",
+      "right",
+      "bottom",
+      "left",
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+    ],
+    minWidth: 32,
+    minHeight: 32,
+    alwaysPreserveAspectRatio: false,
   },
 });
 

@@ -42,6 +42,13 @@ class PageBox(BaseModel):
     x: int = Field(ge=0, le=100_000, description="Pixels from the page's left edge.")
     y: int = Field(ge=0, le=100_000, description="Pixels from the page's top edge.")
     width: int = Field(ge=40, le=10_000)
+    height: int | None = Field(
+        default=None,
+        ge=24,
+        le=100_000,
+        description="The least height in pixels (the box grows past it with its text); "
+        "null fits the text.",
+    )
     doc: dict[str, JsonValue] = Field(
         description="Tiptap (ProseMirror) JSON with a `doc` node at the top."
     )

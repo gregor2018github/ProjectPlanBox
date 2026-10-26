@@ -71,7 +71,10 @@ phone can also use a running PC over the home network or Tailscale.
   Unsorted) and opens it large; type its title. **G K** opens Knowledge.
   A page works like OneNote: click anywhere on it to start a text box there,
   drag a box by its grip to move it (or focus the grip and use the arrow
-  keys) and by its right edge to resize it. The toolbar formats the box with
+  keys), and by any side or corner to resize it (dragging the left or top
+  edge moves that edge; a box still grows with its text). Images resize
+  the same way from their sides and corners; hold Shift to keep their
+  proportions. The toolbar formats the box with
   the cursor: bold, italic, underline, strikethrough, highlight, code,
   headings, lists, checklists, quotes, code blocks, links (Ctrl+click opens
   one), tables (with row and column tools while in one) and images. Paste

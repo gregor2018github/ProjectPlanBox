@@ -153,9 +153,15 @@
     outline-offset: 2px;
   }
 
+  /* The wrapper Tiptap puts around a resizable image: as wide as the image, so
+     the handles sit on the image's edges, not the box's. */
+  .page-doc [data-resize-wrapper] {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  /* Corners are dots on the image's corners; sides are bars along its edges. */
   .page-doc [data-resize-handle] {
-    width: calc(var(--spacing) * 3);
-    height: calc(var(--spacing) * 3);
     background-color: var(--color-accent);
     border: 2px solid var(--color-surface);
     border-radius: var(--radius-full);
@@ -164,10 +170,35 @@
     z-index: 1;
   }
 
+  .page-doc [data-resize-handle$="-left"],
+  .page-doc [data-resize-handle$="-right"] {
+    width: calc(var(--spacing) * 3);
+    height: calc(var(--spacing) * 3);
+    margin: calc(var(--spacing) * -1.5);
+  }
+
+  .page-doc [data-resize-handle="top"],
+  .page-doc [data-resize-handle="bottom"] {
+    height: calc(var(--spacing) * 2);
+    width: calc(var(--spacing) * 8);
+    margin: calc(var(--spacing) * -1) auto;
+    cursor: ns-resize;
+  }
+
+  .page-doc [data-resize-handle="left"],
+  .page-doc [data-resize-handle="right"] {
+    width: calc(var(--spacing) * 2);
+    height: calc(var(--spacing) * 8);
+    margin: auto calc(var(--spacing) * -1);
+    cursor: ew-resize;
+  }
+
+  .page-doc [data-resize-handle="top-left"],
   .page-doc [data-resize-handle="bottom-right"] {
     cursor: nwse-resize;
   }
 
+  .page-doc [data-resize-handle="top-right"],
   .page-doc [data-resize-handle="bottom-left"] {
     cursor: nesw-resize;
   }
@@ -179,9 +210,14 @@
 
   @media (pointer: coarse) {
     .page-doc [data-resize-handle] {
+      opacity: 1;
+    }
+
+    .page-doc [data-resize-handle$="-left"],
+    .page-doc [data-resize-handle$="-right"] {
       width: calc(var(--spacing) * 6);
       height: calc(var(--spacing) * 6);
-      opacity: 1;
+      margin: calc(var(--spacing) * -3);
     }
   }
 

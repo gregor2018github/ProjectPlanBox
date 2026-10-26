@@ -14,7 +14,16 @@ import {
 
 import { cx } from "../../../ui/cx";
 import { IconButton } from "../../../ui/IconButton";
-import { MAX_BOX_WIDTH, MIN_BOX_WIDTH } from "../pageContent";
+import {
+  MAX_BOX_HEIGHT,
+  MAX_BOX_WIDTH,
+  MIN_BOX_HEIGHT,
+  MIN_BOX_WIDTH,
+  RESIZE_DIRECTIONS,
+  resizeBounds,
+  type BoxBounds,
+  type ResizeDirection,
+} from "../pageContent";
 import { imageFiles, isSafeHref, pageExtensions } from "../pageEditor";
 import type { PageBox as Box, PageDoc } from "../types";
 
@@ -25,7 +34,8 @@ export interface PageBoxProps {
   autoFocus: boolean;
   onDocChange: (id: string, doc: PageDoc) => void;
   onMove: (id: string, x: number, y: number) => void;
-  onResize: (id: string, width: number) => void;
+  /** New place and size after dragging a side or corner (height: the text area's least height). */
+  onResize: (id: string, bounds: BoxBounds) => void;
   /** Deletes the box (undoable). */
   onRemove: (id: string) => void;
   /** The box lost focus while empty: it goes away without a trace. */
@@ -43,13 +53,45 @@ interface Drag {
   pointerId: number;
   startX: number;
   startY: number;
-  mode: "move" | "resize";
+  mode: "move" | ResizeDirection;
+  /** The bounds when the drag started (the text area measured if it has no height yet). */
+  start: BoxBounds;
 }
+
+/** Where each handle sits on the text area, its cursor and its name. */
+const HANDLES: Record<ResizeDirection, { place: string; cursor: string; label: string }> = {
+  n: { place: "-top-1.5 left-3 right-3 h-3", cursor: "cursor-ns-resize", label: "top edge" },
+  s: { place: "-bottom-1.5 left-3 right-3 h-3", cursor: "cursor-ns-resize", label: "bottom edge" },
+  e: { place: "-right-1.5 top-3 bottom-3 w-3", cursor: "cursor-ew-resize", label: "right edge" },
+  w: { place: "-left-1.5 top-3 bottom-3 w-3", cursor: "cursor-ew-resize", label: "left edge" },
+  ne: {
+    place: "-top-1.5 -right-1.5 size-4",
+    cursor: "cursor-nesw-resize",
+    label: "top right corner",
+  },
+  sw: {
+    place: "-bottom-1.5 -left-1.5 size-4",
+    cursor: "cursor-nesw-resize",
+    label: "bottom left corner",
+  },
+  nw: {
+    place: "-top-1.5 -left-1.5 size-4",
+    cursor: "cursor-nwse-resize",
+    label: "top left corner",
+  },
+  se: {
+    place: "-bottom-1.5 -right-1.5 size-4",
+    cursor: "cursor-nwse-resize",
+    label: "bottom right corner",
+  },
+};
 
 /**
  * One box on a page: rich text that can sit anywhere. Drag the grip above it
- * to move it (or focus the grip and use the arrow keys) and its right edge to
- * change its width. Images can be pasted or dropped into it.
+ * to move it (or focus the grip and use the arrow keys), and any side or
+ * corner to resize it (the right and bottom edges take arrow keys too). Its
+ * height is a least height: it still grows with its text, so nothing is cut
+ * off. Images can be pasted or dropped into it.
  */
 export function PageBox({
   box,
@@ -63,8 +105,11 @@ export function PageBox({
   uploadImage,
 }: PageBoxProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
-  const [offset, setOffset] = useState({ dx: 0, dy: 0, dw: 0 });
+  /** The bounds shown while a drag is under way, and whether it moves the box. */
+  const [preview, setPreview] = useState<BoxBounds | null>(null);
+  const [moving, setMoving] = useState(false);
 
   // The editor is made once per box; these refs give its callbacks the latest props.
   const props = useRef({ box, onDocChange, onLeaveEmpty, onActive, uploadImage });
@@ -149,33 +194,51 @@ export function PageBox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** The current bounds; a box without a height yet has its text area's. */
+  const currentBounds = (): BoxBounds => ({
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height ?? textRef.current?.offsetHeight ?? MIN_BOX_HEIGHT,
+  });
+  const boundsAfter = (d: Drag, event: PointerEvent<HTMLElement>): BoxBounds => {
+    const dx = event.clientX - d.startX;
+    const dy = event.clientY - d.startY;
+    if (d.mode !== "move") return resizeBounds(d.start, d.mode, dx, dy);
+    return {
+      ...d.start,
+      x: Math.max(0, Math.round(d.start.x + dx)),
+      y: Math.max(0, Math.round(d.start.y + dy)),
+    };
+  };
   const startDrag = (event: PointerEvent<HTMLElement>, mode: Drag["mode"]) => {
     if (event.button !== 0) return;
     event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       mode,
+      start: currentBounds(),
     };
+    setMoving(mode === "move");
   };
   const onPointerMove = (event: PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (d?.pointerId !== event.pointerId) return;
-    const dx = event.clientX - d.startX;
-    const dy = event.clientY - d.startY;
-    setOffset(d.mode === "move" ? { dx, dy, dw: 0 } : { dx: 0, dy: 0, dw: dx });
+    setPreview(boundsAfter(d, event));
   };
   const endDrag = (event: PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (d?.pointerId !== event.pointerId) return;
     drag.current = null;
-    const dx = event.clientX - d.startX;
-    const dy = event.clientY - d.startY;
-    setOffset({ dx: 0, dy: 0, dw: 0 });
-    if (d.mode === "move" && (dx !== 0 || dy !== 0)) onMove(box.id, box.x + dx, box.y + dy);
-    if (d.mode === "resize" && dx !== 0) onResize(box.id, box.width + dx);
+    setPreview(null);
+    if (event.clientX === d.startX && event.clientY === d.startY) return;
+    const next = boundsAfter(d, event);
+    if (d.mode === "move") onMove(box.id, next.x, next.y);
+    else onResize(box.id, next);
   };
 
   const onGripKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -199,23 +262,27 @@ export function PageBox({
     }
   };
 
-  const onEdgeKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+  /** The right edge takes ←/→ (width), the bottom edge ↑/↓ (height). */
+  const onEdgeKeyDown = (direction: ResizeDirection) => (event: KeyboardEvent<HTMLElement>) => {
     const step = event.shiftKey ? BIG_STEP : STEP;
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-      event.preventDefault();
-      onResize(box.id, box.width + (event.key === "ArrowLeft" ? -step : step));
-    }
+    const steps: Record<string, [number, number]> =
+      direction === "e"
+        ? { ArrowLeft: [-step, 0], ArrowRight: [step, 0] }
+        : { ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const delta = steps[event.key];
+    if (delta === undefined) return;
+    event.preventDefault();
+    onResize(box.id, resizeBounds(currentBounds(), direction, delta[0], delta[1]));
   };
 
-  const width = Math.min(Math.max(box.width + offset.dw, MIN_BOX_WIDTH), MAX_BOX_WIDTH);
-  const dragging = offset.dx !== 0 || offset.dy !== 0;
+  const shown = preview ?? { ...box, height: box.height ?? null };
 
   return (
     <div
       ref={rootRef}
       data-box-id={box.id}
-      className={cx("group absolute", dragging && "z-10")}
-      style={{ left: Math.max(0, box.x + offset.dx), top: Math.max(0, box.y + offset.dy), width }}
+      className={cx("group absolute", preview !== null && "z-10")}
+      style={{ left: shown.x, top: shown.y, width: shown.width }}
     >
       <div className="flex h-6 items-center justify-between opacity-0 transition-opacity duration-(--duration-fast) ease-out group-focus-within:opacity-100 group-hover:opacity-100 coarse:h-11 coarse:opacity-100">
         <button
@@ -232,7 +299,7 @@ export function PageBox({
           onKeyDown={onGripKeyDown}
           className={cx(
             "flex h-full flex-1 touch-none items-center justify-center rounded-t-md text-text-subtle hover:bg-hover hover:text-text-muted",
-            dragging ? "cursor-grabbing" : "cursor-grab",
+            preview !== null && moving ? "cursor-grabbing" : "cursor-grab",
           )}
         >
           <GripHorizontal size={16} strokeWidth={1.75} aria-hidden />
@@ -247,29 +314,64 @@ export function PageBox({
         />
       </div>
       <div
+        ref={textRef}
         className={cx(
           "relative rounded-md border border-transparent bg-surface px-3 py-2 transition-colors duration-(--duration-fast) ease-out group-hover:border-border focus-within:border-accent",
-          dragging && "shadow-md",
+          preview !== null && "border-border shadow-md",
         )}
+        style={shown.height === null ? undefined : { minHeight: shown.height }}
       >
         <EditorContent editor={editor} />
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Box width (left and right arrow keys)"
-          aria-valuenow={width}
-          aria-valuemin={MIN_BOX_WIDTH}
-          aria-valuemax={MAX_BOX_WIDTH}
-          tabIndex={0}
-          onPointerDown={(event) => {
-            startDrag(event, "resize");
-          }}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          onKeyDown={onEdgeKeyDown}
-          className="absolute top-0 -right-1.5 h-full w-3 cursor-ew-resize touch-none rounded-full opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-accent-subtle focus-visible:opacity-100 coarse:-right-3 coarse:w-6 coarse:opacity-100"
-        />
+        {RESIZE_DIRECTIONS.map((direction) => {
+          const handle = HANDLES[direction];
+          const keyboard = direction === "e" || direction === "s";
+          return (
+            <div
+              key={direction}
+              data-resize={direction}
+              role={keyboard ? "separator" : undefined}
+              aria-orientation={
+                keyboard ? (direction === "e" ? "vertical" : "horizontal") : undefined
+              }
+              aria-label={
+                keyboard
+                  ? direction === "e"
+                    ? "Box width (left and right arrow keys)"
+                    : "Box height (up and down arrow keys)"
+                  : undefined
+              }
+              aria-hidden={keyboard ? undefined : true}
+              aria-valuenow={
+                keyboard
+                  ? direction === "e"
+                    ? shown.width
+                    : (shown.height ?? undefined)
+                  : undefined
+              }
+              aria-valuemin={
+                keyboard ? (direction === "e" ? MIN_BOX_WIDTH : MIN_BOX_HEIGHT) : undefined
+              }
+              aria-valuemax={
+                keyboard ? (direction === "e" ? MAX_BOX_WIDTH : MAX_BOX_HEIGHT) : undefined
+              }
+              tabIndex={keyboard ? 0 : undefined}
+              title={`Drag the ${handle.label} to resize`}
+              onPointerDown={(event) => {
+                startDrag(event, direction);
+              }}
+              onPointerMove={onPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onKeyDown={keyboard ? onEdgeKeyDown(direction) : undefined}
+              className={cx(
+                "absolute z-10 touch-none rounded-full opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-accent-subtle focus-visible:opacity-100 coarse:opacity-100",
+                direction.length === 2 && "border-2 border-accent bg-surface",
+                handle.place,
+                handle.cursor,
+              )}
+            />
+          );
+        })}
       </div>
     </div>
   );

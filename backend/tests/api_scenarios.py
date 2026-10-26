@@ -289,13 +289,16 @@ def para(*parts: Any) -> Step:  # noqa: ANN401 - JSON
     return {"type": "paragraph", "content": content}
 
 
-def box(box_id: str, x: int, y: int, *nodes: Step, width: int = 400) -> Step:
-    """A page box holding a document of these nodes."""
+def box(
+    box_id: str, x: int, y: int, *nodes: Step, width: int = 400, height: int | None = None
+) -> Step:
+    """A page box holding a document of these nodes (with a least height if given)."""
     return {
         "id": box_id,
         "x": x,
         "y": y,
         "width": width,
+        **({} if height is None else {"height": height}),
         "doc": {"type": "doc", "content": list(nodes)},
     }
 
@@ -358,7 +361,7 @@ def knowledge() -> list[Step]:
                         para("line", {"type": "hardBreak"}, "break"),
                         table,
                     ),
-                    box("b", 480, 0, {"type": "paragraph"}, width=200),
+                    box("b", 480, 0, {"type": "paragraph"}, width=200, height=320),
                     box("c", 0, 400, image, {"type": "horizontalRule"}),
                 ),
             },

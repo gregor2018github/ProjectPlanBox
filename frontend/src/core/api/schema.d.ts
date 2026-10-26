@@ -2623,6 +2623,11 @@ export interface components {
                 [key: string]: components["schemas"]["JsonValue"];
             };
             /**
+             * Height
+             * @description The least height in pixels (the box grows past it with its text); null fits the text.
+             */
+            height?: number | null;
+            /**
              * Id
              * @description Unique within the page.
              */

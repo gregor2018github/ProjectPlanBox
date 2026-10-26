@@ -12,6 +12,33 @@ export const MIN_BOX_WIDTH = 120;
 export const MAX_BOX_WIDTH = 4000;
 /** The furthest from the page's top left a box can sit. */
 export const MAX_OFFSET = 100_000;
+/** The lowest a box's text area can be dragged (about one line). */
+export const MIN_BOX_HEIGHT = 40;
+/** The tallest a box's text area can be dragged. */
+export const MAX_BOX_HEIGHT = 100_000;
+
+/** A box side or corner to resize from. */
+export type ResizeDirection = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
+/** Every direction, sides first. */
+export const RESIZE_DIRECTIONS: readonly ResizeDirection[] = [
+  "n",
+  "e",
+  "s",
+  "w",
+  "ne",
+  "se",
+  "sw",
+  "nw",
+];
+
+/** Where a box sits and how large it is (height is its text area's least height). */
+export interface BoxBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** A document with one empty paragraph (a fresh box). */
 export function emptyDoc(): PageDoc {
@@ -28,8 +55,40 @@ export function newBox(id: string, x: number, y: number, doc: PageDoc = emptyDoc
     x: clamp(x, 0, MAX_OFFSET),
     y: clamp(y, 0, MAX_OFFSET),
     width: DEFAULT_BOX_WIDTH,
+    height: null,
     doc,
   };
+}
+
+/**
+ * The bounds after dragging a side or corner by dx/dy pixels. The opposite
+ * side stays where it is: dragging the left or top edge moves the box. Sizes
+ * stop at their limits and the box at the page's top and left edges.
+ */
+export function resizeBounds(
+  start: BoxBounds,
+  direction: ResizeDirection,
+  dx: number,
+  dy: number,
+): BoxBounds {
+  let { x, y, width, height } = start;
+  if (direction.includes("e")) {
+    width = clamp(start.width + dx, MIN_BOX_WIDTH, MAX_BOX_WIDTH);
+  }
+  if (direction.includes("w")) {
+    const right = start.x + start.width;
+    width = clamp(start.width - dx, MIN_BOX_WIDTH, Math.min(MAX_BOX_WIDTH, right));
+    x = right - width;
+  }
+  if (direction.includes("s")) {
+    height = clamp(start.height + dy, MIN_BOX_HEIGHT, MAX_BOX_HEIGHT);
+  }
+  if (direction.startsWith("n")) {
+    const bottom = start.y + start.height;
+    height = clamp(start.height - dy, MIN_BOX_HEIGHT, Math.min(MAX_BOX_HEIGHT, bottom));
+    y = bottom - height;
+  }
+  return { x: Math.round(x), y: Math.round(y), width, height };
 }
 
 function mapBox(content: PageContent, id: string, edit: (box: PageBox) => PageBox): PageContent {
@@ -50,11 +109,14 @@ export function moveBox(content: PageContent, id: string, x: number, y: number):
   }));
 }
 
-/** Changes a box's width (clamped). */
-export function resizeBox(content: PageContent, id: string, width: number): PageContent {
+/** Gives a box new bounds (clamped onto the page and to the size limits). */
+export function setBoxBounds(content: PageContent, id: string, bounds: BoxBounds): PageContent {
   return mapBox(content, id, (box) => ({
     ...box,
-    width: clamp(width, MIN_BOX_WIDTH, MAX_BOX_WIDTH),
+    x: clamp(bounds.x, 0, MAX_OFFSET),
+    y: clamp(bounds.y, 0, MAX_OFFSET),
+    width: clamp(bounds.width, MIN_BOX_WIDTH, MAX_BOX_WIDTH),
+    height: clamp(bounds.height, MIN_BOX_HEIGHT, MAX_BOX_HEIGHT),
   }));
 }
 
@@ -97,7 +159,7 @@ export function pageExtent(content: PageContent): { width: number; height: numbe
   let bottom = 0;
   for (const box of content.boxes) {
     right = Math.max(right, box.x + box.width);
-    bottom = Math.max(bottom, box.y);
+    bottom = Math.max(bottom, box.y + (box.height ?? 0));
   }
   return { width: right + 480, height: bottom + 960 };
 }

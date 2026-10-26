@@ -23,8 +23,8 @@ import {
   moveBox,
   newBox,
   removeBox,
-  resizeBox,
   restoreBox,
+  setBoxBounds,
   setBoxDoc,
 } from "../pageContent";
 import { knowledgePaths } from "../paths";
@@ -312,8 +312,8 @@ export function PageView({ entry }: PageViewProps) {
             onMove={(id, x, y) => {
               change((content) => moveBox(content, id, x, y));
             }}
-            onResize={(id, width) => {
-              change((content) => resizeBox(content, id, width));
+            onResize={(id, bounds) => {
+              change((content) => setBoxBounds(content, id, bounds));
             }}
             onRemove={onRemove}
             onLeaveEmpty={(id) => {

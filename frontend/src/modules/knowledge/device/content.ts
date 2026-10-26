@@ -38,6 +38,7 @@ export interface DeviceBox {
   x: number;
   y: number;
   width: number;
+  height?: number | null;
   doc: Node;
 }
 
@@ -111,7 +112,14 @@ export function checkContent(content: DeviceContent): void {
 /** The stored form: compact JSON with the box fields in the server's order. */
 export function serializeContent(content: DeviceContent): string {
   const text = JSON.stringify({
-    boxes: content.boxes.map(({ id, x, y, width, doc }) => ({ id, x, y, width, doc })),
+    boxes: content.boxes.map(({ id, x, y, width, height, doc }) => ({
+      id,
+      x,
+      y,
+      width,
+      height: height ?? null,
+      doc,
+    })),
   });
   if (textLength(text) > MAX_CONTENT) {
     throw new ValidationFailed("A page holds at most 2 MB of text.");

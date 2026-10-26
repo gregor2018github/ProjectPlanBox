@@ -2424,6 +2424,20 @@
             "title": "Doc",
             "type": "object"
           },
+          "height": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 24.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The least height in pixels (the box grows past it with its text); null fits the text.",
+            "title": "Height"
+          },
           "id": {
             "description": "Unique within the page.",
             "maxLength": 64,

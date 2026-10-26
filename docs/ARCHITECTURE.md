@@ -705,9 +705,12 @@ CREATE TABLE knowledge_entries (                -- pages (0002 rebuilt it)
 Every entry is a **page** (owner request, 2026-10-22: "like OneNote, one
 type for everything"). Entity type: `knowledge.entry`.
 
-- **Content.** `{"boxes": [{id, x, y, width, doc}, ...]}`: boxes sit at
-  `x`/`y` pixels from the page's top left (0 to 100 000), are `width` pixels
-  wide (40 to 10 000) and stack in array order. `doc` is a Tiptap
+- **Content.** `{"boxes": [{id, x, y, width, height, doc}, ...]}`: boxes sit
+  at `x`/`y` pixels from the page's top left (0 to 100 000), are `width`
+  pixels wide (40 to 10 000) and stack in array order. `height` (24 to
+  100 000, or null to fit the text) is the text area's *least* height: a
+  box still grows with its text, so a resize never hides any.
+  Boxes stored before heights existed read as null. `doc` is a Tiptap
   (ProseMirror) JSON document. The schema checks the boxes; `content.py`
   checks the documents: only the node and mark types the editor makes
   (paragraphs, headings, lists, task lists, quotes, code blocks, rules,
@@ -770,7 +773,12 @@ back into an open page, so typing is never interrupted; a change synced
 in from elsewhere shows when the page is opened again. Clicking empty
 page space adds a box there and focuses it synchronously (a layout effect,
 so the next key lands in it, not in a shortcut); a box left empty
-disappears when it loses the focus. Deleting a box is undoable (Ctrl+Z or
+disappears when it loses the focus. Boxes resize from all four sides and
+corners (`resizeBounds`: the opposite side stays put, so the left and top
+edges move the box); the right and bottom edges also take arrow keys.
+Images resize from all eight handles too (Tiptap's resizable node view;
+sides stretch one way, Shift keeps the proportions) and store `width` and
+`height` on the image node. Deleting a box is undoable (Ctrl+Z or
 the toast); text undo inside a box is the editor's own. Full screen covers
 the app (`fixed`) and asks the browser for the Fullscreen API too. Opening
 a page from search, links or Home goes to the side panel (`EntryDetail`:

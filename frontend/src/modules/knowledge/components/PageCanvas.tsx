@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { DragEvent, PointerEvent, Ref } from "react";
 
-import { pageExtent } from "../pageContent";
+import { pageExtent, type BoxBounds } from "../pageContent";
 import { imageFiles } from "../pageEditor";
 import type { PageContent, PageDoc } from "../types";
 import { PageBox } from "./PageBox";
@@ -17,7 +17,7 @@ export interface PageCanvasProps {
   onDropImages: (files: File[], x: number, y: number) => void;
   onDocChange: (id: string, doc: PageDoc) => void;
   onMove: (id: string, x: number, y: number) => void;
-  onResize: (id: string, width: number) => void;
+  onResize: (id: string, bounds: BoxBounds) => void;
   onRemove: (id: string) => void;
   onLeaveEmpty: (id: string) => void;
   onActive: (editor: Editor, active: boolean) => void;

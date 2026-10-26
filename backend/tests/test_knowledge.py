@@ -165,6 +165,12 @@ def test_patch_changes_only_present_fields(client: TestClient, clock: FixedClock
     assert retitled["updated_at"] > page["updated_at"]
     assert (patched["title"], patched["body"]) == ("Better loop", "new")
     assert patched["content"]["boxes"][0]["x"] == 120
+    assert patched["content"]["boxes"][0]["height"] is None
+    tall = {"boxes": [{**moved, "height": 300}]}
+    resized = ok(client.patch(url, json={"content": tall}))
+    assert resized["content"]["boxes"][0]["height"] == 300
+    low = {"boxes": [{**moved, "height": 10}]}
+    assert problem(client.patch(url, json={"content": low}), 422) == "invalid_request"
     assert problem(client.patch(url, json={"content": None}), 422) == "validation_failed"
 
 
