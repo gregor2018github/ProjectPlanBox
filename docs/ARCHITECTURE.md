@@ -1009,6 +1009,16 @@ a move with pure, tested rules (`modules/todos/dropRules.ts`):
 Groups (`todos:<list>:<section>:<parent>`) keep subtasks inside their
 parent. Lists are grouped per area and sections per list.
 
+dnd-kit's live sorting moves the dragged element's DOM node into the
+container of the group it hovers, and only moves it back on a cancel. So,
+before calling `onDragEnd`, `DndRoot` puts the node back where the drag
+began, and React stays the only one moving nodes between containers
+(otherwise the next render fails with a `removeChild` error). A sortable
+item sorted into another group is reported as its own target, with data
+from the group it left, and released over nothing it has no target at
+all. In both cases `DndRoot` reports a neighbour from the group where the
+item is shown, so it lands where the user saw it.
+
 `DndRoot` also reconfigures dnd-kit's pointer sensor. By default it never
 starts a drag on a link, and sidebar rows (lists, collections) are links.
 A link inside the dragged element may start a drag, but with a mouse only

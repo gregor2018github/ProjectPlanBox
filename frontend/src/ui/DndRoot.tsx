@@ -6,6 +6,9 @@ import { useEffect, type ReactNode } from "react";
 import { DRAG_MOVE_THRESHOLD, setDragMoving, type DragEndHandler } from "./dnd";
 import { installTouchHoldGuard, TOUCH_HOLD } from "./touchHold";
 
+/** Marks dnd-kit's stand-in for the dragged element (see the Feedback plugin of `@dnd-kit/dom`). */
+const PLACEHOLDER_ATTR = "data-dnd-placeholder";
+
 /** The link inside the dragged element that the pointer went down on, if any. */
 function linkInSource(target: EventTarget | null, element: Element | undefined): Element | null {
   if (!(target instanceof Element) || !element) return null;
@@ -37,6 +40,37 @@ const pointerSensor = PointerSensor.configure({
   },
 });
 
+/** Where a dragged element sat in the DOM when its drag began. */
+interface Origin {
+  element: Element;
+  parent: Element;
+  next: Element | null;
+}
+
+/** The origin of the drag under way (there is only ever one). */
+let origin: Origin | null = null;
+
+/** Notes where `element` sits, skipping any placeholder dnd-kit already put after it. */
+function rememberOrigin(element: Element | undefined): Origin | null {
+  const parent = element?.parentElement;
+  if (!element || !parent) return null;
+  let next = element.nextElementSibling;
+  while (next?.hasAttribute(PLACEHOLDER_ATTR)) next = next.nextElementSibling;
+  return { element, parent, next };
+}
+
+/**
+ * dnd-kit's live sorting moves the dragged element into the DOM container of
+ * the group it hovers, and only moves it back when the drag is cancelled.
+ * React still holds it under its old parent, so once the drop is applied it
+ * would remove it from a container it is no longer in ("removeChild" crash).
+ * Putting it back first leaves every DOM move to React.
+ */
+function restoreOrigin(at: Origin | null): void {
+  if (!at?.parent.isConnected || at.element.parentElement === at.parent) return;
+  at.parent.insertBefore(at.element, at.next?.parentElement === at.parent ? at.next : null);
+}
+
 /** Props for {@link DndRoot}. */
 export interface DndRootProps {
   children: ReactNode;
@@ -63,16 +97,39 @@ export function DndRoot({ children }: DndRootProps) {
       sensors={(defaults) =>
         defaults.map((sensor) => (sensor === PointerSensor ? pointerSensor : sensor))
       }
+      onDragStart={(event) => {
+        origin = rememberOrigin(event.operation.source?.element);
+      }}
       onDragMove={(event) => {
         const { x, y } = event.operation.transform;
         if (Math.hypot(x, y) > DRAG_MOVE_THRESHOLD) setDragMoving(true);
       }}
-      onDragEnd={(event) => {
+      onDragEnd={(event, manager) => {
         setDragMoving(false);
-        const { source, target } = event.operation;
+        const { source } = event.operation;
         if (!source) return;
         const handler = (source.data as { onDragEnd?: DragEndHandler } | undefined)?.onDragEnd;
         const sortable = isSortable(source) ? source : null;
+        let target: Pick<typeof source, "id" | "data"> | null = event.operation.target;
+        // A sortable lands where live sorting shows it, even when released
+        // over nothing. Sorted into another group, it is its own target with
+        // data still describing the group it left: a neighbour from the new
+        // group describes the drop instead.
+        if (sortable && target === null) target = source;
+        if (sortable && target?.id === source.id && sortable.group !== sortable.initialGroup) {
+          for (const droppable of manager.registry.droppables) {
+            if (
+              isSortable(droppable) &&
+              droppable.id !== source.id &&
+              droppable.group === sortable.group
+            ) {
+              target = droppable;
+              break;
+            }
+          }
+        }
+        restoreOrigin(origin);
+        origin = null;
         handler?.({
           canceled: event.canceled,
           target: target ? { id: String(target.id), data: target.data } : null,

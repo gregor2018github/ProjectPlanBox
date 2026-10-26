@@ -221,6 +221,46 @@ test("a sidebar list drags into an area and back out; a click still opens it", a
   await expect(page).toHaveURL(new RegExp(`/todos/lists/${list.id}$`));
 });
 
+test("a sidebar list dropped among another area's lists moves there without a crash", async ({
+  page,
+  request,
+}) => {
+  const id = tag();
+  const makeArea = async (name: string) =>
+    ((await (await request.post("/api/todos/areas", { data: { name } })).json()) as { id: string })
+      .id;
+  const makeList = async (name: string, areaId: string) =>
+    (
+      (await (
+        await request.post("/api/todos/lists", { data: { name, area_id: areaId } })
+      ).json()) as { id: string }
+    ).id;
+  const from = await makeArea(`From ${id}`);
+  const to = await makeArea(`To ${id}`);
+  const moving = await makeList(`Moving ${id}`, from);
+  await makeList(`Staying ${id}`, from);
+  await makeList(`Resident ${id}`, to);
+  const areaOf = async () => {
+    const lists = (await (await request.get("/api/todos/lists")).json()) as {
+      id: string;
+      area_id: string | null;
+    }[];
+    return lists.find((l) => l.id === moving)?.area_id;
+  };
+  await page.goto("/todos/inbox");
+  await expect(page.getByTestId("startup-splash")).toHaveCount(0);
+
+  // Hovering a list row of the other area lets dnd-kit move the row's DOM
+  // node there; React must still be able to remove it from its old area.
+  const resident = page.getByRole("link", { name: new RegExp(`^Resident ${id}`) });
+  await resident.scrollIntoViewIfNeeded();
+  await dragOnto(page, page.getByRole("link", { name: new RegExp(`^Moving ${id}`) }), resident);
+  await expect.poll(areaOf).toBe(to);
+  await page.waitForTimeout(400);
+  await expect(page.getByText("Something went wrong")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: new RegExp(`^Moving ${id}`) })).toHaveCount(1);
+});
+
 test("indent makes a subtask; completing the parent completes both", async ({ page, request }) => {
   const id = tag();
   const [parent, child] = [`Parent ${id}`, `Child ${id}`];
