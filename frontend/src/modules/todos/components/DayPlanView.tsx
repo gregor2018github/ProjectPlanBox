@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -30,6 +31,7 @@ export interface DayPlanViewProps {
  * are the proposals, everything overdue or due today that is not planned
  * yet, added with ＋, a drag, or a swipe to the right. The plan empties
  * itself at midnight; what was done today stays at the bottom until then.
+ * The proposals start folded on every visit (owner request, 2026-11-01).
  */
 export function DayPlanView({ data, actions }: DayPlanViewProps) {
   const lingering = useTodoUi((s) => s.lingering);
@@ -39,6 +41,7 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
   );
   const plan = useDayPlan(data, actions);
   const [pulling, setPulling] = useState<string | null>(null);
+  const [proposalsOpen, setProposalsOpen] = useState(false);
   const onDragging = useCallback((id: string, dragging: boolean) => {
     setPulling((current) => (dragging ? id : current === id ? null : current));
   }, []);
@@ -51,7 +54,10 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
     if (direction === -1) plan.place(todo.id, neighbour, null);
     else plan.place(todo.id, null, neighbour);
   };
-  useTodoKeyboard([...view.planned, ...view.proposals], actions, { reorder: true, shift });
+  useTodoKeyboard([...view.planned, ...(proposalsOpen ? view.proposals : [])], actions, {
+    reorder: true,
+    shift,
+  });
 
   const onReorder = (todoId: string) => (ids: string[]) => {
     const i = ids.indexOf(todoId);
@@ -132,11 +138,31 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
           overBox ? "bg-accent-subtle" : "bg-surface",
         )}
       >
-        <h2 className="flex items-center gap-2 py-1 pr-1 pl-3">
-          <span className="text-sm font-medium">Proposals</span>
-          <span className="text-sm text-text-muted tabular-nums">{view.proposals.length}</span>
+        <h2 className="flex items-center gap-2 py-1 pr-1 pl-1">
+          <button
+            type="button"
+            aria-expanded={proposalsOpen}
+            onClick={() => {
+              setProposalsOpen((open) => !open);
+            }}
+            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-sm font-medium hover:bg-hover coarse:h-11"
+          >
+            <ChevronRight
+              size={14}
+              strokeWidth={1.75}
+              aria-hidden
+              className={cx(
+                "transition-transform duration-(--duration-fast) ease-out",
+                proposalsOpen && "rotate-90",
+              )}
+            />
+            Proposals
+            <span className="font-normal text-text-muted tabular-nums">
+              {view.proposals.length}
+            </span>
+          </button>
           <span className="flex-1" />
-          {view.proposals.length > 1 && (
+          {proposalsOpen && view.proposals.length > 1 && (
             <Button
               size="sm"
               onClick={() => {
@@ -147,7 +173,7 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
             </Button>
           )}
         </h2>
-        {view.proposals.length === 0 ? (
+        {!proposalsOpen ? null : view.proposals.length === 0 ? (
           <p className="px-3 pb-2 text-sm text-text-muted">
             Todos overdue or due today show up here. Drag a todo here to take it out of the plan.
           </p>

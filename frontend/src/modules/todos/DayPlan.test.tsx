@@ -39,12 +39,19 @@ function setup() {
 }
 
 describe("DayPlan", () => {
-  it("shows today's plan, with Today's other todos as proposals below", async () => {
+  it("shows today's plan, with Today's other todos as folded proposals below", async () => {
+    const user = userEvent.setup();
     setup();
 
     await waitFor(() => {
       expect(titles("DayPlan")).toEqual(["Planned"]);
     });
+    const toggle = screen.getByRole("button", { name: /Proposals/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveTextContent("2");
+    expect(screen.queryByText("Late")).not.toBeInTheDocument();
+
+    await user.click(toggle);
     expect(titles("Proposed todos")).toEqual(["Late", "Now"]);
     expect(screen.queryByText("Yesterday's")).not.toBeInTheDocument();
     expect(screen.queryByText("Tomorrow")).not.toBeInTheDocument();
@@ -54,6 +61,7 @@ describe("DayPlan", () => {
     const user = userEvent.setup();
     const api = setup();
 
+    await user.click(await screen.findByRole("button", { name: /Proposals/ }));
     const late = await screen.findByText("Late");
     const row = late.closest("[data-todo-id]");
     if (!(row instanceof HTMLElement)) throw new Error("no row");
@@ -91,5 +99,19 @@ describe("DayPlan", () => {
     const added = api.state.todos.find((t) => t.title === "Buy bread");
     expect(added?.plan_date).toBe("2026-10-08");
     expect(added?.due_date).toBeNull();
+  });
+
+  it("folds the proposals again on every visit", async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await user.click(await screen.findByRole("button", { name: /Proposals/ }));
+    expect(await screen.findByText("Late")).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: /Inbox/ }));
+    await user.click(await screen.findByRole("link", { name: /DayPlan/ }));
+
+    const toggle = await screen.findByRole("button", { name: /Proposals/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("list", { name: "Proposed todos" })).not.toBeInTheDocument();
   });
 });

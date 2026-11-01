@@ -598,7 +598,8 @@ and `in_plan` on create, in both backend twins; no new dependencies.
   planned todos): a hand-sorted list (drag, Alt+↑/↓, Move to top/bottom),
   its own **Add todo** row, done ones under "Completed today", and
   **Proposals** at the bottom: everything overdue or due today that is not
-  planned, with ＋ and "Add all to DayPlan".
+  planned, with ＋ and "Add all to DayPlan". Folded on every visit (owner
+  request, same day), with the count on the fold.
 - **Swipe right adds to the DayPlan** (Undo toast). A todo already in it
   has no right swipe, so rows in the DayPlan cannot be swiped right; left
   still deletes. Desktop: **P** or the row menu adds or removes.
