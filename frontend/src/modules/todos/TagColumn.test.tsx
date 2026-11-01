@@ -44,4 +44,19 @@ describe("tag column", () => {
 
     expect(await tagColumnOf("Call Ann")).toBeNull();
   });
+
+  it("shows tags in My order rows too", async () => {
+    window.localStorage.setItem("planbox.todos.allMode", "ranked");
+    const todos = [
+      makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6ab04", title: "Fix tap", tag_ids: ["T1"] }),
+    ];
+    renderApp({
+      path: "/todos/all",
+      fetch: createFakeTodoApi({ todos, tags: [tag] }).fetch,
+      modules: [todosModule],
+    });
+
+    expect((await tagColumnOf("Fix tap"))?.textContent).toBe("@home");
+    window.localStorage.clear();
+  });
 });

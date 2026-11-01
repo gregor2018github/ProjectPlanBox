@@ -34,7 +34,7 @@ export interface RankRowProps {
 /**
  * One todo in "My order", always two lines so every row looks alike: the
  * title (a subtask as "Subtask ↳ Parent", since it can be ranked away from
- * its parent), then where it lives and its date and flags. Long text is cut
+ * its parent), then where it lives, its tags, date and flags. Long text is cut
  * off rather than wrapped. Clicking the row opens the detail panel.
  */
 export function RankRow({
@@ -112,6 +112,15 @@ export function RankRow({
                   {section !== null && ` / ${section}`}
                 </span>
               </span>
+              {todo.tag_ids.length > 0 && (
+                <span data-column="tags" className="flex min-w-0 shrink gap-x-2">
+                  {todo.tag_ids.map((id) => (
+                    <span key={id} className="min-w-0 truncate">
+                      @{lookup.tagName(id)}
+                    </span>
+                  ))}
+                </span>
+              )}
               {todo.due_date !== null && today !== null && (
                 <span className={cx("shrink-0", overdue && "text-danger")}>
                   {formatRelativeDay(todo.due_date, today)}
