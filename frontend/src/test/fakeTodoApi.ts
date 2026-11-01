@@ -190,6 +190,18 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         today_position: null,
         rank_position: null,
         today_rank_position: null,
+        plan_date: b.in_plan === true ? state.now.slice(0, 10) : null,
+        plan_position:
+          b.in_plan === true
+            ? keyBetween(
+                live()
+                  .filter((t) => t.plan_date === state.now.slice(0, 10))
+                  .map((t) => t.plan_position ?? "")
+                  .sort()
+                  .at(-1) ?? null,
+                null,
+              )
+            : null,
       };
       state.todos.push(todo);
       return json(todo, 201);
@@ -226,6 +238,29 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
         if (!row) return problem(404, "No todo with this id.");
         if (row[field] !== rank) {
           Object.assign(row, { [field]: rank, updated_at: state.now });
+          changed.push(strip(row));
+        }
+      }
+      return json({ todos: changed });
+    }
+
+    if (path === "/api/todos/day-plan" && method === "POST") {
+      const today = state.now.slice(0, 10);
+      const wanted = new Map<string, [string | null, string | null]>();
+      let key: string | null = null;
+      for (const todoId of (b.ids as string[] | undefined) ?? []) {
+        key = keyBetween(key, null);
+        wanted.set(todoId, [today, key]);
+      }
+      for (const todoId of (b.removed as string[] | undefined) ?? []) {
+        wanted.set(todoId, [null, null]);
+      }
+      const changed: Todo[] = [];
+      for (const [todoId, [day, position]] of wanted) {
+        const row = state.todos.find((t) => t.id === todoId && !t.deleted_at);
+        if (!row) return problem(404, "No todo with this id.");
+        if (row.plan_date !== day || row.plan_position !== position) {
+          Object.assign(row, { plan_date: day, plan_position: position, updated_at: state.now });
           changed.push(strip(row));
         }
       }
@@ -274,6 +309,8 @@ export function createFakeTodoApi(seed: Partial<FakeState> = {}) {
             due_date: addDays(target.due_date, 1),
             completed_at: null,
             today_position: null,
+            plan_date: null,
+            plan_position: null,
             recurs_from_id: target.id,
           };
           state.todos.push(next);

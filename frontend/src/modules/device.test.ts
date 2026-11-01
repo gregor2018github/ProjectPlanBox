@@ -27,7 +27,7 @@ describe("device backend", () => {
     expect(health.status).toBe(200);
     expect(health.body.schema_versions).toMatchObject({
       core: 5,
-      todos: 7,
+      todos: 8,
       knowledge: 2,
       calendar: 2,
       habits: 2,

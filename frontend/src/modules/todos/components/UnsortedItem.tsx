@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { cx } from "../../../ui/cx";
 import { useDragItem } from "../../../ui/dnd";
 import { IconButton } from "../../../ui/IconButton";
+import type { MenuEntry } from "../../../ui/menuTypes";
 import { durations, easings, springs } from "../../../ui/motion";
 import { rankMenuEntries } from "../rankMenu";
 import type { Todo } from "../types";
@@ -21,6 +22,10 @@ export interface UnsortedItemProps {
   ranking: Ranking;
   /** Reports whether this row is being dragged (ranked rows then show where it would land). */
   onDragging: (todoId: string, dragging: boolean) => void;
+  /** The ＋ button's label (default "Add to my order"). */
+  addLabel?: string;
+  /** Menu entries before the usual ones (default: the "My order" ones). */
+  rankEntries?: MenuEntry[];
 }
 
 const enter = { opacity: 0, y: -4 };
@@ -32,7 +37,15 @@ const leave = { opacity: 0, transition: { duration: durations.exit, ease: easing
  * there; onto the end of the list, it goes last. The always-visible ＋ adds
  * it last without dragging (touch, keyboard).
  */
-export function UnsortedItem({ todo, data, actions, ranking, onDragging }: UnsortedItemProps) {
+export function UnsortedItem({
+  todo,
+  data,
+  actions,
+  ranking,
+  onDragging,
+  addLabel = "Add to my order",
+  rankEntries,
+}: UnsortedItemProps) {
   const { ref, isDragging } = useDragItem({
     id: `rank-pull:${todo.id}`,
     type: RANK_DRAG,
@@ -71,10 +84,10 @@ export function UnsortedItem({ todo, data, actions, ranking, onDragging }: Unsor
         lookup={data.lookup}
         today={data.today}
         rank={null}
-        rankEntries={rankMenuEntries(todo, ranking)}
+        rankEntries={rankEntries ?? rankMenuEntries(todo, ranking)}
         trailing={
           <IconButton
-            label="Add to my order"
+            label={addLabel}
             icon={ListPlus}
             className="-my-1"
             onClick={() => {

@@ -14,6 +14,7 @@ import { useToday } from "../../core/useToday";
 import { useToast } from "../../ui/useToast";
 import {
   applyComplete,
+  applyDayPlan,
   applyDelete,
   applyMove,
   applyPatch,
@@ -97,10 +98,11 @@ function useRefreshAll() {
 export function useCreateTodo() {
   const client = useApiClient();
   const merge = useMergeTodos();
+  const today = useToday();
   return useOptimisticMutation<Todo[], CreateTodoVars, Todo>({
     cacheKey: todoKeys.items,
     mutationFn: (vars) => unwrap(client.POST("/api/todos/items", { body: vars })),
-    apply: (todos, vars) => [...todos, buildTodo(todos, vars, now())],
+    apply: (todos, vars) => [...todos, buildTodo(todos, vars, now(), today)],
     onSuccess: (todo) => {
       merge([todo]);
     },
@@ -247,6 +249,23 @@ export function useSetRankOrder() {
       merge(todos);
     },
     errorTitle: "Could not change your order",
+  });
+}
+
+/** Stores today's day plan (the planned ids top to bottom) and takes todos out of it. */
+export function useSetDayPlan() {
+  const client = useApiClient();
+  const merge = useMergeTodos();
+  const today = useToday();
+  return useOptimisticMutation<Todo[], { ids: string[]; removed: string[] }, Todo[]>({
+    cacheKey: todoKeys.items,
+    mutationFn: async (body) => (await unwrap(client.POST("/api/todos/day-plan", { body }))).todos,
+    apply: (todos, { ids, removed }) =>
+      today === null ? [...todos] : applyDayPlan(todos, ids, removed, today, now()),
+    onSuccess: (todos) => {
+      merge(todos);
+    },
+    errorTitle: "Could not change the day plan",
   });
 }
 

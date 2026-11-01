@@ -478,6 +478,7 @@ export interface NewTodo {
   afterId: string | null;
   rrule: string | null;
   repeatFrom: string;
+  inPlan: boolean;
 }
 
 /** One page of the logbook (completed todos) or of its activity feed. */
@@ -582,6 +583,7 @@ export class TodoService {
       }
       const now = nowIso(this.clock);
       const siblings = this.repos.todos.positions(p.listId, p.sectionId, p.parentId);
+      const planDate = input.inPlan ? isoDate(this.today()) : null;
       const todo: Todo = {
         id: input.id ?? newId(),
         list_id: p.listId,
@@ -603,6 +605,9 @@ export class TodoService {
         repeat_from: repeatFrom,
         rank_position: null,
         today_rank_position: null,
+        plan_date: planDate,
+        plan_position:
+          planDate === null ? null : keyBetween(this.repos.todos.lastPlanPosition(planDate), null),
       };
       this.repos.todos.insert(todo);
       if (input.tagIds.length > 0)
@@ -828,6 +833,35 @@ export class TodoService {
     });
   }
 
+  /** Stores today's day plan and takes todos out of it (see the Python twin). */
+  setDayPlan(todoIds: readonly string[], removed: readonly string[]): TodoRecord[] {
+    const listed = [...todoIds, ...removed];
+    if (new Set(listed).size !== listed.length) {
+      throw new ValidationFailed("Each todo can appear only once in the day plan.");
+    }
+    return this.db.transaction(() => {
+      const todos = new Map(this.repos.todos.getMany(listed).map((t) => [t.id, t]));
+      const now = nowIso(this.clock);
+      const today = isoDate(this.today());
+      const wanted: [string, string | null, string | null][] = [];
+      let key: string | null = null;
+      for (const todoId of todoIds) {
+        key = keyBetween(key, null);
+        wanted.push([todoId, today, key]);
+      }
+      for (const todoId of removed) wanted.push([todoId, null, null]);
+      const changed: string[] = [];
+      for (const [todoId, day, position] of wanted) {
+        const todo = live(todos.get(todoId) ?? null, "todo");
+        if (todo.plan_date !== day || todo.plan_position !== position) {
+          this.repos.todos.update(todoId, { plan_date: day, plan_position: position }, now);
+          changed.push(todoId);
+        }
+      }
+      return this.records(this.repos.todos.getMany(changed));
+    });
+  }
+
   delete(todoId: string): Deletion {
     return this.db.transaction(() => {
       live(this.repos.todos.get(todoId), "todo");
@@ -998,6 +1032,8 @@ export class TodoService {
       updated_at: now,
       recurs_from_id: todo.id,
       today_position: null,
+      plan_date: null,
+      plan_position: null,
       rrule: rule,
       recurrence_anchor: anchor,
     };
@@ -1015,6 +1051,8 @@ export class TodoService {
         created_at: now,
         updated_at: now,
         today_position: null,
+        plan_date: null,
+        plan_position: null,
       };
       this.repos.todos.insert(copy);
       this.copyTags(child.id, copy.id);

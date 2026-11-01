@@ -2,9 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { HomeCard } from "../../../core/home/HomeCard";
-import { addDays } from "../../../core/time";
 import { todoPaths } from "../paths";
-import { counts, dueTodayOrder, todayView, upcomingView } from "../selectors";
+import { counts, dueTodayOrder, todayView } from "../selectors";
 import type { Todo } from "../types";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
@@ -17,7 +16,7 @@ export const HOME_ROWS = 8;
 
 /**
  * The todos card on Home: the overdue and due-today todos to work through
- * (completable in place), plus counts that lead to Inbox and Upcoming.
+ * (completable in place), plus counts that lead to DayPlan and Inbox.
  */
 export function TodoHome() {
   const data = useTodoData();
@@ -27,10 +26,7 @@ export function TodoHome() {
   const derived = useMemo(() => {
     if (today === null) return null;
     const view = todayView(data.todos, today);
-    const weekEnd = addDays(today, 7);
-    const nextWeek = upcomingView(data.todos, today)
-      .filter((day) => day.date <= weekEnd)
-      .reduce((sum, day) => sum + day.todos.length, 0);
+    const badge = counts(data.todos, today);
     const overdue = view.overdue.slice(0, HOME_ROWS);
     const dueToday = view.today.slice(0, HOME_ROWS - overdue.length);
     return {
@@ -38,8 +34,8 @@ export function TodoHome() {
       overdue,
       dueToday,
       hidden: view.overdue.length + view.today.length - overdue.length - dueToday.length,
-      inbox: counts(data.todos, today).inbox,
-      nextWeek,
+      inbox: badge.inbox,
+      plan: badge.plan,
     };
   }, [data.todos, today]);
 
@@ -58,7 +54,7 @@ export function TodoHome() {
       <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
         <HomeFigure label="Overdue" value={view.overdue.length} to={todoPaths.today} danger />
         <HomeFigure label="Due today" value={view.today.length} to={todoPaths.today} />
-        <HomeFigure label="Next 7 days" value={derived.nextWeek} to={todoPaths.upcoming} />
+        <HomeFigure label="DayPlan" value={derived.plan} to={todoPaths.plan} />
         <HomeFigure label="Inbox" value={derived.inbox} to={todoPaths.inbox} />
       </div>
       {!data.loading && open === 0 && (

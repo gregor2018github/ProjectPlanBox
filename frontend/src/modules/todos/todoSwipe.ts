@@ -1,16 +1,17 @@
-import { SkipForward, Sun, SunDim, Trash2 } from "lucide-react";
+import { ClipboardPlus, Trash2 } from "lucide-react";
 
 import type { IsoDate } from "../../core/time";
 import type { SwipeAction } from "../../ui/SwipeRow";
-import { inToday } from "./selectors";
+import { inPlan } from "./selectors";
 import type { Todo } from "./types";
 import type { TodoActions } from "./useTodoActions";
 
 /**
- * What swiping a todo row does on touch (owner request, 2026-10-17): to the
- * right it goes into Today, or out of it ({@link TodoActions.toggleToday});
- * to the left it is deleted, after the usual confirmation. A done todo only
- * deletes.
+ * What swiping a todo row does on touch (owner request, 2026-10-17; the
+ * right swipe changed 2026-11-01): to the right it goes into the DayPlan
+ * ({@link TodoActions.togglePlan}); to the left it is deleted, after the
+ * usual confirmation. A done todo, or one already in the DayPlan, only
+ * deletes, so rows in the DayPlan itself cannot be swiped to the right.
  */
 export function todoSwipeActions(
   todo: Todo,
@@ -25,21 +26,18 @@ export function todoSwipeActions(
       actions.remove(todo);
     },
   };
-  if (today === null || todo.completed_at !== null) return { swipeRight: null, swipeLeft };
-  const toggle = () => {
-    actions.toggleToday(todo);
-  };
-  if (!inToday(todo, today)) {
-    return {
-      swipeRight: { label: "Add to Today", icon: Sun, tone: "accent", onSwipe: toggle },
-      swipeLeft,
-    };
+  if (today === null || todo.completed_at !== null || inPlan(todo, today)) {
+    return { swipeRight: null, swipeLeft };
   }
   return {
-    swipeRight:
-      todo.rrule === null
-        ? { label: "Remove from Today", icon: SunDim, tone: "accent", onSwipe: toggle }
-        : { label: "Skip this one", icon: SkipForward, tone: "accent", onSwipe: toggle },
+    swipeRight: {
+      label: "Add to DayPlan",
+      icon: ClipboardPlus,
+      tone: "accent",
+      onSwipe: () => {
+        actions.togglePlan(todo);
+      },
+    },
     swipeLeft,
   };
 }

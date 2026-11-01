@@ -26,6 +26,8 @@ export function makeTodo(overrides: Partial<Todo> = {}): Todo {
     today_position: null,
     rank_position: null,
     today_rank_position: null,
+    plan_date: null,
+    plan_position: null,
     ...overrides,
   };
 }

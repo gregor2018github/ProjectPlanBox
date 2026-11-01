@@ -4,6 +4,8 @@ import {
   CalendarDays,
   CalendarX,
   Check,
+  ClipboardMinus,
+  ClipboardPlus,
   FolderInput,
   ListPlus,
   Tag,
@@ -16,7 +18,7 @@ import {
 
 import type { MenuEntry } from "../../ui/menuTypes";
 import { todoCreate } from "./createStore";
-import { canHaveSubtasks } from "./selectors";
+import { canHaveSubtasks, inPlan } from "./selectors";
 import { PRIORITY_LABELS, type Priority, type Todo } from "./types";
 import type { TodoActions } from "./useTodoActions";
 
@@ -58,6 +60,29 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
           },
         ]),
     { kind: "separator", id: "s1" },
+    ...(dates === null || (done && !inPlan(todo, dates.today))
+      ? []
+      : [
+          inPlan(todo, dates.today)
+            ? {
+                id: "plan",
+                label: "Remove from DayPlan",
+                icon: ClipboardMinus,
+                shortcut: "P",
+                onSelect: () => {
+                  actions.togglePlan(todo);
+                },
+              }
+            : {
+                id: "plan",
+                label: "Add to DayPlan",
+                icon: ClipboardPlus,
+                shortcut: "P",
+                onSelect: () => {
+                  actions.togglePlan(todo);
+                },
+              },
+        ]),
     ...(dates === null
       ? []
       : [

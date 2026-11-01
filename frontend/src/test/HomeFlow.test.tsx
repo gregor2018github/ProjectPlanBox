@@ -70,7 +70,7 @@ describe("home", () => {
     expect(within(todos).getByRole("list", { name: "Overdue" })).toHaveTextContent("File taxes");
     expect(within(todos).getByRole("list", { name: "Due today" })).toHaveTextContent("Call mum");
     expect(within(todos).queryByText("Plan trip")).not.toBeInTheDocument();
-    expect(within(todos).getByRole("link", { name: /Next 7 days/ })).toHaveTextContent("1");
+    expect(within(todos).getByRole("link", { name: /DayPlan/ })).toHaveTextContent("0");
     expect(within(todos).getByRole("link", { name: /Inbox/ })).toHaveTextContent("4");
     expect(within(todos).getByText("2 to do today · 0 done")).toBeInTheDocument();
 

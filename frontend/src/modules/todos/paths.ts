@@ -2,7 +2,7 @@
 export const todoPaths = {
   inbox: "/todos/inbox",
   today: "/todos/today",
-  upcoming: "/todos/upcoming",
+  plan: "/todos/plan",
   logbook: "/todos/logbook",
   all: "/todos/all",
   list: (id: string) => `/todos/lists/${id}`,

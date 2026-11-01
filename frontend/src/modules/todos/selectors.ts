@@ -143,20 +143,59 @@ export function todayView(todos: readonly Todo[], today: IsoDate): TodayViewData
   };
 }
 
-/** One day in Upcoming. */
-export interface DayGroup {
-  date: IsoDate;
-  todos: Todo[];
+/** Whether a todo is in the day plan of `today` (a plan from an earlier day has lapsed). */
+export function inPlan(t: Todo, today: IsoDate | null): boolean {
+  return today !== null && t.plan_date === today && t.plan_position !== null;
 }
 
-/** Upcoming: open todos due after today, grouped by day. */
-export function upcomingView(todos: readonly Todo[], today: IsoDate): DayGroup[] {
-  const future = todos.filter((t) => isOpen(t) && t.due_date !== null && t.due_date > today);
-  const days = [...new Set(future.map((t) => t.due_date as IsoDate))].sort();
-  return days.map((date) => ({
-    date,
-    todos: future.filter((t) => t.due_date === date).sort(byPriorityThenPosition),
-  }));
+/** The day plan's order: by key, ids breaking ties (as on the server). */
+function byPlan(a: Todo, b: Todo): number {
+  const ka = a.plan_position ?? "";
+  const kb = b.plan_position ?? "";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+/** The three parts of the Day plan page. */
+export interface DayPlanViewData {
+  /** Open planned todos (and just-completed ones in `keep`), top to bottom. */
+  planned: Todo[];
+  /** Planned todos done today, in plan order. */
+  done: Todo[];
+  /** Open todos in Today that are not planned yet: overdue first, as in Today. */
+  proposals: Todo[];
+}
+
+/**
+ * The day plan: what was picked for today, in its own order, plus
+ * proposals (everything overdue or due today that is not in it yet).
+ * `keep` holds just-completed todos that stay in place for a moment.
+ */
+export function dayPlanView(
+  todos: readonly Todo[],
+  today: IsoDate | null,
+  keep: ReadonlySet<string> = new Set(),
+): DayPlanViewData {
+  const plan = todos.filter((t) => inPlan(t, today)).sort(byPlan);
+  const late = (t: Todo) => (t.due_date ?? "") < (today ?? "");
+  return {
+    planned: plan.filter((t) => isOpen(t) || keep.has(t.id)),
+    done: plan.filter((t) => !isOpen(t) && !keep.has(t.id)),
+    proposals: todos
+      .filter((t) => isOpen(t) && inToday(t, today) && !inPlan(t, today))
+      .sort(
+        (a, b) =>
+          Number(late(b)) - Number(late(a)) || (late(a) ? overdueOrder(a, b) : dueTodayOrder(a, b)),
+      ),
+  };
+}
+
+/** The ids of every open todo in today's day plan, top to bottom (ignores any tag filter). */
+export function planIds(todos: readonly Todo[], today: IsoDate | null): string[] {
+  return todos
+    .filter((t) => isOpen(t) && inPlan(t, today))
+    .sort(byPlan)
+    .map((t) => t.id);
 }
 
 /** Sidebar badge numbers. */
@@ -166,14 +205,17 @@ export interface Counts {
   inbox: number;
   today: number;
   overdue: number;
+  /** Open todos in today's day plan. */
+  plan: number;
   lists: Record<string, number>;
 }
 
 /** Open counts for the sidebar (Today counts subtasks with a due date too). */
 export function counts(todos: readonly Todo[], today: IsoDate | null): Counts {
-  const result: Counts = { open: 0, inbox: 0, today: 0, overdue: 0, lists: {} };
+  const result: Counts = { open: 0, inbox: 0, today: 0, overdue: 0, plan: 0, lists: {} };
   for (const t of todos) {
     if (!isOpen(t)) continue;
+    if (inPlan(t, today)) result.plan += 1;
     if (isTopLevel(t)) {
       result.open += 1;
       if (t.list_id === null) result.inbox += 1;

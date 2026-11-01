@@ -1094,6 +1094,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/todos/day-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Day Plan
+         * @description Stores today's day plan (and takes todos out of it); returns the changed todos.
+         */
+        post: operations["todos_set_day_plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/todos/forecast": {
         parameters: {
             query?: never;
@@ -1892,6 +1912,16 @@ export interface components {
             deleted: number;
             /** Opens */
             opens: number;
+        };
+        /**
+         * DayPlanOrder
+         * @description Today's day plan: the planned todos top to bottom, and todos to take out.
+         */
+        DayPlanOrder: {
+            /** Ids */
+            ids: string[];
+            /** Removed */
+            removed?: string[];
         };
         /**
          * DaysOffChange
@@ -3273,6 +3303,8 @@ export interface components {
         /**
          * TodoCreate
          * @description Create a todo or subtask (at the end of its container unless neighbours are given).
+         *
+         *     ``in_plan`` also puts it at the end of today's day plan.
          */
         TodoCreate: {
             /** After Id */
@@ -3283,6 +3315,11 @@ export interface components {
             due_date?: string | null;
             /** Id */
             id?: string | null;
+            /**
+             * In Plan
+             * @default false
+             */
+            in_plan?: boolean;
             /** List Id */
             list_id?: string | null;
             /**
@@ -3340,7 +3377,9 @@ export interface components {
          *     date changes). ``rank_position`` is its place in "My order" in All todos
          *     (null while it is unsorted); ``today_rank_position`` is its place in
          *     Today's "My order" (null while unsorted, and after it is moved out of
-         *     Today).
+         *     Today). ``plan_date`` is the day it was put in the day plan and
+         *     ``plan_position`` its place there; it is in the plan only while
+         *     ``plan_date`` is today.
          */
         TodoOut: {
             /** Completed At */
@@ -3357,6 +3396,10 @@ export interface components {
             notes: string;
             /** Parent Id */
             parent_id: string | null;
+            /** Plan Date */
+            plan_date: string | null;
+            /** Plan Position */
+            plan_position: string | null;
             /** Position */
             position: string;
             /** Priority */
@@ -5653,6 +5696,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeletedOut"];
+                };
+            };
+            /** @description Problem details */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    todos_set_day_plan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DayPlanOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodosOut"];
                 };
             };
             /** @description Problem details */

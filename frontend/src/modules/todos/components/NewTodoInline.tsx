@@ -16,8 +16,8 @@ export interface NewTodoInlineProps {
   placement: Placement;
   data: TodoData;
   actions: TodoActions;
-  /** Defaults for new todos here, e.g. a due date in Today. */
-  defaults?: { due_date?: string | null };
+  /** Defaults for new todos here, e.g. a due date in Today, or going into the day plan. */
+  defaults?: { due_date?: string | null; in_plan?: boolean };
   label?: string;
 }
 
@@ -49,6 +49,7 @@ export function NewTodoInline({
     actions.create({
       ...(parsed.place ? { ...placement, ...parsed.place } : placement),
       ...newTodoFields(parsed, options, defaults?.due_date ?? null, placement.parent_id === null),
+      ...(defaults?.in_plan === true && { in_plan: true }),
     });
     setText("");
     setOptions(NO_OPTIONS);

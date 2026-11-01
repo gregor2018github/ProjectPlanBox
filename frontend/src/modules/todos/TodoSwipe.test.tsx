@@ -36,7 +36,7 @@ const patches = (api: ReturnType<typeof createFakeTodoApi>) =>
   api.state.requests.filter((r) => r.method === "PATCH").map((r) => r.body);
 
 describe("swiping a todo", () => {
-  it("to the right adds it to Today, and the toast's Undo takes it out again", async () => {
+  it("to the right adds it to DayPlan, and the toast's Undo takes it out again", async () => {
     const user = userEvent.setup();
     const api = createFakeTodoApi({ todos: [makeTodo({ title: "Water plants" })] });
     renderApp({ path: "/todos/inbox", fetch: api.fetch, modules: [todosModule] });
@@ -44,13 +44,14 @@ describe("swiping a todo", () => {
     await swipe("Water plants", 160);
 
     await waitFor(() => {
-      expect(patches(api)).toEqual([{ due_date: "2026-10-08" }]);
+      expect(api.state.todos[0]?.plan_date).toBe("2026-10-08");
     });
-    expect((await screen.findAllByText("Added “Water plants” to Today")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Added “Water plants” to DayPlan")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Undo" }));
     await waitFor(() => {
-      expect(patches(api)).toEqual([{ due_date: "2026-10-08" }, { due_date: null }]);
+      expect(api.state.todos[0]?.plan_date).toBeNull();
     });
+    expect(patches(api)).toEqual([]);
   });
 
   it("does not open the details with the tap that ends a swipe", async () => {
@@ -66,39 +67,32 @@ describe("swiping a todo", () => {
     expect(todoUi.get().selectedId).not.toBeNull();
   });
 
-  it("to the right skips a repeating todo in Today to its next date, keeping the repeat", async () => {
+  it("cannot go right in DayPlan, where the todo already is", async () => {
     const api = createFakeTodoApi({
-      todos: [
-        makeTodo({
-          title: "Bins",
-          due_date: "2026-10-08",
-          rrule: "FREQ=DAILY",
-          recurrence_anchor: "2026-10-08",
-        }),
-      ],
+      todos: [makeTodo({ title: "Call Ann", plan_date: "2026-10-08", plan_position: "a0" })],
     });
-    renderApp({ path: "/todos/today", fetch: api.fetch, modules: [todosModule] });
-
-    await swipe("Bins", 160);
-
-    await waitFor(() => {
-      expect(api.state.todos[0]?.due_date).toBe("2026-10-09");
-    });
-    expect(api.state.todos[0]?.rrule).toBe("FREQ=DAILY");
-  });
-
-  it("to the right takes a todo already in Today out of it", async () => {
-    const api = createFakeTodoApi({
-      todos: [makeTodo({ title: "Call Ann", due_date: "2026-10-06" })],
-    });
-    renderApp({ path: "/todos/inbox", fetch: api.fetch, modules: [todosModule] });
+    renderApp({ path: "/todos/plan", fetch: api.fetch, modules: [todosModule] });
 
     await swipe("Call Ann", 160);
 
-    await waitFor(() => {
-      expect(patches(api)).toEqual([{ due_date: null }]);
+    expect(api.state.requests.filter((r) => r.path === "/api/todos/day-plan")).toEqual([]);
+    expect(api.state.todos[0]?.plan_date).toBe("2026-10-08");
+  });
+
+  it("to the left in DayPlan still asks to delete it", async () => {
+    const user = userEvent.setup();
+    const api = createFakeTodoApi({
+      todos: [makeTodo({ title: "Call Ann", plan_date: "2026-10-08", plan_position: "a0" })],
     });
-    expect(await screen.findByText("Removed “Call Ann” from Today")).toBeInTheDocument();
+    renderApp({ path: "/todos/plan", fetch: api.fetch, modules: [todosModule] });
+
+    await swipe("Call Ann", -160);
+
+    const question = await screen.findByRole("dialog", { name: "Delete todo?" });
+    await user.click(within(question).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Delete todo?" })).not.toBeInTheDocument();
+    });
   });
 
   it("does nothing when let go before the swipe went far enough", async () => {

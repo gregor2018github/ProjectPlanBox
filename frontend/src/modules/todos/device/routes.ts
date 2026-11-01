@@ -63,6 +63,8 @@ function todoOut({ todo: t, tagIds }: TodoRecord): TodoOut {
     today_position: t.today_position,
     rank_position: t.rank_position,
     today_rank_position: t.today_rank_position,
+    plan_date: t.plan_date,
+    plan_position: t.plan_position,
   };
 }
 
@@ -174,6 +176,7 @@ export const todoHandlers: Handlers = {
       afterId: body.after_id ?? null,
       rrule: body.rrule ?? null,
       repeatFrom: body.repeat_from ?? "due",
+      inPlan: body.in_plan ?? false,
     });
     return created(todoOut(record), isNew);
   },
@@ -198,6 +201,7 @@ export const todoHandlers: Handlers = {
   todos_set_today_order: ({ body }, ctx) => many(todos(ctx).setTodayOrder(body.ids)),
   todos_set_rank_order: ({ body }, ctx) =>
     many(todos(ctx).setRankOrder(body.ids, body.unranked ?? [], body.scope ?? "all")),
+  todos_set_day_plan: ({ body }, ctx) => many(todos(ctx).setDayPlan(body.ids, body.removed ?? [])),
   todos_delete_item: ({ path }, ctx) => todos(ctx).delete(path.todo_id),
   todos_restore_item: ({ path }, ctx) => many(todos(ctx).restore(path.todo_id)),
 };

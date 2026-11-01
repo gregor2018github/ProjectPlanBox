@@ -25,6 +25,7 @@ from planbox.modules.todos.schemas import (
     AreaMove,
     AreaOut,
     AreaUpdate,
+    DayPlanOrder,
     DeletedOut,
     ForecastOut,
     ListCreate,
@@ -120,6 +121,8 @@ def _todo(record: TodoRecord) -> TodoOut:
         today_position=t.today_position,
         rank_position=t.rank_position,
         today_rank_position=t.today_rank_position,
+        plan_date=_date(t.plan_date),
+        plan_position=t.plan_position,
     )
 
 
@@ -351,6 +354,7 @@ def create_item(body: TodoCreate, service: Todos, response: Response) -> TodoOut
             after_id=body.after_id,
             rrule=body.rrule,
             repeat_from=body.repeat_from,
+            in_plan=body.in_plan,
         )
     )
     _created(response, created)
@@ -399,6 +403,12 @@ def set_today_order(body: TodayOrder, service: Todos) -> TodosOut:
 def set_rank_order(body: RankOrder, service: Todos) -> TodosOut:
     """Stores "My order" in All todos or Today (and unranks todos); returns the changed todos."""
     return _todos_out(service.set_rank_order(body.ids, body.unranked, body.scope))
+
+
+@router.post("/day-plan")
+def set_day_plan(body: DayPlanOrder, service: Todos) -> TodosOut:
+    """Stores today's day plan (and takes todos out of it); returns the changed todos."""
+    return _todos_out(service.set_day_plan(body.ids, body.removed))
 
 
 @router.delete("/items/{todo_id}")

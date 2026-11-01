@@ -33,10 +33,18 @@ export interface CreateTodoVars extends Placement {
   /** A repeat rule; give a due date with it (the series is anchored there). */
   rrule?: string | null;
   repeat_from?: RepeatFrom;
+  /** Also put it at the end of today's day plan. */
+  in_plan?: boolean;
 }
 
-/** Builds the optimistic row for a create. */
-export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: string): Todo {
+/** Builds the optimistic row for a create (`today` dates a todo created into the day plan). */
+export function buildTodo(
+  todos: readonly Todo[],
+  vars: CreateTodoVars,
+  now: string,
+  today: IsoDate | null = null,
+): Todo {
+  const planDate = vars.in_plan === true ? today : null;
   const placement = {
     list_id: vars.list_id,
     section_id: vars.section_id,
@@ -64,6 +72,18 @@ export function buildTodo(todos: readonly Todo[], vars: CreateTodoVars, now: str
     today_position: null,
     rank_position: null,
     today_rank_position: null,
+    plan_date: planDate,
+    plan_position:
+      planDate === null
+        ? null
+        : keyBetween(
+            todos
+              .filter((t) => t.plan_date === planDate && t.plan_position !== null)
+              .map((t) => t.plan_position ?? "")
+              .sort()
+              .at(-1) ?? null,
+            null,
+          ),
   };
 }
 
@@ -200,6 +220,31 @@ export function applyRankOrder(
     return wanted === undefined || wanted === t[field]
       ? t
       : { ...t, [field]: wanted, updated_at: now };
+  });
+}
+
+/**
+ * Stores today's day plan: `ids` are planned for `today` in that order,
+ * `removed` leave the plan, and planned todos not listed keep their place.
+ */
+export function applyDayPlan(
+  todos: readonly Todo[],
+  ids: readonly string[],
+  removed: readonly string[],
+  today: IsoDate,
+  now: string,
+): Todo[] {
+  const wanted = new Map<string, [IsoDate | null, string | null]>();
+  let key: string | null = null;
+  for (const id of ids) {
+    key = keyBetween(key, null);
+    wanted.set(id, [today, key]);
+  }
+  for (const id of removed) wanted.set(id, [null, null]);
+  return todos.map((t) => {
+    const w = wanted.get(t.id);
+    if (w === undefined || (w[0] === t.plan_date && w[1] === t.plan_position)) return t;
+    return { ...t, plan_date: w[0], plan_position: w[1], updated_at: now };
   });
 }
 

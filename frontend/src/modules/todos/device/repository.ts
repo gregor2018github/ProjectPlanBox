@@ -69,6 +69,8 @@ export interface Todo {
   repeat_from: string;
   rank_position: string | null;
   today_rank_position: string | null;
+  plan_date: string | null;
+  plan_position: string | null;
 }
 
 /** A writable field and its new value. */
@@ -80,7 +82,7 @@ const SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at
 const TODO =
   "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, " +
   "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id, " +
-  "today_position, repeat_from, rank_position, today_rank_position";
+  "today_position, repeat_from, rank_position, today_rank_position, plan_date, plan_position";
 const TODO_EDITABLE = new Set([
   "title",
   "notes",
@@ -96,6 +98,8 @@ const TODO_EDITABLE = new Set([
   "repeat_from",
   "rank_position",
   "today_rank_position",
+  "plan_date",
+  "plan_position",
 ]);
 
 function areaOf(r: Row): Area {
@@ -156,6 +160,8 @@ function todoOf(r: Row): Todo {
     repeat_from: text(r, "repeat_from"),
     rank_position: textOrNull(r, "rank_position"),
     today_rank_position: textOrNull(r, "today_rank_position"),
+    plan_date: textOrNull(r, "plan_date"),
+    plan_position: textOrNull(r, "plan_position"),
   };
 }
 
@@ -464,6 +470,15 @@ export class TodoRepository {
     );
   }
 
+  /** The last key in the day plan of `day` (null while it is empty). */
+  lastPlanPosition(day: string): string | null {
+    const row = this.db.get(
+      "SELECT MAX(plan_position) AS last FROM todos WHERE deleted_at IS NULL AND plan_date = ?",
+      [day],
+    );
+    return row === undefined ? null : textOrNull(row, "last");
+  }
+
   liveChildren(parentId: string): Todo[] {
     return this.db
       .all(
@@ -502,7 +517,7 @@ export class TodoRepository {
         ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, " +
         ":position, :completed_at, :created_at, :updated_at, :deleted_at, " +
         ":rrule, :recurrence_anchor, :recurs_from_id, :today_position, " +
-        ":repeat_from, :rank_position, :today_rank_position)",
+        ":repeat_from, :rank_position, :today_rank_position, :plan_date, :plan_position)",
       { ...todo },
     );
   }

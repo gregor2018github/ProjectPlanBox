@@ -51,7 +51,7 @@ export function RankRow({
   const done = todo.completed_at !== null;
   const entries = [
     ...rankEntries,
-    { kind: "separator" as const, id: "rank" },
+    ...(rankEntries.length > 0 ? [{ kind: "separator" as const, id: "rank" }] : []),
     ...todoMenuEntries(todo, actions),
   ];
   const parentTitle = lookup.todoTitle(todo.parent_id);

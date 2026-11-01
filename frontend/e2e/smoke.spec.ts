@@ -397,9 +397,9 @@ test("works on a 375 px phone screen", async ({ page }) => {
 
   await page.getByRole("button", { name: "Open navigation" }).click();
   const sheet = page.getByRole("dialog", { name: "Navigation" });
-  await sheet.getByRole("link", { name: /Upcoming/ }).click();
+  await sheet.getByRole("link", { name: /DayPlan/ }).click();
 
-  await expect(page.getByRole("heading", { name: "Upcoming" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "DayPlan", exact: true })).toBeVisible();
   await expect(sheet).toBeHidden();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,

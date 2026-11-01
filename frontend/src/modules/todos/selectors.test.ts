@@ -3,12 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   allView,
   counts,
+  dayPlanView,
   filterTodosByTags,
   inboxView,
   listTree,
   listView,
+  planIds,
   todayView,
-  upcomingView,
 } from "./selectors";
 import { makeSection, makeTodo } from "./testData";
 
@@ -80,18 +81,39 @@ describe("todayView", () => {
   });
 });
 
-describe("upcomingView", () => {
-  it("groups future open todos by day", () => {
-    const fri = makeTodo({ due_date: "2026-10-09" });
-    const mon = makeTodo({ due_date: "2026-10-12" });
-    const fri2 = makeTodo({ due_date: "2026-10-09", priority: 2 });
+describe("dayPlanView", () => {
+  it("orders the plan by key and proposes the rest of Today, overdue first", () => {
+    const b = makeTodo({ plan_date: TODAY, plan_position: "a2" });
+    const a = makeTodo({ plan_date: TODAY, plan_position: "a1", due_date: TODAY });
+    const done = makeTodo({ plan_date: TODAY, plan_position: "a0", completed_at: DONE });
+    const due = makeTodo({ due_date: TODAY });
+    const late = makeTodo({ due_date: "2026-10-01" });
+    const later = makeTodo({ due_date: "2026-10-20" });
 
-    const days = upcomingView([mon, fri, fri2, makeTodo({ due_date: TODAY })], TODAY);
+    const view = dayPlanView([b, a, done, due, late, later], TODAY);
 
-    expect(days.map((d) => [d.date, d.todos.map((t) => t.id)])).toEqual([
-      ["2026-10-09", [fri2.id, fri.id]],
-      ["2026-10-12", [mon.id]],
-    ]);
+    expect(view.planned.map((t) => t.id)).toEqual([a.id, b.id]);
+    expect(view.done.map((t) => t.id)).toEqual([done.id]);
+    expect(view.proposals.map((t) => t.id)).toEqual([late.id, due.id]);
+  });
+
+  it("empties itself on a new day", () => {
+    const yesterday = makeTodo({ plan_date: "2026-10-07", plan_position: "a0", due_date: TODAY });
+
+    const view = dayPlanView([yesterday], TODAY);
+
+    expect(view.planned).toEqual([]);
+    expect(view.proposals.map((t) => t.id)).toEqual([yesterday.id]);
+    expect(planIds([yesterday], TODAY)).toEqual([]);
+  });
+
+  it("keeps a just-completed todo in place", () => {
+    const done = makeTodo({ plan_date: TODAY, plan_position: "a0", completed_at: DONE });
+
+    const view = dayPlanView([done], TODAY, new Set([done.id]));
+
+    expect(view.planned.map((t) => t.id)).toEqual([done.id]);
+    expect(view.done).toEqual([]);
   });
 });
 
@@ -109,6 +131,7 @@ describe("counts", () => {
       inbox: 1,
       today: 1,
       overdue: 1,
+      plan: 0,
       lists: { L: 2 },
     });
   });

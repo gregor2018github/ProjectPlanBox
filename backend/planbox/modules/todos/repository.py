@@ -13,7 +13,7 @@ _SECTION = "id, list_id, name, position, created_at, updated_at, deleted_at"
 _TODO = (
     "id, list_id, section_id, parent_id, title, notes, priority, due_date, position, "
     "completed_at, created_at, updated_at, deleted_at, rrule, recurrence_anchor, recurs_from_id, "
-    "today_position, repeat_from, rank_position, today_rank_position"
+    "today_position, repeat_from, rank_position, today_rank_position, plan_date, plan_position"
 )
 _TODO_EDITABLE = frozenset(
     {
@@ -31,6 +31,8 @@ _TODO_EDITABLE = frozenset(
         "repeat_from",
         "rank_position",
         "today_rank_position",
+        "plan_date",
+        "plan_position",
     }
 )
 
@@ -316,6 +318,15 @@ class TodoRepository:
         ).fetchall()
         return _positions(rows)
 
+    def last_plan_position(self, day: str) -> str | None:
+        """The last key in the day plan of ``day`` (None while it is empty)."""
+        row = self._conn.execute(
+            "SELECT MAX(plan_position) AS last FROM todos "
+            "WHERE deleted_at IS NULL AND plan_date = ?",
+            (day,),
+        ).fetchone()
+        return None if row is None or row["last"] is None else str(row["last"])
+
     def live_children(self, parent_id: str) -> list[Todo]:
         """Live subtasks of a todo, in order."""
         rows = self._conn.execute(
@@ -356,7 +367,7 @@ class TodoRepository:
             ":id, :list_id, :section_id, :parent_id, :title, :notes, :priority, :due_date, "
             ":position, :completed_at, :created_at, :updated_at, :deleted_at, "
             ":rrule, :recurrence_anchor, :recurs_from_id, :today_position, "
-            ":repeat_from, :rank_position, :today_rank_position)",
+            ":repeat_from, :rank_position, :today_rank_position, :plan_date, :plan_position)",
             _asdict(todo),
         )
 

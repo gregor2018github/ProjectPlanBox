@@ -44,12 +44,19 @@ phone can also use a running PC over the home network or Tailscale.
   alone for the defaults; anything typed with the syntax above wins.
 
   **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
+- **DayPlan** (sidebar, or **G P**) is what you pick to do today, in your
+  own order. Add todos there directly, or from **Proposals** at the bottom
+  (everything overdue or due today that is not in the plan yet) with ＋.
+  Anywhere else, **P**, "Add to DayPlan" in a todo's menu, or a swipe to the
+  right on the phone adds it. At midnight the plan starts empty again; the
+  todos themselves stay where they are.
 - **Data** (bottom of the sidebar, **G D**): the backups, the off-site
   copy's state, **Back up now**, and export/import to move data between
   PCs (see [Data](#data)).
 - In a list: **↑/↓** select, **Space** or **X** completes, **Enter** opens
   details, **Alt+↑/↓** moves, **Alt+→/←** makes a subtask or promotes it,
-  **T/M** set the date to today or tomorrow, **D** picks a date, **S** skips
+  **T/M** set the date to today or tomorrow, **P** adds to or removes from
+  the DayPlan, **D** picks a date, **S** skips
   one date of a repeating todo, **V** moves the todo to another list,
   **1/2/3/0** set the priority, **Delete** deletes.
 - **Ctrl+Z** undoes the last delete, completion or move.
@@ -93,7 +100,7 @@ phone can also use a running PC over the home network or Tailscale.
   collection in the sidebar, and drag collections to reorder them. In a
   list of pages, **↑/↓** move and **Delete** deletes.
 - **Home** (sidebar, or **G H**) is the overview: overdue and due-today
-  todos to tick off, with counts for the next 7 days and the Inbox; the
+  todos to tick off, with counts for the DayPlan and the Inbox; the
   week's events; today's habits; recently changed knowledge pages; and
   the last 7 days across everything. Each card's title opens the full view.
 - **Insights** (sidebar, or **G S**) shows statistics: a year of activity

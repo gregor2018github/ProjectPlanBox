@@ -32,6 +32,7 @@ this file records what was planned, decided and pinned.
 | Phone app (Android) and Google Drive sync | Built 2026-10-16 (owner request) |
 | Knowledge pages (OneNote-like) | Built 2026-10-22 (owner request; desktop first) |
 | Drawing on pages (ink) | Built 2026-10-26 (owner request) |
+| DayPlan (replaces Upcoming) | Built 2026-11-01 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -234,7 +235,7 @@ Small iterations after a first day of use at work, one commit each:
   `subtasks_completed` (all time) and `subtasks_completed_7`, shown in the
   section line, the "Completed this week" tile and Records. Completing or
   reopening refreshes the todo stats and the activity caches at once.
-- **All todos** (`/todos/all`, sidebar under Upcoming, `G A`): every open
+- **All todos** (`/todos/all`, sidebar under Today, `G A`): every open
   todo at once, grouped by place (Inbox, loose lists, then each area's
   lists, as in the sidebar), subtasks expandable, with the totals in the
   header (open todos, open subtasks, places) and the open count as the
@@ -480,7 +481,8 @@ Decisions:
   changes: a swipe is easy to trigger by accident and a phone has no
   Ctrl+Z. The delete swipe goes through the usual touch confirmation.
 - **Touch only, todo rows only** (lists, Today, Upcoming, My order, and
-  subtasks). A done todo can only be swiped to delete. The long-press
+  subtasks). *Superseded 2026-11-01: swiping right now adds to the DayPlan
+  (below).* A done todo can only be swiped to delete. The long-press
   menu was dropped from these rows on the same day, so a hold only drags.
 
 ### Options while adding a todo (owner request, 2026-10-21)
@@ -580,6 +582,38 @@ Deferred (TODO.md): pressure-sensitive thickness, a highlighter pen,
 lasso selection across drawings, resizing a drawing, a partial (point)
 eraser, putting ink behind the text.
 
+### DayPlan (owner request, 2026-11-01)
+
+"Remove Upcoming, I get no value from it. Instead a DayPlan where you add
+things every day new; at midnight it clears. Proposals at the bottom.
+Swiping right adds to the DayPlan instead of Today." ARCHITECTURE §7 has
+the model. Migration `todos/0008`, new endpoint `POST /api/todos/day-plan`
+and `in_plan` on create, in both backend twins; no new dependencies.
+- **Upcoming is gone** (page, route, sidebar link, `G U`). Home's "Next 7
+  days" figure became a DayPlan count. The calendar still shows future due
+  dates.
+- **DayPlan** (`/todos/plan`, sidebar under Today, `G P`, badge = open
+  planned todos): a hand-sorted list (drag, Alt+↑/↓, Move to top/bottom),
+  its own **Add todo** row, done ones under "Completed today", and
+  **Proposals** at the bottom: everything overdue or due today that is not
+  planned, with ＋ and "Add all to DayPlan".
+- **Swipe right adds to the DayPlan** (Undo toast). A todo already in it
+  has no right swipe, so rows in the DayPlan cannot be swiped right; left
+  still deletes. Desktop: **P** or the row menu adds or removes.
+
+Decisions:
+- **A date on the todo, not a cleanup job.** A todo is planned while
+  `plan_date` is today, so nothing has to run at midnight (the PC may be
+  off, the phone asleep), and the plan syncs between devices like any
+  field.
+- **Midnight clears the plan, not the todos.** Planned todos keep their
+  list and due date; one typed into the DayPlan goes to the Inbox without
+  a due date, so after midnight it waits there.
+- **Done todos stay in the plan for the day**; a repeating todo's next
+  occurrence is not planned (it is due another day).
+- Proposals are Today's todos only (overdue and due today); anything else
+  comes in through the swipe, **P** or the menu.
+
 ## Dependencies
 
 Versions were checked against PyPI and npm on **2026-10-08** (later additions
@@ -661,8 +695,7 @@ parity), `concurrently` (`dev.py` does it), React Compiler.
 1. Areas, sections and subtasks exist. Todos live in a list or the Inbox,
    never directly in an area. Subtasks are one level deep. Sections exist
    only in lists.
-2. Upcoming is auto-sorted (overdue first, then priority, then list
-   position). Today's **By date** mode is sortable by hand within its
+2. Today's **By date** mode is sortable by hand within its
    Overdue and Due today groups (`todos.today_position`, cleared when the
    due date changes); its **My order** mode is one hand-sorted list of its
    own (My order in Today above).

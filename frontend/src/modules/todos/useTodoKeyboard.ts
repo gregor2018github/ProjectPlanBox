@@ -178,6 +178,15 @@ export function useTodoKeyboard(
   usePriorityShortcut("3", "Low priority", setPriority(1));
   usePriorityShortcut("0", "No priority", setPriority(0));
   useShortcut({
+    id: "todos.plan",
+    keys: "P",
+    description: "Add to or remove from DayPlan",
+    group: GROUP,
+    run: withSelected((t) => {
+      actions.togglePlan(t);
+    }),
+  });
+  useShortcut({
     id: "todos.today",
     keys: "T",
     description: "Due today",

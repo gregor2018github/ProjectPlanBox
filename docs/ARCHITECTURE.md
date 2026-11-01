@@ -550,7 +550,7 @@ that can be enforced in SQL are also CHECK constraints.
   parent's `list_id` and `section_id`. Moving a parent moves its subtasks
   with it.
 - Subtasks are full todos (their own due date, priority, tags and notes).
-  With a due date, a subtask appears in Today/Upcoming on its own, with its
+  With a due date, a subtask appears in Today on its own, with its
   parent's title as context.
 - **Completion:** completing a parent also completes its open subtasks with
   the *same* `completed_at`. Reopening the parent reopens exactly those
@@ -645,6 +645,23 @@ that can be enforced in SQL are also CHECK constraints.
   daily routine comes back to its spot. The client counts only todos in
   Today as the ranking (`rankedIds(todos, "today", today)`), so a stale
   key on a future occurrence is ignored until it is due.
+- **DayPlan (owner request, 2026-11-01; it replaced Upcoming):** migration
+  `0008_add_day_plan.sql` adds `plan_date` (the local day a todo was
+  planned for) and `plan_position` (its key that day). A todo is in the
+  plan only while `plan_date` is today, so the plan **empties itself at
+  midnight** with no job clearing it; old dates simply stop matching.
+  `POST /api/todos/day-plan` takes `{ids, removed}`: the whole plan top to
+  bottom (stamped with the server's today, keys written only where a row
+  differs, as for My order) and ids to take out (both columns cleared).
+  `TodoCreate.in_plan` creates a todo at the end of today's plan, which is
+  what the page's own "Add todo" does (Inbox, no due date). The plan is
+  about the todo, not its date: edits and moves keep it, a completed todo
+  stays in it (under "Completed today") until midnight, and a repeat's
+  next occurrence does **not** inherit it. The page (`DayPlanView`) lists
+  the plan, sortable like My order, then **Proposals** at the bottom:
+  every open todo overdue or due today not planned yet, added with ＋,
+  "Add all", a drag, the row menu or **P**. The client sends the plan
+  computed from every cached todo (`planIds`), as for My order.
 - **Area colours (owner request, 2026-10-11):** migration
   `0005_add_area_hue.sql` adds `hue`, an OKLCH angle (0–359). Only the hue
   is stored. Lightness and chroma come from the theme's tint tokens
@@ -904,7 +921,7 @@ part in links (a linkable source) and search (`documents`: name and notes).
 ### One cache, derived views
 
 For todos the client loads **all open todos plus today's completed ones** in
-one query (`['todos','items']`). Inbox, Today, Upcoming, All todos, each
+one query (`['todos','items']`). Inbox, Today, DayPlan, All todos, each
 area and each list (grouped by section, subtasks nested under their parent) are
 **selectors** over that array (filter, sort and group, memoised). Areas,
 lists, sections and tags are small extra queries.
@@ -1040,9 +1057,9 @@ Todo rows (`TodoRow`, `RankRow`) can also be swiped sideways
 `todos/todoSwipe.ts`). The row follows the finger over a panel naming the
 action, which takes its colour past 30 % of the row's width (64–120 px).
 Letting go there acts, and the row springs back either way. Swiping right
-puts the todo in Today (due today) or takes it out (the date is removed,
-or a repeating todo skips to its next date, since removing its date would
-stop the repeat), with an Undo toast. Swiping left deletes it after the
+adds the todo to the DayPlan, with an Undo toast; a todo already in it (so
+every planned row in the DayPlan itself) and a done one have no right
+swipe. Swiping left deletes it after the
 touch confirmation. A swipe must go 14 px sideways before the 250 ms hold
 is up. That is past the hold's tolerance, so dnd-kit has already let the
 touch go and a swipe and a drag never both run. Rows are `touch-pan-y`, so

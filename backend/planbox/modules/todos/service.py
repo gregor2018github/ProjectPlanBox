@@ -471,6 +471,7 @@ class NewTodo:
     after_id: str | None = None
     rrule: str | None = None
     repeat_from: str = "due"
+    in_plan: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -564,7 +565,10 @@ class TodoService:
     # ---- writes
 
     def create(self, new: NewTodo) -> tuple[TodoRecord, bool]:
-        """Creates a todo or subtask; idempotent per client id."""
+        """Creates a todo or subtask; idempotent per client id.
+
+        With ``in_plan`` it also goes at the end of today's day plan.
+        """
         check_client_id(new.id)
         title = clean_title(new.title)
         notes = clean_notes(new.notes)
@@ -583,6 +587,10 @@ class TodoService:
                 due_date = anchor
             now = utc_now_iso(self._clock)
             siblings = self._repos.todos.positions(p.list_id, p.section_id, p.parent_id)
+            plan_date = plan_position = None
+            if new.in_plan:
+                plan_date = self._today().isoformat()
+                plan_position = key_between(self._repos.todos.last_plan_position(plan_date), None)
             todo = Todo(
                 id=new.id or new_id(),
                 list_id=p.list_id,
@@ -600,6 +608,8 @@ class TodoService:
                 rrule=rule,
                 recurrence_anchor=None if anchor is None else anchor.isoformat(),
                 repeat_from=repeat_from,
+                plan_date=plan_date,
+                plan_position=plan_position,
             )
             self._repos.todos.insert(todo)
             if new.tag_ids:
@@ -862,6 +872,43 @@ class TodoService:
                     changed.append(todo_id)
             return self._records(self._repos.todos.get_many(changed))
 
+    def set_day_plan(
+        self, todo_ids: Sequence[str], removed: Sequence[str] = ()
+    ) -> list[TodoRecord]:
+        """Stores today's day plan (the planned todos, top to bottom) and takes others out.
+
+        Every todo in ``todo_ids`` is planned for today, in that order; every
+        todo in ``removed`` leaves the plan. Planned todos not listed keep
+        their place. Rows that are already right are left alone, so the
+        returned records are only the changed ones.
+
+        Raises:
+            ValidationFailed: If an id is listed twice (in either list or both).
+            NotFound: If an id is not a live todo.
+        """
+        listed = [*todo_ids, *removed]
+        if len(set(listed)) != len(listed):
+            raise ValidationFailed("Each todo can appear only once in the day plan.")
+        with transaction(self._conn):
+            todos = {t.id: t for t in self._repos.todos.get_many(listed)}
+            now = utc_now_iso(self._clock)
+            today = self._today().isoformat()
+            wanted: list[tuple[str, str | None, str | None]] = []
+            key: str | None = None
+            for todo_id in todo_ids:
+                key = key_between(key, None)
+                wanted.append((todo_id, today, key))
+            wanted += [(todo_id, None, None) for todo_id in removed]
+            changed: list[str] = []
+            for todo_id, day, position in wanted:
+                todo = _live(todos.get(todo_id), "todo")
+                if (todo.plan_date, todo.plan_position) != (day, position):
+                    self._repos.todos.update(
+                        todo_id, {"plan_date": day, "plan_position": position}, now
+                    )
+                    changed.append(todo_id)
+            return self._records(self._repos.todos.get_many(changed))
+
     def delete(self, todo_id: str) -> Deletion:
         """Deletes a todo with its subtasks."""
         with transaction(self._conn):
@@ -1046,6 +1093,8 @@ class TodoService:
             updated_at=now,
             recurs_from_id=todo.id,
             today_position=None,
+            plan_date=None,
+            plan_position=None,
             rrule=rule,
             recurrence_anchor=anchor,
         )
@@ -1063,6 +1112,8 @@ class TodoService:
                 created_at=now,
                 updated_at=now,
                 today_position=None,
+                plan_date=None,
+                plan_position=None,
             )
             self._repos.todos.insert(copy)
             self._copy_tags(child.id, copy.id)

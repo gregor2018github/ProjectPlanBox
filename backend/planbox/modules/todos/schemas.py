@@ -117,7 +117,9 @@ class TodoOut(BaseModel):
     date changes). ``rank_position`` is its place in "My order" in All todos
     (null while it is unsorted); ``today_rank_position`` is its place in
     Today's "My order" (null while unsorted, and after it is moved out of
-    Today).
+    Today). ``plan_date`` is the day it was put in the day plan and
+    ``plan_position`` its place there; it is in the plan only while
+    ``plan_date`` is today.
     """
 
     id: str
@@ -139,10 +141,15 @@ class TodoOut(BaseModel):
     today_position: str | None
     rank_position: str | None
     today_rank_position: str | None
+    plan_date: date | None
+    plan_position: str | None
 
 
 class TodoCreate(BaseModel):
-    """Create a todo or subtask (at the end of its container unless neighbours are given)."""
+    """Create a todo or subtask (at the end of its container unless neighbours are given).
+
+    ``in_plan`` also puts it at the end of today's day plan.
+    """
 
     id: str | None = None
     title: str
@@ -157,6 +164,7 @@ class TodoCreate(BaseModel):
     after_id: str | None = None
     rrule: str | None = Field(default=None, max_length=500)
     repeat_from: Literal["due", "completion"] = "due"
+    in_plan: bool = False
 
 
 class TodoPatch(BaseModel):
@@ -202,6 +210,13 @@ class RankOrder(BaseModel):
     ids: list[str] = Field(max_length=5000)
     unranked: list[str] = Field(default_factory=list[str], max_length=5000)
     scope: Literal["all", "today"] = "all"
+
+
+class DayPlanOrder(BaseModel):
+    """Today's day plan: the planned todos top to bottom, and todos to take out."""
+
+    ids: list[str] = Field(max_length=2000)
+    removed: list[str] = Field(default_factory=list[str], max_length=2000)
 
 
 class ForecastOut(BaseModel):

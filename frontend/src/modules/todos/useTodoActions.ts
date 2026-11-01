@@ -16,13 +16,14 @@ import { useUndo } from "../../core/undo/undoContext";
 import { newId } from "../../core/ids";
 import { useToast } from "../../ui/useToast";
 import { siblingsOf, type CreateTodoVars, type TodoPatch } from "./apply";
-import { inToday } from "./selectors";
+import { inPlan, planIds } from "./selectors";
 import {
   useCreateTodo,
   useDeleteTodo,
   useMoveTodo,
   useRestoreTodo,
   useSetCompleted,
+  useSetDayPlan,
   useSetRankOrder,
   useSetTodayOrder,
   useSkipTodo,
@@ -54,6 +55,7 @@ export function useTodoActions() {
   const moveTodo = useMoveTodo();
   const setTodayOrder = useSetTodayOrder();
   const setRankOrder = useSetRankOrder();
+  const setDayPlan = useSetDayPlan();
   const deleteTodo = useDeleteTodo();
   const restoreTodo = useRestoreTodo();
   const { show } = useToast();
@@ -220,34 +222,46 @@ export function useTodoActions() {
       },
 
       /**
-       * Puts a todo in Today (due today) or takes it out: the date is
-       * removed, except that a repeating todo skips to its next date, since
-       * removing the date would stop the repeat. Toasts with Undo, as this
-       * is what a swipe does and a phone has no Ctrl+Z.
+       * Puts a todo at the end of today's DayPlan, or takes it out. Toasts
+       * with Undo, as adding is what a swipe does and a phone has no Ctrl+Z.
        */
-      toggleToday(t: Todo): void {
-        if (today === null || t.completed_at !== null) return;
-        if (!inToday(t, today)) {
-          const before = t.due_date;
-          updateTodo.mutate({ id: t.id, patch: { due_date: today } });
+      togglePlan(t: Todo): void {
+        if (today === null) return;
+        const before = planIds(cache(), today);
+        if (inPlan(t, today)) {
+          setDayPlan.mutate({ ids: [], removed: [t.id] });
           pushUndo({
-            label: `Added “${t.title}” to Today`,
+            label: `Removed “${t.title}” from DayPlan`,
             undo: () => {
-              updateTodo.mutate({ id: t.id, patch: { due_date: before } });
+              setDayPlan.mutate({ ids: before, removed: [] });
             },
           });
-        } else if (t.rrule !== null) {
-          actions.skip(t);
-        } else {
-          const before = t.due_date;
-          updateTodo.mutate({ id: t.id, patch: { due_date: null } });
+        } else if (t.completed_at === null) {
+          setDayPlan.mutate({ ids: [...before, t.id], removed: [] });
           pushUndo({
-            label: `Removed “${t.title}” from Today`,
+            label: `Added “${t.title}” to DayPlan`,
             undo: () => {
-              updateTodo.mutate({ id: t.id, patch: { due_date: before } });
+              setDayPlan.mutate({ ids: [], removed: [t.id] });
             },
           });
         }
+      },
+
+      /**
+       * Stores today's DayPlan: `ids` is the whole plan top to bottom,
+       * `removed` leave it, and `before` is the plan this replaces (what
+       * undo goes back to, taking out what it added).
+       */
+      reorderPlan(ids: string[], removed: string[], before: readonly string[]): void {
+        setDayPlan.mutate({ ids, removed });
+        const was = new Set(before);
+        pushUndo({
+          label: "Changed DayPlan",
+          silent: true,
+          undo: () => {
+            setDayPlan.mutate({ ids: [...before], removed: ids.filter((id) => !was.has(id)) });
+          },
+        });
       },
 
       setPriority(t: Todo, priority: number): void {
@@ -385,6 +399,7 @@ export function useTodoActions() {
     moveTodo,
     setTodayOrder,
     setRankOrder,
+    setDayPlan,
     deleteTodo,
     restoreTodo,
     show,

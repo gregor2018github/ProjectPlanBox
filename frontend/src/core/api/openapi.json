@@ -756,6 +756,32 @@
         "title": "DayActivityOut",
         "type": "object"
       },
+      "DayPlanOrder": {
+        "description": "Today's day plan: the planned todos top to bottom, and todos to take out.",
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Ids",
+            "type": "array"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Removed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "DayPlanOrder",
+        "type": "object"
+      },
       "DaysOffChange": {
         "description": "Take days off (or back) for one or more habits.",
         "properties": {
@@ -3776,7 +3802,7 @@
         "type": "object"
       },
       "TodoCreate": {
-        "description": "Create a todo or subtask (at the end of its container unless neighbours are given).",
+        "description": "Create a todo or subtask (at the end of its container unless neighbours are given).\n\n``in_plan`` also puts it at the end of today's day plan.",
         "properties": {
           "after_id": {
             "anyOf": [
@@ -3822,6 +3848,11 @@
               }
             ],
             "title": "Id"
+          },
+          "in_plan": {
+            "default": false,
+            "title": "In Plan",
+            "type": "boolean"
           },
           "list_id": {
             "anyOf": [
@@ -3975,7 +4006,7 @@
         "type": "object"
       },
       "TodoOut": {
-        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes). ``rank_position`` is its place in \"My order\" in All todos\n(null while it is unsorted); ``today_rank_position`` is its place in\nToday's \"My order\" (null while unsorted, and after it is moved out of\nToday).",
+        "description": "A todo; ``parent_id`` set means it is a subtask; ``list_id`` null means Inbox.\n\nA repeating todo has an ``rrule`` (RFC 5545, without ``DTSTART``) whose\nseries starts on ``recurrence_anchor``. ``repeat_from`` says whether the\nnext date follows that schedule (``due``) or is counted from the day it\nwas done (``completion``). ``today_position`` is its place in\nToday's manual order (null until Today is reordered, and after the due\ndate changes). ``rank_position`` is its place in \"My order\" in All todos\n(null while it is unsorted); ``today_rank_position`` is its place in\nToday's \"My order\" (null while unsorted, and after it is moved out of\nToday). ``plan_date`` is the day it was put in the day plan and\n``plan_position`` its place there; it is in the plan only while\n``plan_date`` is today.",
         "properties": {
           "completed_at": {
             "anyOf": [
@@ -4033,6 +4064,29 @@
               }
             ],
             "title": "Parent Id"
+          },
+          "plan_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Date"
+          },
+          "plan_position": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Position"
           },
           "position": {
             "title": "Position",
@@ -4154,7 +4208,9 @@
           "repeat_from",
           "today_position",
           "rank_position",
-          "today_rank_position"
+          "today_rank_position",
+          "plan_date",
+          "plan_position"
         ],
         "title": "TodoOut",
         "type": "object"
@@ -7376,6 +7432,48 @@
           }
         },
         "summary": "Restore Area",
+        "tags": [
+          "todos"
+        ]
+      }
+    },
+    "/api/todos/day-plan": {
+      "post": {
+        "description": "Stores today's day plan (and takes todos out of it); returns the changed todos.",
+        "operationId": "todos_set_day_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DayPlanOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodosOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Problem details"
+          }
+        },
+        "summary": "Set Day Plan",
         "tags": [
           "todos"
         ]
