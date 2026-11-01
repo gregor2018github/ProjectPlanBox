@@ -240,6 +240,8 @@ Small iterations after a first day of use at work, one commit each:
   lists, as in the sidebar), subtasks expandable, with the totals in the
   header (open todos, open subtasks, places) and the open count as the
   sidebar badge. A selector over the one cached array, like every view.
+  Since 2026-11-01 an **Add todo** row at the bottom (both modes) adds
+  to the Inbox, or to a list named with `#`.
 - **Calendar events can be done.** Insights' "Where the work happens"
   showed every calendar event as never done, because events had no done
   state. Now an occurrence is done once it has ended (an all-day one after

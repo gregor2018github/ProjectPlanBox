@@ -9,7 +9,9 @@ import { useAllTodosMode, type AllTodosMode } from "../viewModes";
 import { AllByPlace } from "../components/AllByPlace";
 import { EmptyHint } from "../components/EmptyHint";
 import { MyOrderView } from "../components/MyOrderView";
+import { NewTodoInline } from "../components/NewTodoInline";
 import { allView } from "../selectors";
+import { INBOX } from "../types";
 import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 
@@ -22,6 +24,7 @@ const MODES: readonly SegmentOption<AllTodosMode>[] = [
  * All todos: every open todo at once, either grouped by place (Inbox, then
  * the lists in sidebar order) or in the owner's own ranking ("My order").
  * The header counts what is open; the switch is remembered per browser.
+ * "Add todo" at the bottom adds to the Inbox (or wherever `#list` says).
  */
 export function AllTodosPage() {
   const data = useTodoData();
@@ -61,6 +64,7 @@ export function AllTodosPage() {
       ) : (
         view.open > 0 && <MyOrderView data={data} actions={actions} />
       )}
+      <NewTodoInline placement={INBOX} data={data} actions={actions} />
     </ViewLayout>
   );
 }

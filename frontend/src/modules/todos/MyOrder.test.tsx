@@ -118,3 +118,23 @@ describe("All todos: My order", () => {
     );
   });
 });
+
+describe("All todos: Add todo", () => {
+  it("adds a todo to the Inbox from the bottom of the page, in both modes", async () => {
+    const user = userEvent.setup();
+    const api = setup();
+
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    await user.keyboard("Buy bread{Enter}{Escape}");
+    await waitFor(() => {
+      expect(api.state.todos.find((t) => t.title === "Buy bread")?.list_id).toBeNull();
+    });
+
+    await user.click(screen.getByRole("button", { name: "My order" }));
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    await user.keyboard("Buy milk{Enter}");
+    await waitFor(() => {
+      expect(titles("Unsorted todos")).toContain("Buy milk");
+    });
+  });
+});
