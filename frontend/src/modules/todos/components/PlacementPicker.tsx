@@ -10,15 +10,25 @@ import type { TodoData } from "../useTodoData";
 
 /** Props for {@link PlacementPicker}. */
 export interface PlacementPickerProps {
-  todo: Todo;
+  /** Where the todo is now; subtasks (with a parent) cannot be moved. */
+  todo: Pick<Todo, "list_id" | "section_id" | "parent_id">;
   data: TodoData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (target: { list_id: string | null; section_id: string | null }) => void;
+  /** The popover's name and search placeholder; "Move to" by default. */
+  label?: string;
 }
 
 /** "Move to…": Inbox, every list, and the sections under each list. */
-export function PlacementPicker({ todo, data, open, onOpenChange, onPick }: PlacementPickerProps) {
+export function PlacementPicker({
+  todo,
+  data,
+  open,
+  onOpenChange,
+  onPick,
+  label = "Move to",
+}: PlacementPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const areaName = new Map(data.areas.map((a) => [a.id, a.name]));
   const options: PickerOption[] = [
@@ -58,7 +68,7 @@ export function PlacementPicker({ todo, data, open, onOpenChange, onPick }: Plac
     <Popover
       open={open}
       onOpenChange={onOpenChange}
-      label="Move to"
+      label={label}
       initialFocus={inputRef}
       trigger={
         <Button size="sm" disabled={todo.parent_id !== null}>
@@ -68,10 +78,10 @@ export function PlacementPicker({ todo, data, open, onOpenChange, onPick }: Plac
       }
     >
       <PickerList
-        label="Move to"
+        label={label}
         options={options}
         onPick={pick}
-        placeholder="Move to…"
+        placeholder={`${label}…`}
         inputRef={inputRef}
       />
     </Popover>

@@ -7,6 +7,7 @@ import { useSyncExternalStore } from "react";
 /** Null when no dialog is open. */
 export type CreateRequest =
   | { kind: "todo" }
+  | { kind: "form" }
   | { kind: "subtask"; parentId: string }
   | { kind: "list"; areaId: string | null }
   | { kind: "area" }
@@ -25,6 +26,10 @@ export const todoCreate = {
   /** Quick add, targeting the current view (the open list, Today's date, else Inbox). */
   todo: (): void => {
     set({ kind: "todo" });
+  },
+  /** The full "New todo" form, with every field; it starts in the current view's place. */
+  form: (): void => {
+    set({ kind: "form" });
   },
   /** Quick add of a subtask under the todo `parentId`. */
   subtask: (parentId: string): void => {

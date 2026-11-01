@@ -19,6 +19,16 @@ export interface RailItem {
   Pane: ComponentType<RailPaneProps>;
 }
 
+/** A one-click button in the right-hand icon rail (e.g. "New todo"); it opens no pane. */
+export interface RailAction {
+  /** Accessible name and tooltip, e.g. "New todo". */
+  label: string;
+  icon: LucideIcon;
+  /** Key spec shown in the tooltip; the module registers the shortcut itself. */
+  shortcut?: string;
+  run: () => void;
+}
+
 /**
  * What a feature module contributes to the app shell. Modules are listed
  * only in `src/modules/index.ts` (the composition root).
@@ -38,6 +48,8 @@ export interface ModuleManifest {
   detail?: Readonly<Record<string, ComponentType<{ id: string }>>>;
   /** An icon in the right-hand rail that toggles a side pane (e.g. the calendar). */
   rail?: RailItem;
+  /** A button in the rail, above the pane icons, that runs an action (e.g. "New todo"). */
+  railAction?: RailAction;
   /** The module's block on the Insights page (statistics, charts, tables). */
   InsightsSection?: ComponentType;
   /** The module's card on Home: what matters now, linking to the full views. */

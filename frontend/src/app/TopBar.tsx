@@ -2,6 +2,7 @@ import { Menu, PanelLeftOpen } from "lucide-react";
 
 import type { ModuleManifest } from "../core/module";
 import { IconButton } from "../ui/IconButton";
+import { useModules } from "./modulesContext";
 
 /** Props for {@link TopBar}. */
 export interface TopBarProps {
@@ -21,6 +22,9 @@ export function TopBar({
   railOpen,
   onToggleRail,
 }: TopBarProps) {
+  // On the desktop the rail has the actions; on small screens they live here.
+  const modules = useModules();
+  const actionModules = isDesktop ? [] : modules;
   return (
     <div className="flex h-12 shrink-0 items-center justify-between px-3">
       <IconButton
@@ -30,6 +34,18 @@ export function TopBar({
         onClick={onToggleSidebar}
       />
       <div className="flex items-center gap-1">
+        {actionModules.map(
+          (module) =>
+            module.railAction && (
+              <IconButton
+                key={`${module.id}.action`}
+                label={module.railAction.label}
+                icon={module.railAction.icon}
+                shortcut={module.railAction.shortcut}
+                onClick={module.railAction.run}
+              />
+            ),
+        )}
         {railModules.map(
           (module) =>
             module.rail && (

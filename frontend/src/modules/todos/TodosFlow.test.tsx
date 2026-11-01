@@ -328,6 +328,49 @@ describe("todos", () => {
     });
   });
 
+  it("adds a todo with every field from the rail's New todo form", async () => {
+    const user = userEvent.setup();
+    const project = {
+      id: "01a11c71-6563-773d-8602-c5617ab6aa11",
+      name: "Garden",
+      area_id: null,
+      position: "a0",
+      created_at: "",
+      updated_at: "",
+    };
+    const api = open("/todos/today", createFakeTodoApi({ lists: [project] }));
+    await screen.findByRole("link", { name: "Garden" });
+
+    await user.click(screen.getByRole("button", { name: "New todo with details" }));
+    const dialog = await screen.findByRole("dialog", { name: "New todo" });
+    // Opened from Today, the form starts due today.
+    expect(within(dialog).getByRole("button", { name: /Today/ })).toBeInTheDocument();
+    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Plant tulips !1");
+    await user.type(within(dialog).getByRole("textbox", { name: "Notes" }), "Red ones");
+    await user.click(within(dialog).getByRole("button", { name: "Priority" }));
+    await user.click(await screen.findByRole("menuitem", { name: "High" }));
+    await user.click(within(dialog).getByRole("button", { name: "Inbox" }));
+    await user.click(await screen.findByRole("option", { name: "Garden" }));
+    await user.click(within(dialog).getByRole("button", { name: "Add todo" }));
+
+    await waitFor(() => {
+      const post = api.state.requests.find(
+        (r) => r.method === "POST" && r.path === "/api/todos/items",
+      );
+      // The title is taken as typed, not parsed.
+      expect(post?.body).toMatchObject({
+        title: "Plant tulips !1",
+        notes: "Red ones",
+        priority: 3,
+        due_date: "2026-10-08",
+        list_id: project.id,
+        section_id: null,
+        parent_id: null,
+      });
+    });
+    expect(screen.queryByRole("dialog", { name: "New todo" })).not.toBeInTheDocument();
+  });
+
   it("opens details with Enter and saves a new title", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa04", title: "Draft" });

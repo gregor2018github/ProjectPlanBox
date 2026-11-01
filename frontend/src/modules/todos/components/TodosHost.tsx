@@ -16,6 +16,7 @@ import { useTodoActions } from "../useTodoActions";
 import { useTodoData } from "../useTodoData";
 import { useTodoLinkables } from "../useTodoLinkables";
 import { NameDialog } from "../../../ui/NameDialog";
+import { NewTodoDialog } from "./NewTodoDialog";
 import { QuickAddDialog } from "./QuickAddDialog";
 
 interface QuickAddTarget {
@@ -26,7 +27,8 @@ interface QuickAddTarget {
 
 /**
  * Mounted once for the app's lifetime: the module's global shortcuts and
- * palette commands, the quick-add dialog and the "new list/area" dialogs.
+ * palette commands, the quick-add dialog, the full "New todo" form and the
+ * "new list/area" dialogs.
  */
 export function TodosHost() {
   const data = useTodoData();
@@ -73,6 +75,7 @@ export function TodosHost() {
       : request?.kind === "subtask"
         ? subtaskTarget(request.parentId)
         : null;
+  const form = request?.kind === "form" ? contextualTarget() : null;
   const closeQuickAdd = () => {
     const kind = todoCreate.get()?.kind;
     if (kind === "todo" || kind === "subtask") todoCreate.close();
@@ -145,6 +148,13 @@ export function TodosHost() {
         keywords: ["add", "task", "create"],
         shortcut: "Q",
         run: openQuickAdd,
+      },
+      {
+        id: "todos.new.form",
+        title: "New todo with details",
+        group: "Todos",
+        keywords: ["add", "task", "create", "form", "details", "notes"],
+        run: todoCreate.form,
       },
       {
         id: "todos.new.sub",
@@ -245,6 +255,16 @@ export function TodosHost() {
         placement={quickAdd?.placement ?? INBOX}
         defaultDue={quickAdd?.defaultDue ?? null}
         targetLabel={quickAdd?.label ?? "Inbox"}
+      />
+      <NewTodoDialog
+        open={form !== null}
+        onOpenChange={(open) => {
+          if (!open && todoCreate.get()?.kind === "form") todoCreate.close();
+        }}
+        data={data}
+        actions={actions}
+        placement={form?.placement ?? INBOX}
+        defaultDue={form?.defaultDue ?? null}
       />
       <NameDialog
         open={request?.kind === "list"}

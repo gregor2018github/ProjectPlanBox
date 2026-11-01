@@ -1,21 +1,38 @@
-import type { ModuleManifest } from "../core/module";
 import { IconButton } from "../ui/IconButton";
+import { useModules } from "./modulesContext";
 
 /** Props for {@link RightRail}. */
 export interface RightRailProps {
-  /** Modules that have a rail item. */
-  modules: readonly ModuleManifest[];
   openId: string | null;
   onToggle: (id: string) => void;
 }
 
-/** The slim icon bar on the right edge; each icon toggles its module's pane. */
-export function RightRail({ modules, openId, onToggle }: RightRailProps) {
+/**
+ * The slim icon bar on the right edge: the modules' one-click actions on
+ * top, then an icon per module that toggles its pane. Renders nothing when
+ * no module has either.
+ */
+export function RightRail({ openId, onToggle }: RightRailProps) {
+  const modules = useModules();
+  if (!modules.some((m) => m.rail !== undefined || m.railAction !== undefined)) return null;
   return (
     <nav
       aria-label="Panels"
       className="flex w-12 shrink-0 flex-col items-center gap-1 bg-sidebar py-2"
     >
+      {modules.map(
+        (module) =>
+          module.railAction && (
+            <IconButton
+              key={`${module.id}.action`}
+              label={module.railAction.label}
+              icon={module.railAction.icon}
+              shortcut={module.railAction.shortcut}
+              tooltipSide="left"
+              onClick={module.railAction.run}
+            />
+          ),
+      )}
       {modules.map(
         (module) =>
           module.rail && (

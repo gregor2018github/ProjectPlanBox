@@ -169,9 +169,7 @@ export function AppShell() {
         </main>
         <DetailPanel item={item} onClose={closeDetail} />
         <RailPane module={openPane} onClose={closeRail} />
-        {isDesktop && railModules.length > 0 && (
-          <RightRail modules={railModules} openId={railOpen} onToggle={toggleRail} />
-        )}
+        {isDesktop && <RightRail openId={railOpen} onToggle={toggleRail} />}
 
         {modules.map((module) => module.Host && <module.Host key={module.id} />)}
         {railModules.map(

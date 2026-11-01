@@ -155,6 +155,7 @@ interface ModuleManifest {
   Host?: ComponentType;                        // mounted once: registers commands, shortcuts, quick-add
   detail?: Record<string, ComponentType<{ id: string }>>; // per entity type, for ?item=
   rail?: { label; icon; shortcut?; Pane };     // an icon in the right-hand rail that toggles a side pane
+  railAction?: { label; icon; shortcut?; run }; // a one-click rail button above the panes (todos: "New todo with details")
   InsightsSection?: ComponentType;             // the module's block on the Insights page
   HomeSection?: ComponentType;                 // the module's card on Home (what matters now)
   homeOrder?: number;                          // card order on Home, lowest first
@@ -965,7 +966,7 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
   linked, works with Back, and the owning module renders it.
 - Shell: collapsible sidebar (nav items from the manifests) | main |
   optional detail panel | optional rail pane | icon rail (from manifests'
-  `rail`). The pane sits inline from 1280 px, floats over the content
+  `railAction`, then `rail`). The pane sits inline from 1280 px, floats over the content
   between 768 and 1280 px; below 768 px the rail icons move to the top bar
   and the pane fills the screen. The open pane is remembered per browser.
   - Width ≥ 1280 px: all three columns.
