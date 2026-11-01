@@ -659,8 +659,10 @@ that can be enforced in SQL are also CHECK constraints.
   stays in it (under "Completed today") until midnight, and a repeat's
   next occurrence does **not** inherit it. The page (`DayPlanView`) lists
   the plan, sortable like My order, then **Proposals** at the bottom:
-  every open todo overdue or due today not planned yet, added with ＋,
-  "Add all", a drag, the row menu or **P**. The client sends the plan
+  every open todo and subtask not planned yet (`proposalOrder`: those in
+  All todos' My order first, in that order, then by due date with undated
+  last, then priority), folded on every visit; added with ＋, "Add all", a
+  drag, the row menu or **P**. The client sends the plan
   computed from every cached todo (`planIds`), as for My order.
 - **Area colours (owner request, 2026-10-11):** migration
   `0005_add_area_hue.sql` adds `hue`, an OKLCH angle (0–359). Only the hue

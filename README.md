@@ -46,8 +46,9 @@ phone can also use a running PC over the home network or Tailscale.
   **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
 - **DayPlan** (sidebar, or **G P**) is what you pick to do today, in your
   own order. Add todos there directly, or from **Proposals** at the bottom
-  (everything overdue or due today that is not in the plan yet; folded on
-  every visit, click to unfold) with ＋.
+  (every open todo not in the plan yet, in your My order from All todos,
+  the rest by due date and priority; folded on every visit, click to
+  unfold) with ＋.
   Anywhere else, **P**, "Add to DayPlan" in a todo's menu, or a swipe to the
   right on the phone adds it. At midnight the plan starts empty again; the
   todos themselves stay where they are.

@@ -597,8 +597,8 @@ and `in_plan` on create, in both backend twins; no new dependencies.
 - **DayPlan** (`/todos/plan`, sidebar under Today, `G P`, badge = open
   planned todos): a hand-sorted list (drag, Alt+↑/↓, Move to top/bottom),
   its own **Add todo** row, done ones under "Completed today", and
-  **Proposals** at the bottom: everything overdue or due today that is not
-  planned, with ＋ and "Add all to DayPlan". Folded on every visit (owner
+  **Proposals** at the bottom: every open todo not planned, in My order
+  first, then by due date and priority, with ＋ and "Add all to DayPlan". Folded on every visit (owner
   request, same day), with the count on the fold.
 - **Swipe right adds to the DayPlan** (Undo toast). A todo already in it
   has no right swipe, so rows in the DayPlan cannot be swiped right; left
@@ -614,8 +614,9 @@ Decisions:
   a due date, so after midnight it waits there.
 - **Done todos stay in the plan for the day**; a repeating todo's next
   occurrence is not planned (it is due another day).
-- Proposals are Today's todos only (overdue and due today); anything else
-  comes in through the swipe, **P** or the menu.
+- Proposals were first Today's todos only; the owner asked the same day for
+  every open todo, sorted by their My order where ranked, else by due date
+  and priority.
 
 ## Dependencies
 

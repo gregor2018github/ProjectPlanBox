@@ -39,7 +39,7 @@ function setup() {
 }
 
 describe("DayPlan", () => {
-  it("shows today's plan, with Today's other todos as folded proposals below", async () => {
+  it("shows today's plan, with every other open todo as folded proposals below", async () => {
     const user = userEvent.setup();
     setup();
 
@@ -48,13 +48,12 @@ describe("DayPlan", () => {
     });
     const toggle = screen.getByRole("button", { name: /Proposals/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(toggle).toHaveTextContent("2");
+    expect(toggle).toHaveTextContent("4");
     expect(screen.queryByText("Late")).not.toBeInTheDocument();
 
     await user.click(toggle);
-    expect(titles("Proposed todos")).toEqual(["Late", "Now"]);
-    expect(screen.queryByText("Yesterday's")).not.toBeInTheDocument();
-    expect(screen.queryByText("Tomorrow")).not.toBeInTheDocument();
+    // By due date; yesterday's plan has lapsed, so it is proposed again (no date: last).
+    expect(titles("Proposed todos")).toEqual(["Late", "Now", "Tomorrow", "Yesterday's"]);
   });
 
   it("adds a proposal with ＋ and takes it out from its menu", async () => {
@@ -70,7 +69,7 @@ describe("DayPlan", () => {
       expect(titles("DayPlan")).toEqual(["Planned", "Late"]);
     });
     await waitFor(() => {
-      expect(titles("Proposed todos")).toEqual(["Now"]);
+      expect(titles("Proposed todos")).toEqual(["Now", "Tomorrow", "Yesterday's"]);
     });
     await waitFor(() => {
       expect(api.state.todos.find((t) => t.title === "Late")?.plan_date).toBe("2026-10-08");
@@ -82,7 +81,7 @@ describe("DayPlan", () => {
       expect(titles("DayPlan")).toEqual(["Planned"]);
     });
     await waitFor(() => {
-      expect(titles("Proposed todos")).toEqual(["Late", "Now"]);
+      expect(titles("Proposed todos")).toEqual(["Late", "Now", "Tomorrow", "Yesterday's"]);
     });
   });
 

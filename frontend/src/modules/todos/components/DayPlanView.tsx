@@ -28,8 +28,8 @@ export interface DayPlanViewProps {
 /**
  * The day plan: the todos picked for today, sorted by hand (drag, Alt+↑/↓,
  * or the row menu), with a field to add new ones straight into it. Below
- * are the proposals, everything overdue or due today that is not planned
- * yet, added with ＋, a drag, or a swipe to the right. The plan empties
+ * are the proposals, every open todo not planned yet (My order first, then
+ * by due date and priority), added with ＋, a drag, or a swipe to the right. The plan empties
  * itself at midnight; what was done today stays at the bottom until then.
  * The proposals start folded on every visit (owner request, 2026-11-01).
  */
@@ -175,7 +175,8 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
         </h2>
         {!proposalsOpen ? null : view.proposals.length === 0 ? (
           <p className="px-3 pb-2 text-sm text-text-muted">
-            Todos overdue or due today show up here. Drag a todo here to take it out of the plan.
+            Every open todo not in the plan shows up here. Drag a todo here to take it out of the
+            plan.
           </p>
         ) : (
           <ul aria-label="Proposed todos" className="flex flex-col pb-1">

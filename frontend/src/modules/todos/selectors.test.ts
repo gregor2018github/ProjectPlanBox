@@ -82,19 +82,38 @@ describe("todayView", () => {
 });
 
 describe("dayPlanView", () => {
-  it("orders the plan by key and proposes the rest of Today, overdue first", () => {
+  it("orders the plan by key and proposes every other open todo", () => {
     const b = makeTodo({ plan_date: TODAY, plan_position: "a2" });
     const a = makeTodo({ plan_date: TODAY, plan_position: "a1", due_date: TODAY });
     const done = makeTodo({ plan_date: TODAY, plan_position: "a0", completed_at: DONE });
     const due = makeTodo({ due_date: TODAY });
     const late = makeTodo({ due_date: "2026-10-01" });
     const later = makeTodo({ due_date: "2026-10-20" });
+    const undated = makeTodo();
 
-    const view = dayPlanView([b, a, done, due, late, later], TODAY);
+    const view = dayPlanView([b, a, done, due, late, later, undated], TODAY);
 
     expect(view.planned.map((t) => t.id)).toEqual([a.id, b.id]);
     expect(view.done.map((t) => t.id)).toEqual([done.id]);
-    expect(view.proposals.map((t) => t.id)).toEqual([late.id, due.id]);
+    expect(view.proposals.map((t) => t.id)).toEqual([late.id, due.id, later.id, undated.id]);
+  });
+
+  it("proposes My order first, then by due date and priority", () => {
+    const second = makeTodo({ rank_position: "a1" });
+    const first = makeTodo({ rank_position: "a0", due_date: "2026-12-01" });
+    const urgent = makeTodo({ due_date: TODAY, priority: 3 });
+    const normal = makeTodo({ due_date: TODAY, priority: 1 });
+    const undated = makeTodo({ priority: 3 });
+
+    const view = dayPlanView([undated, normal, second, urgent, first], TODAY);
+
+    expect(view.proposals.map((t) => t.id)).toEqual([
+      first.id,
+      second.id,
+      urgent.id,
+      normal.id,
+      undated.id,
+    ]);
   });
 
   it("empties itself on a new day", () => {

@@ -162,13 +162,27 @@ export interface DayPlanViewData {
   planned: Todo[];
   /** Planned todos done today, in plan order. */
   done: Todo[];
-  /** Open todos in Today that are not planned yet: overdue first, as in Today. */
+  /** Every open todo not planned yet, in {@link proposalOrder}. */
   proposals: Todo[];
 }
 
 /**
+ * The order of the DayPlan's proposals: todos in All todos' "My order"
+ * first, in that order; then the rest by due date (earliest first, none
+ * last), then priority (highest first), then their place in their list.
+ */
+export function proposalOrder(a: Todo, b: Todo): number {
+  const ranked = Number(b.rank_position !== null) - Number(a.rank_position !== null);
+  if (ranked !== 0) return ranked;
+  if (a.rank_position !== null) return byRank(a, b);
+  const da = a.due_date ?? "9999-12-31";
+  const db = b.due_date ?? "9999-12-31";
+  return da.localeCompare(db) || byPriorityThenPosition(a, b);
+}
+
+/**
  * The day plan: what was picked for today, in its own order, plus
- * proposals (everything overdue or due today that is not in it yet).
+ * proposals (every open todo and subtask not in it yet).
  * `keep` holds just-completed todos that stay in place for a moment.
  */
 export function dayPlanView(
@@ -177,16 +191,10 @@ export function dayPlanView(
   keep: ReadonlySet<string> = new Set(),
 ): DayPlanViewData {
   const plan = todos.filter((t) => inPlan(t, today)).sort(byPlan);
-  const late = (t: Todo) => (t.due_date ?? "") < (today ?? "");
   return {
     planned: plan.filter((t) => isOpen(t) || keep.has(t.id)),
     done: plan.filter((t) => !isOpen(t) && !keep.has(t.id)),
-    proposals: todos
-      .filter((t) => isOpen(t) && inToday(t, today) && !inPlan(t, today))
-      .sort(
-        (a, b) =>
-          Number(late(b)) - Number(late(a)) || (late(a) ? overdueOrder(a, b) : dueTodayOrder(a, b)),
-      ),
+    proposals: todos.filter((t) => isOpen(t) && !inPlan(t, today)).sort(proposalOrder),
   };
 }
 

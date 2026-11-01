@@ -7,7 +7,7 @@ import { useTodoData } from "../useTodoData";
 
 /**
  * Day plan (owner request, 2026-11-01): what to do today, picked fresh each
- * day and sorted by hand, with proposals from Today below. It is empty
+ * day and sorted by hand, with proposals from all open todos below. It is empty
  * again after midnight.
  */
 export function DayPlanPage() {
