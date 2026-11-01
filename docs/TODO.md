@@ -119,6 +119,10 @@ rule.
 - [ ] Ink: pressure-sensitive thickness, a highlighter pen, lasso selection
       across drawings, resizing a drawing, a partial (point) eraser, and ink
       behind the text (drawings sit above the boxes now).
+- [ ] The Playwright test "draws on a knowledge page, moves the drawing…"
+      is flaky (about half of repeated runs fail at its `toHaveCount(2)` red
+      strokes check, seen 2026-11-01 on an unchanged tree), so
+      `check.py --full` can fail without a real regression.
 
 ## Search
 

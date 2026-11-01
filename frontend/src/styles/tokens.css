@@ -56,6 +56,10 @@
   --color-ink-green: oklch(0.56 0.14 150);
   --color-ink-blue: oklch(0.52 0.18 255);
   --color-ink-purple: oklch(0.5 0.2 305);
+  /* Calendar events (appointments), so they never look like todos: a mark, a fill, its hover. */
+  --color-event: oklch(0.5 0.17 305);
+  --color-event-subtle: oklch(0.95 0.035 305);
+  --color-event-hover: oklch(0.915 0.055 305);
 
   /* Typography */
   --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
@@ -144,6 +148,9 @@
   --color-ink-green: oklch(0.75 0.15 150);
   --color-ink-blue: oklch(0.72 0.13 250);
   --color-ink-purple: oklch(0.72 0.15 305);
+  --color-event: oklch(0.72 0.14 305);
+  --color-event-subtle: oklch(0.3 0.07 305);
+  --color-event-hover: oklch(0.35 0.085 305);
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.1);
   --shadow-md: 0 4px 12px -2px oklch(0 0 0 / 0.16), 0 2px 4px -2px oklch(0 0 0 / 0.1);
   --shadow-lg: 0 16px 40px -8px oklch(0 0 0 / 0.32), 0 4px 8px -4px oklch(0 0 0 / 0.13);

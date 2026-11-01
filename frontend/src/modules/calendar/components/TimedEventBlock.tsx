@@ -66,7 +66,7 @@ export function TimedEventBlock({
           "absolute flex flex-col overflow-hidden rounded-sm border-l-3 px-1.5 text-left text-xs transition-[opacity,box-shadow] duration-(--duration-fast) ease-out select-none hover:shadow-sm",
           done
             ? "border-border-strong bg-hover text-text-muted"
-            : "border-accent bg-accent-subtle text-text",
+            : "border-event bg-event-subtle text-text",
           short ? "flex-row items-center gap-1.5" : "py-0.5",
           narrow && "px-1",
           dragging && "opacity-40",

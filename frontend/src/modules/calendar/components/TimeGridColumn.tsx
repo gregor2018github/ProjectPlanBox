@@ -77,7 +77,7 @@ export function TimeGridColumn({
             top: preview.start * PX_PER_MINUTE,
             height: Math.max((preview.end - preview.start) * PX_PER_MINUTE, 18),
           }}
-          className="pointer-events-none absolute inset-x-0.5 z-10 flex flex-col rounded-sm bg-accent px-1.5 py-0.5 text-xs text-on-accent shadow-md"
+          className="pointer-events-none absolute inset-x-0.5 z-10 flex flex-col rounded-sm bg-event px-1.5 py-0.5 text-xs text-on-accent shadow-md"
         >
           <span className="truncate font-medium">{preview.label}</span>
           <span className="tabular-nums">

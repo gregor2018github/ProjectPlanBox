@@ -33,6 +33,7 @@ this file records what was planned, decided and pinned.
 | Knowledge pages (OneNote-like) | Built 2026-10-22 (owner request; desktop first) |
 | Drawing on pages (ink) | Built 2026-10-26 (owner request) |
 | DayPlan (replaces Upcoming) | Built 2026-11-01 (owner request) |
+| Purple calendar events | Built 2026-11-01 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -617,6 +618,21 @@ Decisions:
 - Proposals were first Today's todos only; the owner asked the same day for
   every open todo, sorted by their My order where ranked, else by due date
   and priority.
+
+### Purple calendar events (owner request, 2026-11-01)
+
+"Todos and real appointments should have different colours in the
+calendar; purple for the appointments." New tokens `event`,
+`event-subtle` and `event-hover` (STYLE_GUIDE B1), contrast-tested in both
+themes; every event surface (time-grid blocks, all-day and multi-day bars,
+month chips, agenda stripes, the drag preview) uses them. Todos keep their
+checkbox rows in the accent. On touch, the month view's dots are purple
+for events and the accent for todos. Frontend only.
+
+Decision: **a second exception to the one-accent rule**, like ink, rather
+than tinting events through `data-tint`: a tint replaces the accent for a
+whole subtree, but the calendar shows both kinds side by side and must
+keep them apart.
 
 ## Dependencies
 

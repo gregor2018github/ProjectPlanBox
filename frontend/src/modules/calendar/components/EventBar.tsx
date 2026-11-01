@@ -56,8 +56,10 @@ export function EventBar({ bar, columns, top, surface, actions, compact = false 
             actions.open(segment.item);
           }}
           className={cx(
-            "flex h-6 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-left text-xs transition-colors duration-(--duration-fast) ease-out hover:bg-selected",
-            done ? "bg-hover text-text-muted" : "bg-accent-subtle text-text",
+            "flex h-6 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-left text-xs transition-colors duration-(--duration-fast) ease-out",
+            done
+              ? "bg-hover text-text-muted hover:bg-selected"
+              : "bg-event-subtle text-text hover:bg-event-hover",
             bar.continuesBefore && "rounded-l-none",
             bar.continuesAfter && "rounded-r-none",
           )}

@@ -34,7 +34,7 @@ export function AgendaEventRow({ segment, surface, actions }: AgendaEventRowProp
         <div className="group flex items-stretch gap-3 rounded-md px-2 py-1.5 transition-colors duration-(--duration-fast) ease-out hover:bg-hover coarse:min-h-11">
           <span
             aria-hidden
-            className={cx("w-1 shrink-0 rounded-full", done ? "bg-border-strong" : "bg-accent")}
+            className={cx("w-1 shrink-0 rounded-full", done ? "bg-border-strong" : "bg-event")}
           />
           <span className="flex items-center self-center">
             <Checkbox

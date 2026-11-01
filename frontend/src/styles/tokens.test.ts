@@ -105,6 +105,30 @@ describe.each([
 describe.each([
   ["light", light],
   ["dark", dark],
+])("%s calendar events", (_, theme) => {
+  for (const bg of ["surface", "bg", "event-subtle", "event-hover"]) {
+    it(`event is a visible mark on ${bg} (3:1)`, () => {
+      expect(contrast(theme.get("event")!, theme.get(bg)!)).toBeGreaterThanOrEqual(3);
+    });
+  }
+  for (const fg of ["text", "text-muted"]) {
+    for (const bg of ["event-subtle", "event-hover"]) {
+      it(`${fg} on ${bg} reaches 4.5:1`, () => {
+        expect(contrast(theme.get(fg)!, theme.get(bg)!)).toBeGreaterThanOrEqual(4.5);
+      });
+    }
+  }
+  it("on-accent text on an event (the drag preview) reaches 4.5:1", () => {
+    expect(contrast(theme.get("on-accent")!, theme.get("event")!)).toBeGreaterThanOrEqual(4.5);
+  });
+  it("the fill stands apart from the surface", () => {
+    expect(contrast(theme.get("event-subtle")!, theme.get("surface")!)).toBeGreaterThan(1.08);
+  });
+});
+
+describe.each([
+  ["light", light],
+  ["dark", dark],
 ])("%s heat ramp", (_, theme) => {
   const ramp = [0, 1, 2, 3, 4].map((step) => theme.get(`heat-${step}`));
 

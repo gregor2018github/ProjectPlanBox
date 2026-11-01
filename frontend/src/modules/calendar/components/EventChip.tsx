@@ -39,7 +39,7 @@ export function EventChip({ segment, surface, actions }: EventChipProps) {
           className={cx(
             "flex h-6 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-left text-xs transition-colors duration-(--duration-fast) ease-out",
             done ? "text-text-muted" : "text-text",
-            timed ? "hover:bg-hover" : done ? "bg-hover" : "bg-accent-subtle hover:bg-selected",
+            timed ? "hover:bg-hover" : done ? "bg-hover" : "bg-event-subtle hover:bg-event-hover",
           )}
         >
           {timed && (
@@ -48,7 +48,7 @@ export function EventChip({ segment, surface, actions }: EventChipProps) {
                 aria-hidden
                 className={cx(
                   "size-1.5 shrink-0 rounded-full",
-                  done ? "bg-text-subtle" : "bg-accent",
+                  done ? "bg-text-subtle" : "bg-event",
                 )}
               />
               <span className="shrink-0 text-text-muted tabular-nums">

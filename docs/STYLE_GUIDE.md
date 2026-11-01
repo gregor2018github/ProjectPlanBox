@@ -189,6 +189,9 @@ in `index.html` applies it before first paint. `system` follows
 | `--color-chart-muted` | `oklch(0.8 0.012 260)` | `oklch(0.45 0.012 260)` | The context series of a chart (e.g. "added" next to "completed") |
 | `--color-heat-0` … `-4` | `oklch(0.94 …)` → `= accent` | `oklch(0.255 …)` → `oklch(0.72 0.15 264)` | One-hue ramp for heat grids and bar tracks, empty to full |
 | `--color-ink-default`, `-red`, `-orange`, `-green`, `-blue`, `-purple` | `= text`, `oklch(0.55 0.2 27)` … | `= text`, `oklch(0.7 0.17 25)` … | Pen colours on knowledge pages (≥ 3:1 on the surface) |
+| `--color-event` | `oklch(0.5 0.17 305)` | `oklch(0.72 0.14 305)` | Calendar events: the side stripe, dot or bar mark (≥ 3:1), the drag preview's fill |
+| `--color-event-subtle` | `oklch(0.95 0.035 305)` | `oklch(0.3 0.07 305)` | Calendar events: the block, bar and chip fill (text ≥ 4.5:1 on it) |
+| `--color-event-hover` | `oklch(0.915 0.055 305)` | `oklch(0.35 0.085 305)` | Hover on an event fill |
 
 **One-accent rule:** only `--color-accent` is used decoratively. The
 semantic colours carry *meaning* (overdue, priority, destruction) and appear
@@ -197,7 +200,11 @@ lists have no colours. Areas have one, but only as a **tint** of the accent
 (below), so every view still has exactly one accent. The one exception is
 **ink**: pen strokes on a knowledge page are the owner's own content, so
 they come in the six `ink-*` colours. Strokes store the colour's name, not
-its value, so ink follows the theme.
+its value, so ink follows the theme. The other exception is **calendar
+events** (owner request, 2026-11-01): appointments are purple
+(`event-*`) so they can never be mistaken for todos, which keep the accent
+(their checkbox, and the dots for them in the phone's month view). Today,
+the now line and selection in the calendar stay the accent.
 
 **Tints (area colours).** `[data-tint]` with an inline `--tint-hue` (set
 only through `ui/tint.ts`: `tintProps(hue)`, `ViewLayout tint`, `TintDot`)

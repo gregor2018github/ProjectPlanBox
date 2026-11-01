@@ -64,6 +64,11 @@ export function MonthDayCell({
   const visible = overflow ? chips.slice(0, room) : chips;
   const hidden = chips.length - visible.length + hiddenBars;
   const count = dayCount(items);
+  // On touch, one dot per item: purple for events, the accent for todos.
+  const events = count - items.entries.length;
+  const dots = Array.from({ length: Math.min(count, 4) }, (_, i) =>
+    i < events ? ("event" as const) : ("entry" as const),
+  );
 
   return (
     <div
@@ -119,8 +124,11 @@ export function MonthDayCell({
       </div>
       {count > 0 && (
         <span aria-hidden className="hidden flex-wrap justify-center gap-0.5 coarse:flex">
-          {Array.from({ length: Math.min(count, 4) }, (_, i) => (
-            <span key={i} className="size-1 rounded-full bg-accent" />
+          {dots.map((kind, i) => (
+            <span
+              key={i}
+              className={cx("size-1 rounded-full", kind === "event" ? "bg-event" : "bg-accent")}
+            />
           ))}
         </span>
       )}
