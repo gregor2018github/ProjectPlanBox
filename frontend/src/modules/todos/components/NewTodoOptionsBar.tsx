@@ -10,7 +10,9 @@ import { Menu } from "../../../ui/Menu";
 import type { NewTodoOptions } from "../newTodoOptions";
 import { PRIORITY_LABELS, type Priority } from "../types";
 import type { TodoActions } from "../useTodoActions";
+import type { TodoData } from "../useTodoData";
 import { DueDatePicker } from "./DueDatePicker";
+import { PlacementPicker } from "./PlacementPicker";
 import { RepeatPicker } from "./RepeatPicker";
 
 /** Props for {@link NewTodoOptionsBar}. */
@@ -26,12 +28,21 @@ export interface NewTodoOptionsBarProps {
   field: RefObject<HTMLInputElement | null>;
   /** Told when a picker opens or closes (focus then leaves the field on purpose). */
   onPickerOpenChange?: (open: boolean) => void;
+  /**
+   * A list button, for views that gather todos from every list (Today,
+   * DayPlan…), where the new todo's list is not implied by the view.
+   */
+  place?: {
+    value: { list_id: string | null; section_id: string | null };
+    data: TodoData;
+    onChange: (value: { list_id: string | null; section_id: string | null }) => void;
+  };
 }
 
 const PRIORITIES: Priority[] = [3, 2, 1, 0];
 
 /**
- * Small date, repeat, priority and tag buttons under a new todo's field.
+ * Small date, repeat, priority, (list) and tag buttons under a new todo's field.
  * Each is only an icon until something is picked; untouched, the todo gets
  * the defaults.
  */
@@ -44,8 +55,10 @@ export function NewTodoOptionsBar({
   canRepeat,
   field,
   onPickerOpenChange,
+  place,
 }: NewTodoOptionsBarProps) {
   const [dueOpen, setDueOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
   const pickerOpenChange = (open: boolean) => {
     onPickerOpenChange?.(open);
   };
@@ -109,6 +122,21 @@ export function NewTodoOptionsBar({
           </Button>
         }
       />
+      {place && (
+        <PlacementPicker
+          compact
+          todo={{ ...place.value, parent_id: null }}
+          data={place.data}
+          open={placeOpen}
+          onOpenChange={(open) => {
+            setPlaceOpen(open);
+            pickerOpenChange(open);
+          }}
+          finalFocus={field}
+          label="Add to"
+          onPick={place.onChange}
+        />
+      )}
       <TagPicker
         compact
         tags={tags}

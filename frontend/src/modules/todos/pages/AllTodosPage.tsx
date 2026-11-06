@@ -64,7 +64,7 @@ export function AllTodosPage() {
       ) : (
         view.open > 0 && <MyOrderView data={data} actions={actions} />
       )}
-      <NewTodoInline placement={INBOX} data={data} actions={actions} />
+      <NewTodoInline placement={INBOX} data={data} actions={actions} pickPlace />
     </ViewLayout>
   );
 }

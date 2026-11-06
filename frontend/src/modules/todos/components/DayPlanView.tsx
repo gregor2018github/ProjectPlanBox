@@ -127,7 +127,13 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
           ? "Nothing planned yet. Add todos below, or from the proposals with ＋."
           : pulling !== null && "Drop here to put it last"}
       </div>
-      <NewTodoInline placement={INBOX} data={data} actions={actions} defaults={{ in_plan: true }} />
+      <NewTodoInline
+        placement={INBOX}
+        data={data}
+        actions={actions}
+        defaults={{ in_plan: true }}
+        pickPlace
+      />
       <CompletedGroup view="plan" todos={view.done} data={data} actions={actions} showPlace />
 
       <section

@@ -505,6 +505,11 @@ Decisions:
   closing a picker returns focus to the field so Enter adds.
 - **Each new todo starts fresh:** Enter clears the picked options with the
   text. A tag created in the picker exists even if the todo is discarded.
+- **A list button only where the view does not imply the list** (owner
+  request, 2026-11-06): the inline field on Today, DayPlan and All todos
+  also gets a compact "Add to" picker (Inbox by default, a typed `#list`
+  wins; reset after each add). Inside a list, an area or the Inbox the
+  list is already decided, so there is none.
 
 ### Knowledge pages (owner request, 2026-10-22)
 

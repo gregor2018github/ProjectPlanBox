@@ -371,6 +371,47 @@ describe("todos", () => {
     expect(screen.queryByRole("dialog", { name: "New todo" })).not.toBeInTheDocument();
   });
 
+  it("picks the list of a todo added inline on Today, but not inside a list", async () => {
+    const user = userEvent.setup();
+    const project = {
+      id: "01a11c71-6563-773d-8602-c5617ab6aa12",
+      name: "Garden",
+      area_id: null,
+      position: "a0",
+      created_at: "",
+      updated_at: "",
+    };
+    const api = open("/todos/today", createFakeTodoApi({ lists: [project] }));
+    await screen.findByRole("link", { name: "Garden" });
+
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    await user.type(screen.getByRole("textbox", { name: "New todo" }), "Plant tulips");
+    await user.click(screen.getByRole("button", { name: "Add to: Inbox" }));
+    await user.click(await screen.findByRole("option", { name: "Garden" }));
+    expect(screen.getByRole("button", { name: "Add to: Garden" })).toBeInTheDocument();
+    // Focus is back in the field, so Enter adds.
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      const post = api.state.requests.find(
+        (r) => r.method === "POST" && r.path === "/api/todos/items",
+      );
+      expect(post?.body).toMatchObject({
+        title: "Plant tulips",
+        list_id: project.id,
+        due_date: "2026-10-08",
+      });
+    });
+    // The next todo starts in the Inbox again.
+    expect(screen.getByRole("button", { name: "Add to: Inbox" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByRole("link", { name: /^Garden/ }));
+    await user.click(await screen.findByRole("button", { name: "Add todo" }));
+    expect(screen.getByRole("textbox", { name: "New todo" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Add to:/ })).not.toBeInTheDocument();
+  });
+
   it("opens details with Enter and saves a new title", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ id: "01a11c71-6563-773d-8602-c5617ab6aa04", title: "Draft" });

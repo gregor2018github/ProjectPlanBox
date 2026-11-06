@@ -74,6 +74,7 @@ export function TodayPage() {
           data={data}
           actions={actions}
           defaults={{ due_date: today }}
+          pickPlace
         />
       )}
       <CompletedGroup view="today" todos={view.done} data={data} actions={actions} showPlace />

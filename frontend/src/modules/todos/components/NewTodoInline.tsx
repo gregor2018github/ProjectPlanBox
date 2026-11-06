@@ -19,13 +19,19 @@ export interface NewTodoInlineProps {
   /** Defaults for new todos here, e.g. a due date in Today, or going into the day plan. */
   defaults?: { due_date?: string | null; in_plan?: boolean };
   label?: string;
+  /**
+   * Offer a list button: for views that gather todos from every list (Today,
+   * DayPlan, All todos), where adding here does not say which list it is for.
+   * The todo goes to `placement` until another list is picked.
+   */
+  pickPlace?: boolean;
 }
 
 /**
  * "+ Add todo" at the end of a group. Enter adds and keeps the field open for
  * the next one; clicking or tabbing away adds and closes. Esc or the ✕
  * button discards. Understands the quick-add syntax, and has buttons for the
- * date, repeat, priority and tags.
+ * date, repeat, priority and tags (and the list, with `pickPlace`).
  */
 export function NewTodoInline({
   placement,
@@ -33,10 +39,13 @@ export function NewTodoInline({
   actions,
   defaults,
   label = "Add todo",
+  pickPlace = false,
 }: NewTodoInlineProps) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
   const [options, setOptions] = useState<NewTodoOptions>(NO_OPTIONS);
+  const startPlace = { list_id: placement.list_id, section_id: placement.section_id };
+  const [place, setPlace] = useState(startPlace);
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   // While a picker is open, focus is in its popup (outside the box) on purpose.
@@ -46,19 +55,23 @@ export function NewTodoInline({
   /** Adds the typed todo; returns whether there was one to add. */
   const submit = (): boolean => {
     if (parsed === null || parsed.title === "") return false;
+    // A typed `#list` wins over the picked one, as typed parts do.
+    const target = { ...placement, ...(pickPlace && place) };
     actions.create({
-      ...(parsed.place ? { ...placement, ...parsed.place } : placement),
+      ...(parsed.place ? { ...target, ...parsed.place } : target),
       ...newTodoFields(parsed, options, defaults?.due_date ?? null, placement.parent_id === null),
       ...(defaults?.in_plan === true && { in_plan: true }),
     });
     setText("");
     setOptions(NO_OPTIONS);
+    setPlace(startPlace);
     return true;
   };
 
   const cancel = () => {
     setText("");
     setOptions(NO_OPTIONS);
+    setPlace(startPlace);
     pickerOpen.current = false;
     setEditing(false);
   };
@@ -148,6 +161,7 @@ export function NewTodoInline({
           onPickerOpenChange={(open) => {
             pickerOpen.current = open;
           }}
+          {...(pickPlace && { place: { value: place, data, onChange: setPlace } })}
         />
       )}
       {parsed && parsed.tokens.length > 0 && (

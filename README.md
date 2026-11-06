@@ -41,7 +41,9 @@ phone can also use a running PC over the home network or Tailscale.
     you finish it.
 - Under a new todo's field (the **Add todo** row and **Q**), small date,
   repeat, priority and tag buttons set those while you type. Leave them
-  alone for the defaults; anything typed with the syntax above wins.
+  alone for the defaults; anything typed with the syntax above wins. On
+  Today, DayPlan and All todos a list button also picks where the todo goes
+  (Inbox until you pick one).
 
   **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
 - **DayPlan** (sidebar, or **G P**) is what you pick to do today, in your
