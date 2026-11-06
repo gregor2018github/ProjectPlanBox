@@ -629,6 +629,12 @@ month chips, agenda stripes, the drag preview) uses them. Todos keep their
 checkbox rows in the accent. On touch, the month view's dots are purple
 for events and the accent for todos. Frontend only.
 
+Follow-up (2026-11-06): the mini month (calendar pane and rail) showed a
+single accent dot per busy day; it now shows a purple dot when the day has
+events and an accent dot when it has open todos, because the owner treats
+appointments as the more urgent of the two. On the selected day both dots
+are `on-accent`, since purple does not read on the accent fill.
+
 Decision: **a second exception to the one-accent rule**, like ink, rather
 than tinting events through `data-tint`: a tint replaces the accent for a
 whole subtree, but the calendar shows both kinds side by side and must

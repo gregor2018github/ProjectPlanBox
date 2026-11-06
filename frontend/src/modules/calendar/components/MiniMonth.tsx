@@ -21,18 +21,19 @@ export interface MiniMonthProps {
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-function countOf(items: DayItems | undefined): number {
+function eventsOf(items: DayItems | undefined): number {
   if (items === undefined) return 0;
-  return (
-    items.spanning.length +
-    items.allDay.length +
-    items.timed.length +
-    items.entries.filter((e) => !e.entry.done).length
-  );
+  return items.spanning.length + items.allDay.length + items.timed.length;
+}
+
+function openEntriesOf(items: DayItems | undefined): number {
+  if (items === undefined) return 0;
+  return items.entries.filter((e) => !e.entry.done).length;
 }
 
 /**
- * A compact month with a dot on busy days. Arrow keys move by day and week,
+ * A compact month with dots on busy days: purple for events, the accent for
+ * open todos. Arrow keys move by day and week,
  * PageUp/PageDown by month; only the selected day is in the tab order.
  */
 export function MiniMonth({
@@ -116,7 +117,8 @@ export function MiniMonth({
             inMonth={day.slice(0, 7) === month.slice(0, 7)}
             isToday={day === today}
             isSelected={day === selected}
-            count={countOf(byDay.get(day))}
+            events={eventsOf(byDay.get(day))}
+            entries={openEntriesOf(byDay.get(day))}
             surface={surface}
             buttonRef={day === selected ? focusRef : undefined}
             onSelect={onSelect}

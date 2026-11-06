@@ -203,7 +203,9 @@ they come in the six `ink-*` colours. Strokes store the colour's name, not
 its value, so ink follows the theme. The other exception is **calendar
 events** (owner request, 2026-11-01): appointments are purple
 (`event-*`) so they can never be mistaken for todos, which keep the accent
-(their checkbox, and the dots for them in the phone's month view). Today,
+(their checkbox, and their dots in the phone's month view and the mini
+month, where a day shows one purple dot for events and one accent dot for
+open todos; a selected day's dots are both `on-accent`). Today,
 the now line and selection in the calendar stay the accent.
 
 **Tints (area colours).** `[data-tint]` with an inline `--tint-hue` (set
