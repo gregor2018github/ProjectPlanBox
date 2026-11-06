@@ -7,6 +7,8 @@ import { unwrap } from "../api/client";
 export const cloudKeys = {
   status: ["core", "cloud"] as const,
   devices: ["core", "cloud", "devices"] as const,
+  /** Mutation key of every transfer, so all sync buttons see one in flight. */
+  transfer: ["core", "cloud", "transfer"] as const,
 };
 
 /** Sync as this device sees it; polled while a browser sign-in is open. */
@@ -60,6 +62,7 @@ export function useCloudTransfer() {
   const client = useApiClient();
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: cloudKeys.transfer,
     mutationFn: async (kind: "sync" | "upload" | "download") => {
       const body = { confirm: true as const };
       if (kind === "upload")

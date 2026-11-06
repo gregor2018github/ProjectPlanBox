@@ -984,8 +984,9 @@ FastAPI app ──app.openapi()──▶ frontend/src/core/api/openapi.json
 - The detail panel is driven by `?item=todos.todo:<id>`. It can be deep
   linked, works with Back, and the owning module renders it.
 - Shell: collapsible sidebar (nav items from the manifests) | main |
-  optional detail panel | optional rail pane | icon rail (from manifests'
-  `railAction`, then `rail`). The pane sits inline from 1280 px, floats over the content
+  optional detail panel | optional rail pane | icon rail (the Google Drive
+  quick sync, `core/data/SyncButton.tsx`, shown only while this device is
+  connected to Drive; then manifests' `railAction`, then `rail`). The pane sits inline from 1280 px, floats over the content
   between 768 and 1280 px; below 768 px the rail icons move to the top bar
   and the pane fills the screen. The open pane is remembered per browser.
   - Width ≥ 1280 px: all three columns.

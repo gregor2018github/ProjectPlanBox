@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CloudStatus } from "../core/api/types";
 import type { components } from "../core/api/schema";
+import { installMatchMedia } from "./matchMedia";
 import { defaultRoutes, fakeFetch, renderApp, useDesktopViewport } from "./renderApp";
 
 const status: CloudStatus = {
@@ -114,5 +115,36 @@ describe("Google Drive sync on the Data page", () => {
     expect(await screen.findByText(/Android phone: 3 new, 1 updated\./)).toBeInTheDocument();
     const posted = calls.find((c) => new URL(c.url).pathname === "/api/cloud/sync");
     expect(posted?.method).toBe("POST");
+  });
+});
+
+describe("The quick sync button in the shell", () => {
+  it("syncs in one click when this device is connected", async () => {
+    useDesktopViewport();
+    const calls: Request[] = [];
+    const routes = { ...defaultRoutes, "/api/cloud": status, "/api/cloud/sync": sync };
+    renderApp({ path: "/", fetch: fakeFetch(routes, calls) });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Sync with Google Drive" }));
+    expect(await screen.findByText(/Android phone: 3 new, 1 updated\./)).toBeInTheDocument();
+    const posted = calls.find((c) => new URL(c.url).pathname === "/api/cloud/sync");
+    expect(posted?.method).toBe("POST");
+  });
+
+  it("shows in the top bar on small screens", async () => {
+    installMatchMedia(() => false);
+    renderApp({ path: "/", fetch: fakeFetch({ ...defaultRoutes, "/api/cloud": status }) });
+    expect(await screen.findByRole("button", { name: "Sync with Google Drive" })).toBeVisible();
+  });
+
+  it("is absent when Drive is set up but not connected", async () => {
+    useDesktopViewport();
+    const routes = { ...defaultRoutes, "/api/cloud": { ...status, connected: false } };
+    renderApp({ path: "/data", fetch: fakeFetch(routes) });
+    // Once the Data page shows the connect button, the status has loaded.
+    expect(await screen.findByRole("button", { name: "Connect Google Drive" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sync with Google Drive" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,5 @@
+import { SyncButton } from "../core/data/SyncButton";
+import { useCloudConnected } from "../core/data/useCloudRun";
 import { IconButton } from "../ui/IconButton";
 import { useModules } from "./modulesContext";
 
@@ -8,18 +10,22 @@ export interface RightRailProps {
 }
 
 /**
- * The slim icon bar on the right edge: the modules' one-click actions on
- * top, then an icon per module that toggles its pane. Renders nothing when
- * no module has either.
+ * The slim icon bar on the right edge: the Google Drive quick sync (only
+ * when this device is connected), the modules' one-click actions, then an
+ * icon per module that toggles its pane. Renders nothing when it would be
+ * empty.
  */
 export function RightRail({ openId, onToggle }: RightRailProps) {
   const modules = useModules();
-  if (!modules.some((m) => m.rail !== undefined || m.railAction !== undefined)) return null;
+  const connected = useCloudConnected();
+  const hasModuleIcons = modules.some((m) => m.rail !== undefined || m.railAction !== undefined);
+  if (!connected && !hasModuleIcons) return null;
   return (
     <nav
       aria-label="Panels"
       className="flex w-12 shrink-0 flex-col items-center gap-1 bg-sidebar py-2"
     >
+      <SyncButton tooltipSide="left" />
       {modules.map(
         (module) =>
           module.railAction && (

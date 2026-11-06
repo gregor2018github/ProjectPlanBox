@@ -1,5 +1,6 @@
 import { Menu, PanelLeftOpen } from "lucide-react";
 
+import { SyncButton } from "../core/data/SyncButton";
 import type { ModuleManifest } from "../core/module";
 import { IconButton } from "../ui/IconButton";
 import { useModules } from "./modulesContext";
@@ -34,6 +35,7 @@ export function TopBar({
         onClick={onToggleSidebar}
       />
       <div className="flex items-center gap-1">
+        {!isDesktop && <SyncButton />}
         {actionModules.map(
           (module) =>
             module.railAction && (

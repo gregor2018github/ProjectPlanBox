@@ -5,11 +5,11 @@ import { useToast } from "../../ui/useToast";
 import {
   useCloudDevices,
   useCloudStatus,
-  useCloudTransfer,
   useConnectCloud,
   useDisconnectCloud,
 } from "./cloudQueries";
-import { downloadSummary, formatBytes, formatInstant } from "./format";
+import { formatInstant } from "./format";
+import { useCloudRun, type CloudRunKind } from "./useCloudRun";
 
 /**
  * The Data page's Google Drive block: connect this device, then sync. Each
@@ -23,7 +23,7 @@ export function CloudSection() {
   const devices = useCloudDevices(connected);
   const connect = useConnectCloud();
   const disconnect = useDisconnectCloud();
-  const transfer = useCloudTransfer();
+  const cloudRun = useCloudRun();
   const timeZone = useMeta().data?.timezone ?? "UTC";
   const { show } = useToast();
 
@@ -48,23 +48,11 @@ export function CloudSection() {
     });
   };
 
-  const run = (kind: "sync" | "upload" | "download") => {
-    transfer.mutate(kind, {
-      onSuccess: (result) => {
-        const parts: string[] = [];
-        if (result.download !== undefined) parts.push(downloadSummary(result.download));
-        if (result.upload !== undefined) parts.push(`Uploaded ${formatBytes(result.upload.size)}.`);
-        show({
-          title: kind === "sync" ? "Synced" : kind === "upload" ? "Uploaded" : "Downloaded",
-          description: parts.join(" "),
-        });
-        void devices.refetch();
-      },
-      onError: failed(kind === "sync" ? "Could not sync" : `Could not ${kind}`),
-    });
+  const run = (kind: CloudRunKind) => {
+    cloudRun.run(kind, () => void devices.refetch());
   };
 
-  const busy = transfer.isPending;
+  const { busy, running } = cloudRun;
   return (
     <section aria-labelledby="data-cloud" className="flex flex-col gap-4">
       <header className="flex items-start justify-between gap-4">
@@ -87,7 +75,7 @@ export function CloudSection() {
             }}
             disabled={busy}
           >
-            {busy && transfer.variables === "sync" ? "Syncing…" : "Sync now"}
+            {running === "sync" ? "Syncing…" : "Sync now"}
           </Button>
         )}
       </header>
@@ -144,7 +132,7 @@ export function CloudSection() {
                 }}
                 disabled={busy}
               >
-                {busy && transfer.variables === "upload" ? "Uploading…" : "Upload only"}
+                {running === "upload" ? "Uploading…" : "Upload only"}
               </Button>
               <Button
                 variant="secondary"
@@ -153,7 +141,7 @@ export function CloudSection() {
                 }}
                 disabled={busy}
               >
-                {busy && transfer.variables === "download" ? "Downloading…" : "Download only"}
+                {running === "download" ? "Downloading…" : "Download only"}
               </Button>
               <Button
                 variant="ghost"
