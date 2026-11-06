@@ -180,7 +180,7 @@ export function useTodoKeyboard(
   useShortcut({
     id: "todos.plan",
     keys: "P",
-    description: "Add to or remove from DayPlan",
+    description: "Add to or remove from Day Plan",
     group: GROUP,
     run: withSelected((t) => {
       actions.togglePlan(t);

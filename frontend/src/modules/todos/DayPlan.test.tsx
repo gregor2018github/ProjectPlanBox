@@ -38,13 +38,13 @@ function setup() {
   return api;
 }
 
-describe("DayPlan", () => {
+describe("Day Plan", () => {
   it("shows today's plan, with every other open todo as folded proposals below", async () => {
     const user = userEvent.setup();
     setup();
 
     await waitFor(() => {
-      expect(titles("DayPlan")).toEqual(["Planned"]);
+      expect(titles("Day Plan")).toEqual(["Planned"]);
     });
     const toggle = screen.getByRole("button", { name: /Proposals/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
@@ -64,9 +64,9 @@ describe("DayPlan", () => {
     const late = await screen.findByText("Late");
     const row = late.closest("[data-todo-id]");
     if (!(row instanceof HTMLElement)) throw new Error("no row");
-    await user.click(within(row).getByRole("button", { name: "Add to DayPlan" }));
+    await user.click(within(row).getByRole("button", { name: "Add to Day Plan" }));
     await waitFor(() => {
-      expect(titles("DayPlan")).toEqual(["Planned", "Late"]);
+      expect(titles("Day Plan")).toEqual(["Planned", "Late"]);
     });
     await waitFor(() => {
       expect(titles("Proposed todos")).toEqual(["Now", "Tomorrow", "Yesterday's"]);
@@ -76,9 +76,9 @@ describe("DayPlan", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Actions for “Late”" }));
-    await user.click(await screen.findByRole("menuitem", { name: /Remove from DayPlan/ }));
+    await user.click(await screen.findByRole("menuitem", { name: /Remove from Day Plan/ }));
     await waitFor(() => {
-      expect(titles("DayPlan")).toEqual(["Planned"]);
+      expect(titles("Day Plan")).toEqual(["Planned"]);
     });
     await waitFor(() => {
       expect(titles("Proposed todos")).toEqual(["Late", "Now", "Tomorrow", "Yesterday's"]);
@@ -93,7 +93,7 @@ describe("DayPlan", () => {
     await user.keyboard("Buy bread{Enter}");
 
     await waitFor(() => {
-      expect(titles("DayPlan")).toEqual(["Planned", "Buy bread"]);
+      expect(titles("Day Plan")).toEqual(["Planned", "Buy bread"]);
     });
     const added = api.state.todos.find((t) => t.title === "Buy bread");
     expect(added?.plan_date).toBe("2026-10-08");
@@ -107,10 +107,32 @@ describe("DayPlan", () => {
     await user.click(await screen.findByRole("button", { name: /Proposals/ }));
     expect(await screen.findByText("Late")).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: /Inbox/ }));
-    await user.click(await screen.findByRole("link", { name: /DayPlan/ }));
+    await user.click(await screen.findByRole("link", { name: /Day Plan/ }));
 
     const toggle = await screen.findByRole("button", { name: /Proposals/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("list", { name: "Proposed todos" })).not.toBeInTheDocument();
+  });
+
+  it("is the page the app opens on, and Home is still one click away", async () => {
+    const user = userEvent.setup();
+    const api = createFakeTodoApi({ todos: [] });
+    renderApp({ path: "/", fetch: api.fetch, modules: [todosModule], openStartPage: true });
+
+    expect(await screen.findByRole("heading", { name: "Day Plan", level: 1 })).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Home" }));
+    expect(await screen.findByRole("region", { name: "Todos" })).toBeInTheDocument();
+  });
+
+  it("leaves a deep link alone", async () => {
+    const api = createFakeTodoApi({ todos: [] });
+    renderApp({
+      path: "/todos/inbox",
+      fetch: api.fetch,
+      modules: [todosModule],
+      openStartPage: true,
+    });
+
+    expect(await screen.findByRole("heading", { name: "Inbox", level: 1 })).toBeInTheDocument();
   });
 });

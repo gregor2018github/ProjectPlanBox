@@ -33,8 +33,13 @@ test("quick-add parses the text and lands in Today, persisted", async ({ page })
   await expect(page.getByRole("list", { name: "Due today" })).toContainText(title);
 });
 
-test("Home gives an overview and leads to Today", async ({ page }) => {
+test("the app opens on Day Plan; Home gives an overview and leads to Due Today", async ({
+  page,
+}) => {
   await page.goto("/");
+  await expect(page).toHaveURL(/\/todos\/plan$/);
+  await expect(page.getByRole("heading", { name: "Day Plan", level: 1 })).toBeVisible();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Home" }).click();
   const todos = page.getByRole("region", { name: "Todos" });
   await expect(todos).toBeVisible();
   await expect(page.getByRole("region", { name: "Calendar" })).toBeVisible();
@@ -397,9 +402,9 @@ test("works on a 375 px phone screen", async ({ page }) => {
 
   await page.getByRole("button", { name: "Open navigation" }).click();
   const sheet = page.getByRole("dialog", { name: "Navigation" });
-  await sheet.getByRole("link", { name: /DayPlan/ }).click();
+  await sheet.getByRole("link", { name: /Day Plan/ }).click();
 
-  await expect(page.getByRole("heading", { name: "DayPlan", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Day Plan", exact: true })).toBeVisible();
   await expect(sheet).toBeHidden();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,

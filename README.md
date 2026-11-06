@@ -42,16 +42,16 @@ phone can also use a running PC over the home network or Tailscale.
 - Under a new todo's field (the **Add todo** row and **Q**), small date,
   repeat, priority and tag buttons set those while you type. Leave them
   alone for the defaults; anything typed with the syntax above wins. On
-  Today, DayPlan and All todos a list button also picks where the todo goes
+  Due Today, Day Plan and All todos a list button also picks where the todo goes
   (Inbox until you pick one).
 
   **Shift+Q** (or "Create subtask" in a todo's menu) adds a subtask to the selected todo.
-- **DayPlan** (sidebar, or **G P**) is what you pick to do today, in your
-  own order. Add todos there directly, or from **Proposals** at the bottom
+- **Day Plan** (sidebar under Inbox, or **G P**) is what you pick to do
+  today, in your own order, and the page PlanBox opens on. Add todos there directly, or from **Proposals** at the bottom
   (every open todo not in the plan yet, in your My order from All todos,
   the rest by due date and priority; folded on every visit, click to
   unfold) with ＋.
-  Anywhere else, **P**, "Add to DayPlan" in a todo's menu, or a swipe to the
+  Anywhere else, **P**, "Add to Day Plan" in a todo's menu, or a swipe to the
   right on the phone adds it. At midnight the plan starts empty again; the
   todos themselves stay where they are.
 - **Data** (bottom of the sidebar, **G D**): the backups, the off-site
@@ -60,7 +60,7 @@ phone can also use a running PC over the home network or Tailscale.
 - In a list: **↑/↓** select, **Space** or **X** completes, **Enter** opens
   details, **Alt+↑/↓** moves, **Alt+→/←** makes a subtask or promotes it,
   **T/M** set the date to today or tomorrow, **P** adds to or removes from
-  the DayPlan, **D** picks a date, **S** skips
+  the Day Plan, **D** picks a date, **S** skips
   one date of a repeating todo, **V** moves the todo to another list,
   **1/2/3/0** set the priority, **Delete** deletes.
 - **Ctrl+Z** undoes the last delete, completion or move.
@@ -103,8 +103,9 @@ phone can also use a running PC over the home network or Tailscale.
   missing. Filter a list of pages by words and tags. Drag pages onto a
   collection in the sidebar, and drag collections to reorder them. In a
   list of pages, **↑/↓** move and **Delete** deletes.
+- **Due Today** (sidebar, or **G T**) lists what is overdue or due today.
 - **Home** (sidebar, or **G H**) is the overview: overdue and due-today
-  todos to tick off, with counts for the DayPlan and the Inbox; the
+  todos to tick off, with counts for the Day Plan and the Inbox; the
   week's events; today's habits; recently changed knowledge pages; and
   the last 7 days across everything. Each card's title opens the full view.
 - **Insights** (sidebar, or **G S**) shows statistics: a year of activity

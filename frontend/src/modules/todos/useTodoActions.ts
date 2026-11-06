@@ -222,7 +222,7 @@ export function useTodoActions() {
       },
 
       /**
-       * Puts a todo at the end of today's DayPlan, or takes it out. Toasts
+       * Puts a todo at the end of today's Day Plan, or takes it out. Toasts
        * with Undo, as adding is what a swipe does and a phone has no Ctrl+Z.
        */
       togglePlan(t: Todo): void {
@@ -231,7 +231,7 @@ export function useTodoActions() {
         if (inPlan(t, today)) {
           setDayPlan.mutate({ ids: [], removed: [t.id] });
           pushUndo({
-            label: `Removed “${t.title}” from DayPlan`,
+            label: `Removed “${t.title}” from Day Plan`,
             undo: () => {
               setDayPlan.mutate({ ids: before, removed: [] });
             },
@@ -239,7 +239,7 @@ export function useTodoActions() {
         } else if (t.completed_at === null) {
           setDayPlan.mutate({ ids: [...before, t.id], removed: [] });
           pushUndo({
-            label: `Added “${t.title}” to DayPlan`,
+            label: `Added “${t.title}” to Day Plan`,
             undo: () => {
               setDayPlan.mutate({ ids: [], removed: [t.id] });
             },
@@ -248,7 +248,7 @@ export function useTodoActions() {
       },
 
       /**
-       * Stores today's DayPlan: `ids` is the whole plan top to bottom,
+       * Stores today's Day Plan: `ids` is the whole plan top to bottom,
        * `removed` leave it, and `before` is the plan this replaces (what
        * undo goes back to, taking out what it added).
        */
@@ -256,7 +256,7 @@ export function useTodoActions() {
         setDayPlan.mutate({ ids, removed });
         const was = new Set(before);
         pushUndo({
-          label: "Changed DayPlan",
+          label: "Changed Day Plan",
           silent: true,
           undo: () => {
             setDayPlan.mutate({ ids: [...before], removed: ids.filter((id) => !was.has(id)) });

@@ -16,7 +16,7 @@ export function DayPlanPage() {
   return (
     <ViewLayout>
       <PageHeader
-        title="DayPlan"
+        title="Day Plan"
         subtitle={data.today === null ? undefined : formatDayLong(data.today)}
       />
       <DayPlanView data={data} actions={actions} />

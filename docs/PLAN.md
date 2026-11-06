@@ -34,6 +34,7 @@ this file records what was planned, decided and pinned.
 | Drawing on pages (ink) | Built 2026-10-26 (owner request) |
 | DayPlan (replaces Upcoming) | Built 2026-11-01 (owner request) |
 | Purple calendar events | Built 2026-11-01 (owner request) |
+| Day Plan first, Due Today | Built 2026-11-06 (owner request) |
 
 Every planned phase is built. New work comes from TODO.md or owner requests.
 
@@ -600,7 +601,7 @@ and `in_plan` on create, in both backend twins; no new dependencies.
 - **Upcoming is gone** (page, route, sidebar link, `G U`). Home's "Next 7
   days" figure became a DayPlan count. The calendar still shows future due
   dates.
-- **DayPlan** (`/todos/plan`, sidebar under Today, `G P`, badge = open
+- **DayPlan** (`/todos/plan`, sidebar under Today, since 2026-11-06 under Inbox, `G P`, badge = open
   planned todos): a hand-sorted list (drag, Alt+↑/↓, Move to top/bottom),
   its own **Add todo** row, done ones under "Completed today", and
   **Proposals** at the bottom: every open todo not planned, in My order
@@ -644,6 +645,28 @@ Decision: **a second exception to the one-accent rule**, like ink, rather
 than tinting events through `data-tint`: a tint replaces the accent for a
 whole subtree, but the calendar shows both kinds side by side and must
 keep them apart.
+
+### Day Plan first, Due Today (owner request, 2026-11-06)
+
+"Today should be renamed into Due Today, with an alarm bell. The sun goes
+to the Day Plan (two words). Day Plan goes under Inbox and is the page the
+app opens with." Frontend only, no new dependencies.
+- **Names:** "Today" became **Due Today** (sidebar, page title, `G T`) and
+  "DayPlan" became **Day Plan** everywhere the owner reads it. Code
+  identifiers (`DayPlanView`, `todoPaths.today`) and URLs stay.
+- **Icons:** Due Today and the "Due today" menu item use `BellRing`; Day
+  Plan uses `Sun` (it had `ClipboardList`).
+- **Order:** Inbox, Day Plan, Due Today, All todos, Logbook.
+- **Start page:** a module may set `startPath` in its manifest (todos:
+  `/todos/plan`). When the app starts at `/`, Home's route redirects the
+  first load there (a one-shot `beforeLoad` redirect); Home stays at `/`
+  for the sidebar link and `G H`, and deep links are left alone. Tests that inject
+  a history keep starting where they say unless they pass `openStartPage`.
+
+Decision: **a manifest field, not a hard-coded redirect in the shell**, so
+the shell still knows nothing about todos (module boundary rule), and
+**redirect only at launch rather than moving Home**, so `/` and every
+existing Home link keep working.
 
 ## Dependencies
 

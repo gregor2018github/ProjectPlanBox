@@ -167,7 +167,7 @@ export interface DayPlanViewData {
 }
 
 /**
- * The order of the DayPlan's proposals: todos in All todos' "My order"
+ * The order of the Day Plan's proposals: todos in All todos' "My order"
  * first, in that order; then the rest by due date (earliest first, none
  * last), then priority (highest first), then their place in their list.
  */

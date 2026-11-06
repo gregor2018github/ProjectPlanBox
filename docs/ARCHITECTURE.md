@@ -159,6 +159,7 @@ interface ModuleManifest {
   InsightsSection?: ComponentType;             // the module's block on the Insights page
   HomeSection?: ComponentType;                 // the module's card on Home (what matters now)
   homeOrder?: number;                          // card order on Home, lowest first
+  startPath?: string;                          // the page the app opens on instead of Home (todos: Day Plan)
 }
 ```
 
@@ -645,7 +646,7 @@ that can be enforced in SQL are also CHECK constraints.
   daily routine comes back to its spot. The client counts only todos in
   Today as the ranking (`rankedIds(todos, "today", today)`), so a stale
   key on a future occurrence is ignored until it is due.
-- **DayPlan (owner request, 2026-11-01; it replaced Upcoming):** migration
+- **Day Plan (owner request, 2026-11-01; it replaced Upcoming):** migration
   `0008_add_day_plan.sql` adds `plan_date` (the local day a todo was
   planned for) and `plan_position` (its key that day). A todo is in the
   plan only while `plan_date` is today, so the plan **empties itself at
@@ -923,7 +924,7 @@ part in links (a linkable source) and search (`documents`: name and notes).
 ### One cache, derived views
 
 For todos the client loads **all open todos plus today's completed ones** in
-one query (`['todos','items']`). Inbox, Today, DayPlan, All todos, each
+one query (`['todos','items']`). Inbox, Today, Day Plan, All todos, each
 area and each list (grouped by section, subtasks nested under their parent) are
 **selectors** over that array (filter, sort and group, memoised). Areas,
 lists, sections and tags are small extra queries.
@@ -1060,8 +1061,8 @@ Todo rows (`TodoRow`, `RankRow`) can also be swiped sideways
 `todos/todoSwipe.ts`). The row follows the finger over a panel naming the
 action, which takes its colour past 30 % of the row's width (64–120 px).
 Letting go there acts, and the row springs back either way. Swiping right
-adds the todo to the DayPlan, with an Undo toast; a todo already in it (so
-every planned row in the DayPlan itself) and a done one have no right
+adds the todo to the Day Plan, with an Undo toast; a todo already in it (so
+every planned row in the Day Plan itself) and a done one have no right
 swipe. Swiping left deletes it after the
 touch confirmation. A swipe must go 14 px sideways before the 250 ms hold
 is up. That is past the hold's tolerance, so dnd-kit has already let the

@@ -84,7 +84,7 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
 
   return (
     <>
-      <ul aria-label="DayPlan" className="flex flex-col">
+      <ul aria-label="Day Plan" className="flex flex-col">
         <AnimatePresence initial={false}>
           {view.planned.map((todo, index) => (
             <SortableTodoItem
@@ -175,7 +175,7 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
                 plan.append(view.proposals.map((t) => t.id));
               }}
             >
-              Add all to DayPlan
+              Add all to Day Plan
             </Button>
           )}
         </h2>
@@ -195,7 +195,7 @@ export function DayPlanView({ data, actions }: DayPlanViewProps) {
                   actions={actions}
                   ranking={plan}
                   onDragging={onDragging}
-                  addLabel="Add to DayPlan"
+                  addLabel="Add to Day Plan"
                   rankEntries={planMenuEntries(todo, plan)}
                 />
               ))}

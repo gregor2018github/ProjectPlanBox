@@ -65,7 +65,7 @@ describe("tag filter", () => {
     expect(post?.body).toMatchObject({ title: "Slides", tag_ids: [WORK.id] });
 
     // The filter follows the user to another view.
-    await user.click(screen.getByRole("link", { name: /^Today/ }));
+    await user.click(screen.getByRole("link", { name: /^Due Today/ }));
     await waitFor(() => {
       expect(rowTitles("Due today")).toEqual(["Report"]);
     });

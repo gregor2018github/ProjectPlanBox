@@ -2,6 +2,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
   retainSearchParams,
   type RouterHistory,
 } from "@tanstack/react-router";
@@ -22,11 +23,21 @@ export interface RootSearch {
   tags?: string;
 }
 
-/** Builds the router from the shell's routes plus every module's routes. */
+/**
+ * Builds the router from the shell's routes plus every module's routes.
+ * With `openStartPage`, an app opened at "/" goes to the first module's
+ * `startPath` instead (the owner starts the day in Day Plan). Only that
+ * first visit is redirected; Home stays at "/" afterwards.
+ */
 export function createAppRouter(options: {
   modules: readonly ModuleManifest[];
   history?: RouterHistory | undefined;
+  openStartPage?: boolean;
 }) {
+  const startPath = options.modules.find((m) => m.startPath !== undefined)?.startPath;
+  const launchPath = options.history?.location.pathname ?? window.location.pathname;
+  let openStart = options.openStartPage === true && startPath !== undefined && launchPath === "/";
+
   const rootRoute = createRootRoute({
     component: AppShell,
     notFoundComponent: NotFoundPage,
@@ -42,6 +53,12 @@ export function createAppRouter(options: {
     path: "/",
     component: HomePage,
     staticData: { tagFilter: true },
+    beforeLoad: ({ location }) => {
+      if (!openStart || startPath === undefined) return;
+      openStart = false;
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- TanStack redirects are thrown by design
+      throw redirect({ href: `${startPath}${location.searchStr}`, replace: true });
+    },
   });
   const insightsRoute = createRoute({
     getParentRoute: () => rootRoute,

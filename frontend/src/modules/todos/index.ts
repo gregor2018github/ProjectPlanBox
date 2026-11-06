@@ -1,4 +1,4 @@
-/** The todos module's manifest: routes, sidebar, host, detail panel, rail action and Home card. */
+/** The todos module's manifest: routes, sidebar, host, detail panel, rail action, Home card and start page. */
 import { SquarePen } from "lucide-react";
 
 import type { ModuleManifest } from "../../core/module";
@@ -8,6 +8,7 @@ import { TodoInsights } from "./components/TodoInsights";
 import { TodosHost } from "./components/TodosHost";
 import { TodosSidebarSection } from "./components/TodosSidebarSection";
 import { todoCreate } from "./createStore";
+import { todoPaths } from "./paths";
 import { todoRoutes } from "./routes";
 
 /** Todos: areas, lists, sections, todos and subtasks. */
@@ -22,4 +23,5 @@ export const todosModule: ModuleManifest = {
   InsightsSection: TodoInsights,
   HomeSection: TodoHome,
   homeOrder: 1,
+  startPath: todoPaths.plan,
 };

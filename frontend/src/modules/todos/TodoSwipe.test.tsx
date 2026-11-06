@@ -36,7 +36,7 @@ const patches = (api: ReturnType<typeof createFakeTodoApi>) =>
   api.state.requests.filter((r) => r.method === "PATCH").map((r) => r.body);
 
 describe("swiping a todo", () => {
-  it("to the right adds it to DayPlan, and the toast's Undo takes it out again", async () => {
+  it("to the right adds it to Day Plan, and the toast's Undo takes it out again", async () => {
     const user = userEvent.setup();
     const api = createFakeTodoApi({ todos: [makeTodo({ title: "Water plants" })] });
     renderApp({ path: "/todos/inbox", fetch: api.fetch, modules: [todosModule] });
@@ -46,7 +46,7 @@ describe("swiping a todo", () => {
     await waitFor(() => {
       expect(api.state.todos[0]?.plan_date).toBe("2026-10-08");
     });
-    expect(await screen.findByText("Added “Water plants” to DayPlan")).toBeInTheDocument();
+    expect(await screen.findByText("Added “Water plants” to Day Plan")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Undo" }));
     await waitFor(() => {
       expect(api.state.todos[0]?.plan_date).toBeNull();
@@ -67,7 +67,7 @@ describe("swiping a todo", () => {
     expect(todoUi.get().selectedId).not.toBeNull();
   });
 
-  it("cannot go right in DayPlan, where the todo already is", async () => {
+  it("cannot go right in Day Plan, where the todo already is", async () => {
     const api = createFakeTodoApi({
       todos: [makeTodo({ title: "Call Ann", plan_date: "2026-10-08", plan_position: "a0" })],
     });
@@ -79,7 +79,7 @@ describe("swiping a todo", () => {
     expect(api.state.todos[0]?.plan_date).toBe("2026-10-08");
   });
 
-  it("to the left in DayPlan still asks to delete it", async () => {
+  it("to the left in Day Plan still asks to delete it", async () => {
     const user = userEvent.setup();
     const api = createFakeTodoApi({
       todos: [makeTodo({ title: "Call Ann", plan_date: "2026-10-08", plan_position: "a0" })],

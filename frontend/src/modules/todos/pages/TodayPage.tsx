@@ -50,7 +50,7 @@ export function TodayPage() {
   return (
     <ViewLayout>
       <PageHeader
-        title="Today"
+        title="Due Today"
         subtitle={subtitle}
         actions={
           <SegmentedControl

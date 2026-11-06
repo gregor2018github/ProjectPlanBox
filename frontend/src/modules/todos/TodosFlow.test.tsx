@@ -223,7 +223,7 @@ describe("todos", () => {
 
     // Today has its own, still collapsed, group.
     await user.click(screen.getByRole("link", { name: /Today/ }));
-    await screen.findByRole("heading", { name: "Today", level: 1 });
+    await screen.findByRole("heading", { name: "Due Today", level: 1 });
     expect(screen.getByRole("button", { name: /^Completed today/ })).toHaveAttribute(
       "aria-expanded",
       "false",

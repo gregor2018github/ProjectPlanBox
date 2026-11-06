@@ -28,13 +28,21 @@ export interface AppProps {
   queryClient?: QueryClient;
   history?: RouterHistory;
   modules?: readonly ModuleManifest[];
+  /** Opens a module's start page when the app starts at "/"; on by default unless `history` is injected. */
+  openStartPage?: boolean;
 }
 
 /** The whole application: providers around the router. */
-export function App({ apiClient, queryClient, history, modules = MODULES }: AppProps) {
+export function App({
+  apiClient,
+  queryClient,
+  history,
+  modules = MODULES,
+  openStartPage = history === undefined,
+}: AppProps) {
   const [client] = useState(() => apiClient ?? createApiClient());
   const [queries] = useState(() => queryClient ?? createQueryClient());
-  const [router] = useState(() => createAppRouter({ modules, history }));
+  const [router] = useState(() => createAppRouter({ modules, history, openStartPage }));
   const [commands] = useState(() => new CommandRegistry());
   const [calendarFeeds] = useState(() => new CalendarFeedRegistry());
   const [linkables] = useState(() => new LinkableRegistry());

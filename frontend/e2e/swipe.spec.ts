@@ -44,7 +44,7 @@ async function addToInbox(page: Page, title: string): Promise<void> {
   await expect(page.getByText(title, { exact: true })).toBeVisible();
 }
 
-test("a todo swiped right goes into DayPlan, swiped left asks to delete", async ({
+test("a todo swiped right goes into Day Plan, swiped left asks to delete", async ({
   page,
 }, info) => {
   const title = `Swipe me ${tag()}`;
@@ -53,11 +53,11 @@ test("a todo swiped right goes into DayPlan, swiped left asks to delete", async 
   await swipe(page, title, 150, async () => {
     const panel = page.locator("[data-swipe-panel='right']");
     await expect(panel).toHaveAttribute("data-armed", "");
-    await expect(panel).toContainText("Add to DayPlan");
+    await expect(panel).toContainText("Add to Day Plan");
     await expect(page.locator("[data-swipe-panel='left']")).toHaveCSS("width", "0px");
     await page.screenshot({ path: info.outputPath("swipe-right.png") });
   });
-  await expect(page.getByText(`Added “${title}” to DayPlan`).first()).toBeVisible();
+  await expect(page.getByText(`Added “${title}” to Day Plan`).first()).toBeVisible();
   // No detail panel opened by the swipe's end.
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveCount(0);
 
@@ -68,7 +68,7 @@ test("a todo swiped right goes into DayPlan, swiped left asks to delete", async 
     const panel = page.locator("[data-swipe-panel='left']");
     await expect(panel).toHaveAttribute("data-armed", "");
     await expect(panel).toContainText("Delete");
-    // Already in DayPlan, so there is nothing to the right.
+    // Already in Day Plan, so there is nothing to the right.
     await expect(page.locator("[data-swipe-panel='right']")).toHaveCount(0);
     await page.screenshot({ path: info.outputPath("swipe-left.png") });
   });

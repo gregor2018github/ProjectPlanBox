@@ -52,7 +52,13 @@ export function useDesktopViewport(): void {
 
 /** Renders the whole app at `path` against a fake API. */
 export function renderApp(
-  options: { path?: string; fetch?: FetchFn; modules?: readonly ModuleManifest[] } = {},
+  options: {
+    path?: string;
+    fetch?: FetchFn;
+    modules?: readonly ModuleManifest[];
+    /** Opens a module's start page as a real launch would (see `App`). */
+    openStartPage?: boolean;
+  } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -64,6 +70,7 @@ export function renderApp(
       queryClient={queryClient}
       history={history}
       modules={options.modules ?? []}
+      openStartPage={options.openStartPage ?? false}
     />,
   );
 }

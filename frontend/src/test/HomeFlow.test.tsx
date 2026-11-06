@@ -70,7 +70,7 @@ describe("home", () => {
     expect(within(todos).getByRole("list", { name: "Overdue" })).toHaveTextContent("File taxes");
     expect(within(todos).getByRole("list", { name: "Due today" })).toHaveTextContent("Call mum");
     expect(within(todos).queryByText("Plan trip")).not.toBeInTheDocument();
-    expect(within(todos).getByRole("link", { name: /DayPlan/ })).toHaveTextContent("0");
+    expect(within(todos).getByRole("link", { name: /Day Plan/ })).toHaveTextContent("0");
     expect(within(todos).getByRole("link", { name: /Inbox/ })).toHaveTextContent("4");
     expect(within(todos).getByText("2 to do today · 0 done")).toBeInTheDocument();
 
@@ -115,6 +115,6 @@ describe("home", () => {
 
     await user.click(await screen.findByRole("link", { name: "Todos" }));
 
-    expect(await screen.findByRole("heading", { name: "Today", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Due Today", level: 1 })).toBeInTheDocument();
   });
 });

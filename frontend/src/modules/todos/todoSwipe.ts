@@ -8,10 +8,10 @@ import type { TodoActions } from "./useTodoActions";
 
 /**
  * What swiping a todo row does on touch (owner request, 2026-10-17; the
- * right swipe changed 2026-11-01): to the right it goes into the DayPlan
+ * right swipe changed 2026-11-01): to the right it goes into the Day Plan
  * ({@link TodoActions.togglePlan}); to the left it is deleted, after the
- * usual confirmation. A done todo, or one already in the DayPlan, only
- * deletes, so rows in the DayPlan itself cannot be swiped to the right.
+ * usual confirmation. A done todo, or one already in the Day Plan, only
+ * deletes, so rows in the Day Plan itself cannot be swiped to the right.
  */
 export function todoSwipeActions(
   todo: Todo,
@@ -31,7 +31,7 @@ export function todoSwipeActions(
   }
   return {
     swipeRight: {
-      label: "Add to DayPlan",
+      label: "Add to Day Plan",
       icon: ClipboardPlus,
       tone: "accent",
       onSwipe: () => {

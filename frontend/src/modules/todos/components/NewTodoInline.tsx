@@ -21,7 +21,7 @@ export interface NewTodoInlineProps {
   label?: string;
   /**
    * Offer a list button: for views that gather todos from every list (Today,
-   * DayPlan, All todos), where adding here does not say which list it is for.
+   * Day Plan, All todos), where adding here does not say which list it is for.
    * The todo goes to `placement` until another list is picked.
    */
   pickPlace?: boolean;

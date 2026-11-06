@@ -16,7 +16,7 @@ export const HOME_ROWS = 8;
 
 /**
  * The todos card on Home: the overdue and due-today todos to work through
- * (completable in place), plus counts that lead to DayPlan and Inbox.
+ * (completable in place), plus counts that lead to Day Plan and Inbox.
  */
 export function TodoHome() {
   const data = useTodoData();
@@ -54,7 +54,7 @@ export function TodoHome() {
       <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
         <HomeFigure label="Overdue" value={view.overdue.length} to={todoPaths.today} danger />
         <HomeFigure label="Due today" value={view.today.length} to={todoPaths.today} />
-        <HomeFigure label="DayPlan" value={derived.plan} to={todoPaths.plan} />
+        <HomeFigure label="Day Plan" value={derived.plan} to={todoPaths.plan} />
         <HomeFigure label="Inbox" value={derived.inbox} to={todoPaths.inbox} />
       </div>
       {!data.loading && open === 0 && (

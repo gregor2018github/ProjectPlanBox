@@ -113,14 +113,14 @@ export function TodosHost() {
   useShortcut({
     id: "todos.go.today",
     keys: "G T",
-    description: "Go to Today",
+    description: "Go to Due Today",
     group: "Navigation",
     run: go(todoPaths.today),
   });
   useShortcut({
     id: "todos.go.plan",
     keys: "G P",
-    description: "Go to DayPlan",
+    description: "Go to Day Plan",
     group: "Navigation",
     run: go(todoPaths.plan),
   });
@@ -191,14 +191,14 @@ export function TodosHost() {
       },
       {
         id: "todos.go.today",
-        title: "Go to Today",
+        title: "Go to Due Today",
         group: "Navigation",
         shortcut: "G T",
         run: go(todoPaths.today),
       },
       {
         id: "todos.go.plan",
-        title: "Go to DayPlan",
+        title: "Go to Day Plan",
         group: "Navigation",
         shortcut: "G P",
         keywords: ["day plan", "plan", "agenda"],

@@ -1,5 +1,6 @@
 import {
   ArrowLeftToLine,
+  BellRing,
   CalendarClock,
   CalendarDays,
   CalendarX,
@@ -12,7 +13,6 @@ import {
   PanelRightOpen,
   RotateCcw,
   SkipForward,
-  Sun,
   Trash2,
 } from "lucide-react";
 
@@ -66,7 +66,7 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
           inPlan(todo, dates.today)
             ? {
                 id: "plan",
-                label: "Remove from DayPlan",
+                label: "Remove from Day Plan",
                 icon: ClipboardMinus,
                 shortcut: "P",
                 onSelect: () => {
@@ -75,7 +75,7 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
               }
             : {
                 id: "plan",
-                label: "Add to DayPlan",
+                label: "Add to Day Plan",
                 icon: ClipboardPlus,
                 shortcut: "P",
                 onSelect: () => {
@@ -89,7 +89,7 @@ export function todoMenuEntries(todo: Todo, actions: TodoActions): MenuEntry[] {
           {
             id: "today",
             label: "Due today",
-            icon: Sun,
+            icon: BellRing,
             shortcut: "T",
             onSelect: () => {
               actions.setDue(todo, dates.today);

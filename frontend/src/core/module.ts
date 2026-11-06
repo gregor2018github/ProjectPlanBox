@@ -56,4 +56,9 @@ export interface ModuleManifest {
   HomeSection?: ComponentType;
   /** Where the Home card sits, lowest first; cards without one follow in sidebar order. */
   homeOrder?: number;
+  /**
+   * The page the app opens on instead of Home (e.g. "/todos/plan"). The first
+   * module with one wins; Home stays at "/" for the sidebar link and `G H`.
+   */
+  startPath?: string;
 }
